@@ -9,7 +9,6 @@
 <meta name="apple-mobile-web-app-title" content="Doceria">
 <title>Doceria — Gestão</title>
 <link rel="manifest" href="manifest.json">
-<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
 <style>
 
 /* ══════════════════════════════════════════
@@ -38,7 +37,7 @@
   --shadow-lg:    0 8px 32px rgba(60,30,10,0.14);
   --radius:       14px;
   --radius-lg:    20px;
-  --font:         'Lato', sans-serif;
+  --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --nav-h:        72px;
   --header-h:     56px;
   --safe-top:     env(safe-area-inset-top, 0px);
@@ -734,24 +733,73 @@ body {
 
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="section-page active">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Olá! 🎂</div>
-        <div class="page-subtitle">Resumo desta semana</div>
-      </div>
+
+    <!-- Título -->
+    <div class="page-header" style="margin-bottom:14px">
+      <div><div class="page-title">Olá! 🎂</div></div>
     </div>
+
+    <!-- Navegação de período -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
+      <button class="btn btn-secondary btn-icon" onclick="navegarPeriodo(-1)" id="dash-btn-prev">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
+      </button>
+      <div style="text-align:center;flex:1">
+        <div style="font-size:14px;font-weight:700" id="dash-periodo-label">—</div>
+        <div style="font-size:11px;color:var(--text3)" id="dash-periodo-sub">—</div>
+      </div>
+      <button class="btn btn-secondary btn-icon" onclick="navegarPeriodo(1)" id="dash-btn-next">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
+      </button>
+    </div>
+
+    <!-- Chips de granularidade -->
+    <div class="chip-row" style="margin-bottom:14px">
+      <div class="chip active" onclick="trocarGranularidade('semana')" id="chip-semana">Semana</div>
+      <div class="chip" onclick="trocarGranularidade('mes')"    id="chip-mes">Mês</div>
+      <div class="chip" onclick="trocarGranularidade('tudo')"   id="chip-tudo">Tudo</div>
+    </div>
+
+    <!-- Stats grid -->
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="stat-label">Entradas</div><div class="stat-value" id="dash-entradas">R$ 0</div><div class="stat-sub">pedidos pagos</div></div>
-      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="stat-label">Pedidos</div><div class="stat-value" id="dash-pedidos-count">0</div><div class="stat-sub">esta semana</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="stat-label">Pedidos</div><div class="stat-value" id="dash-pedidos-count">0</div><div class="stat-sub" id="dash-pedidos-sub">no período</div></div>
       <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="stat-label">Orçamentos</div><div class="stat-value" id="dash-orcamentos">0</div><div class="stat-sub">em aberto</div></div>
       <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="stat-label">Estoque</div><div class="stat-value" id="dash-estoque-critico">0</div><div class="stat-sub">itens críticos</div></div>
     </div>
-    <div class="card">
-      <div class="card-title">Entregas desta semana</div>
-      <div id="dash-pedidos-lista">
-        <div class="empty-state" style="padding:16px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-text">Nenhum pedido esta semana.</div></div>
+
+    <!-- CMV / Resultado -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="section-label" style="margin-bottom:12px">Resultado do período</div>
+      <div class="mercado-item">
+        <span style="color:var(--text2)">Entradas</span>
+        <span style="font-weight:600" id="dash-cmv-entradas">R$ 0,00</span>
+      </div>
+      <div class="mercado-item">
+        <span style="color:var(--text2)">CMV (custo de produção)</span>
+        <span style="font-weight:600;color:var(--red)" id="dash-cmv-valor">− R$ 0,00</span>
+      </div>
+      <div class="mercado-item" style="border-bottom:none;padding-bottom:0">
+        <span style="font-weight:700">Lucro Bruto</span>
+        <span style="font-size:1.1rem;font-weight:700;color:var(--green)" id="dash-lucro">R$ 0,00</span>
+      </div>
+      <div id="dash-margem-box" style="margin-top:12px;background:var(--green-light);border-radius:var(--radius);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:700;color:var(--green)">Margem Bruta</span>
+        <span style="font-size:1.1rem;font-weight:700;color:var(--green)" id="dash-margem">0%</span>
       </div>
     </div>
+
+    <!-- Lista do período -->
+    <div class="card">
+      <div class="card-title" id="dash-lista-title">Entregas do período</div>
+      <div id="dash-pedidos-lista">
+        <div class="empty-state" style="padding:16px">
+          <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="empty-state-text">Nenhum pedido neste período.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- PEDIDOS -->
@@ -3030,53 +3078,142 @@ function gerarListaMercado() {
 }
 
 // ──────────────────────────────────────────
-//  DASHBOARD
+//  DASHBOARD — período + CMV
 // ──────────────────────────────────────────
+let dashGranularidade = 'semana'; // 'semana' | 'mes' | 'tudo'
+let dashOffset = 0; // 0 = atual, -1 = anterior, etc.
+
+function trocarGranularidade(g) {
+  dashGranularidade = g;
+  dashOffset = 0;
+  ['semana','mes','tudo'].forEach(x => {
+    document.getElementById('chip-' + x).classList.toggle('active', x === g);
+  });
+  atualizarDashboard();
+}
+
+function navegarPeriodo(dir) {
+  if (dashGranularidade === 'tudo') return;
+  dashOffset += dir;
+  if (dashOffset > 0) dashOffset = 0; // não vai pro futuro
+  atualizarDashboard();
+}
+
+function calcularCMVPedidos(pedidos) {
+  return pedidos.reduce((total, p) => {
+    return total + (p.itens || []).reduce((acc, item) => {
+      const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
+      return acc + (r ? calcularCustoReceita(r) * item.quantidade : 0);
+    }, 0);
+  }, 0);
+}
+
 function atualizarDashboard() {
   const hoje = new Date();
-  const ini  = new Date(hoje); ini.setDate(hoje.getDate() - hoje.getDay());
-  const fim  = new Date(ini);  fim.setDate(ini.getDate() + 6);
+  let ini, fim, labelPrincipal, labelSub;
 
-  const semana    = DB.pedidos.filter(p => {
+  if (dashGranularidade === 'semana') {
+    ini = new Date(hoje);
+    ini.setDate(hoje.getDate() - hoje.getDay() + dashOffset * 7);
+    ini.setHours(0,0,0,0);
+    fim = new Date(ini);
+    fim.setDate(ini.getDate() + 6);
+    fim.setHours(23,59,59,999);
+    const opts = { day: 'numeric', month: 'short' };
+    labelPrincipal = `${ini.toLocaleDateString('pt-BR', opts)} – ${fim.toLocaleDateString('pt-BR', opts)}`;
+    labelSub = dashOffset === 0 ? 'esta semana' : dashOffset === -1 ? 'semana passada' : `há ${Math.abs(dashOffset)} semanas`;
+  } else if (dashGranularidade === 'mes') {
+    const ano  = hoje.getFullYear();
+    const mes  = hoje.getMonth() + dashOffset;
+    ini = new Date(ano, mes, 1);
+    fim = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+    labelPrincipal = ini.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    labelSub = dashOffset === 0 ? 'este mês' : dashOffset === -1 ? 'mês passado' : `há ${Math.abs(dashOffset)} meses`;
+  } else {
+    ini = null; fim = null;
+    labelPrincipal = 'Histórico completo';
+    labelSub = 'todos os pedidos';
+  }
+
+  // Atualiza label
+  document.getElementById('dash-periodo-label').textContent = labelPrincipal;
+  document.getElementById('dash-periodo-sub').textContent   = labelSub;
+
+  // Desabilita seta direita se estiver no período atual
+  const btnNext = document.getElementById('dash-btn-next');
+  btnNext.disabled = dashOffset === 0 && dashGranularidade !== 'tudo';
+  btnNext.style.opacity = btnNext.disabled ? '0.35' : '1';
+
+  // Desabilita setas no modo "tudo"
+  document.getElementById('dash-btn-prev').style.opacity = dashGranularidade === 'tudo' ? '0.35' : '1';
+  document.getElementById('dash-btn-prev').disabled = dashGranularidade === 'tudo';
+
+  // Filtra pedidos do período
+  const pedidosPeriodo = DB.pedidos.filter(p => {
+    if (!ini) return true;
     const d = new Date((p.data_entrega || p.data_pedido || '') + 'T00:00:00');
     return d >= ini && d <= fim;
   });
-  const efetuados  = semana.filter(p => p.status === 'efetuado');
-  const orcamentos = DB.pedidos.filter(p => p.status === 'orcamento');
-  const entradas   = efetuados.filter(p => p.pago)
-    .reduce((acc, p) => acc + calcularTotalPedido(p), 0);
 
+  const efetuados  = pedidosPeriodo.filter(p => p.status === 'efetuado');
+  const orcamentos = DB.pedidos.filter(p => p.status === 'orcamento');
+  const entradas   = efetuados.filter(p => p.pago).reduce((a, p) => a + calcularTotalPedido(p), 0);
+  const cmv        = calcularCMVPedidos(efetuados.filter(p => p.pago));
+  const lucro      = entradas - cmv;
+  const margem     = entradas > 0 ? ((lucro / entradas) * 100).toFixed(1) : null;
+
+  // Stats
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setEl('dash-entradas',       'R$ ' + entradas.toFixed(2));
-  setEl('dash-pedidos-count',  semana.length);
+  setEl('dash-pedidos-count',  pedidosPeriodo.length);
   setEl('dash-orcamentos',     orcamentos.length);
 
-  // Lista da semana
-  const lista = document.getElementById('dash-pedidos-lista');
-  if (!lista) return;
+  // CMV
+  setEl('dash-cmv-entradas', 'R$ ' + entradas.toFixed(2));
+  setEl('dash-cmv-valor',    '− R$ ' + cmv.toFixed(2));
+  setEl('dash-lucro',        'R$ ' + lucro.toFixed(2));
 
-  if (semana.length === 0) {
+  const margemBox = document.getElementById('dash-margem-box');
+  const margemEl  = document.getElementById('dash-margem');
+  if (margem !== null) {
+    const m = parseFloat(margem);
+    const cor = m >= 40 ? 'var(--green)' : m >= 20 ? 'var(--yellow)' : 'var(--red)';
+    const bg  = m >= 40 ? 'var(--green-light)' : m >= 20 ? 'var(--yellow-light)' : 'var(--red-light)';
+    margemEl.textContent  = margem + '%';
+    margemEl.style.color  = cor;
+    margemBox.style.background = bg;
+    margemBox.querySelector('span').style.color = cor;
+  } else {
+    margemEl.textContent = '—';
+  }
+
+  // Título da lista
+  setEl('dash-lista-title', 'Entregas do período');
+
+  // Lista
+  const lista = document.getElementById('dash-pedidos-lista');
+  if (pedidosPeriodo.length === 0) {
     lista.innerHTML = `<div class="empty-state" style="padding:16px">
       <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-      <div class="empty-state-text">Nenhum pedido esta semana.</div>
+      <div class="empty-state-text">Nenhum pedido neste período.</div>
     </div>`;
     return;
   }
 
-  lista.innerHTML = semana.map(p => `
+  lista.innerHTML = pedidosPeriodo.map(p => `
     <div class="mercado-item">
-      <div>
-        <div style="font-weight:700">${p.cliente_nome}
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:0.9rem">${p.cliente_nome}
           <span class="ped-id" style="margin-left:6px">#${p.numero_pedido}</span>
         </div>
-        <div style="font-size:0.78rem;color:var(--text3)">${formatarItensPedido(p)}</div>
+        <div style="font-size:0.78rem;color:var(--text3);margin-top:2px">${formatarItensPedido(p)}</div>
         ${p.data_entrega ? `<div style="font-size:0.75rem;color:var(--text3)">📅 ${formatarData(p.data_entrega)}</div>` : ''}
       </div>
-      <div style="text-align:right;flex-shrink:0">
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
         <div style="font-weight:700;color:var(--accent)">R$ ${calcularTotalPedido(p).toFixed(2)}</div>
         ${p.status === 'efetuado'
-          ? '<span class="badge badge-green" style="font-size:0.65rem">✅</span>'
-          : '<span class="badge badge-yellow" style="font-size:0.65rem">📋</span>'}
+          ? '<span class="badge badge-green" style="font-size:0.65rem;margin-top:3px">✅</span>'
+          : '<span class="badge badge-yellow" style="font-size:0.65rem;margin-top:3px">📋</span>'}
       </div>
     </div>`
   ).join('');
