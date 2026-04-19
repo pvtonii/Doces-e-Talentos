@@ -140,7 +140,7 @@ body {
   min-height: var(--nav-h);
   transition: color 0.18s;
 }
-.nav-icon { font-size: 1.5rem; line-height: 1; transition: transform 0.2s; }
+.nav-icon { font-size: 1.5rem; line-height: 1; transition: transform 0.2s; display:flex; align-items:center; justify-content:center; }
 .nav-tab.active { color: var(--accent); }
 .nav-tab.active .nav-icon { transform: scale(1.1); }
 .nav-dot {
@@ -199,7 +199,7 @@ body {
 }
 .drawer-item:active { background: var(--bg2); }
 .drawer-item.active { color: var(--accent); background: var(--accent-light); }
-.drawer-icon { font-size: 1.2rem; width: 26px; text-align: center; }
+.drawer-icon { font-size: 1.2rem; width: 26px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
 .drawer-overlay {
   position: fixed;
@@ -323,7 +323,7 @@ body {
   padding: 16px;
   box-shadow: var(--shadow);
 }
-.stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
+.stat-icon  { font-size: 1.4rem; margin-bottom: 8px; display:flex; align-items:center; }
 .stat-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 4px; }
 .stat-value { font-size: 1.55rem; font-weight: 700; line-height: 1; color: var(--text); }
 .stat-sub   { font-size: 0.7rem; color: var(--text3); margin-top: 3px; font-style: italic; }
@@ -600,7 +600,7 @@ body {
    EMPTY STATE
 ══════════════════════════════════════════ */
 .empty-state       { text-align: center; padding: 48px 20px; color: var(--text3); }
-.empty-state-icon  { font-size: 2.8rem; margin-bottom: 12px; }
+.empty-state-icon  { font-size: 2.8rem; margin-bottom: 12px; display:flex; align-items:center; justify-content:center; color:var(--text3); }
 .empty-state-title { font-size: 1.1rem; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
 .empty-state-text  { font-size: 0.85rem; font-style: italic; }
 
@@ -741,15 +741,15 @@ body {
       </div>
     </div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Entradas</div><div class="stat-value" id="dash-entradas">R$ 0</div><div class="stat-sub">pedidos pagos</div></div>
-      <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Pedidos</div><div class="stat-value" id="dash-pedidos-count">0</div><div class="stat-sub">esta semana</div></div>
-      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Orçamentos</div><div class="stat-value" id="dash-orcamentos">0</div><div class="stat-sub">em aberto</div></div>
-      <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-label">Estoque</div><div class="stat-value" id="dash-estoque-critico">0</div><div class="stat-sub">itens críticos</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="stat-label">Entradas</div><div class="stat-value" id="dash-entradas">R$ 0</div><div class="stat-sub">pedidos pagos</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="stat-label">Pedidos</div><div class="stat-value" id="dash-pedidos-count">0</div><div class="stat-sub">esta semana</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="stat-label">Orçamentos</div><div class="stat-value" id="dash-orcamentos">0</div><div class="stat-sub">em aberto</div></div>
+      <div class="stat-card"><div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="stat-label">Estoque</div><div class="stat-value" id="dash-estoque-critico">0</div><div class="stat-sub">itens críticos</div></div>
     </div>
     <div class="card">
       <div class="card-title">Entregas desta semana</div>
       <div id="dash-pedidos-lista">
-        <div class="empty-state" style="padding:16px"><div class="empty-state-icon">📅</div><div class="empty-state-text">Nenhum pedido esta semana.</div></div>
+        <div class="empty-state" style="padding:16px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-text">Nenhum pedido esta semana.</div></div>
       </div>
     </div>
   </div>
@@ -833,11 +833,11 @@ body {
     </div>
     <div class="card">
       <div class="card-title">🛒 Pedidos efetuados</div>
-      <div id="mercado-efetuados"><div class="empty-state" style="padding:14px"><div class="empty-state-icon">✅</div><div class="empty-state-text">Estoque suficiente.</div></div></div>
+      <div id="mercado-efetuados"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></div><div class="empty-state-text">Estoque suficiente.</div></div></div>
     </div>
     <div class="card">
       <div class="card-title">📋 Orçamentos abertos</div>
-      <div id="mercado-orcamentos"><div class="empty-state" style="padding:14px"><div class="empty-state-icon">📋</div><div class="empty-state-text">Nenhum orçamento.</div></div></div>
+      <div id="mercado-orcamentos"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="empty-state-text">Nenhum orçamento.</div></div></div>
     </div>
   </div>
 
@@ -893,17 +893,17 @@ body {
 <!-- ════════════════ BOTTOM NAV ════════════════ -->
 <nav class="bottom-nav">
   <div class="nav-tab active" onclick="navigate('dashboard')" id="nav-dashboard">
-    <span class="nav-icon">📊</span>Início
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Início
   </div>
   <div class="nav-tab" onclick="navigate('pedidos')" id="nav-pedidos">
-    <span class="nav-icon">📦</span>Pedidos
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>Pedidos
     <div class="nav-dot hidden" id="badge-pedidos"></div>
   </div>
   <div class="nav-tab" onclick="navigate('receitas')" id="nav-receitas">
-    <span class="nav-icon">📋</span>Receitas
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></span>Receitas
   </div>
   <div class="nav-tab" onclick="toggleDrawer()" id="nav-mais">
-    <span class="nav-icon">☰</span>Mais
+    <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>Mais
   </div>
 </nav>
 
@@ -914,11 +914,11 @@ body {
 <div class="more-drawer" id="more-drawer">
   <div class="drawer-handle"></div>
   <div class="drawer-section-title">Estoque & Sistema</div>
-  <div class="drawer-item" onclick="navigateDrawer('estoque')"      id="drawer-estoque">     <span class="drawer-icon">🏪</span>Estoque</div>
-  <div class="drawer-item" onclick="navigateDrawer('mercado')"      id="drawer-mercado">     <span class="drawer-icon">🛒</span>Lista de Mercado</div>
-  <div class="drawer-item" onclick="navigateDrawer('ingredientes')" id="drawer-ingredientes"><span class="drawer-icon">🧂</span>Ingredientes</div>
-  <div class="drawer-item" onclick="navigateDrawer('insumos')"      id="drawer-insumos">     <span class="drawer-icon">📦</span>Insumos</div>
-  <div class="drawer-item" onclick="navigateDrawer('config')"       id="drawer-config">      <span class="drawer-icon">⚙️</span>Configurações</div>
+  <div class="drawer-item" onclick="navigateDrawer('estoque')"      id="drawer-estoque">     <span class="drawer-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></span>Estoque</div>
+  <div class="drawer-item" onclick="navigateDrawer('mercado')"      id="drawer-mercado">     <span class="drawer-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>Lista de Mercado</div>
+  <div class="drawer-item" onclick="navigateDrawer('ingredientes')" id="drawer-ingredientes"><span class="drawer-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2h-3"/><path d="M18 2h3"/><path d="M21 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3h5z"/></svg></span>Ingredientes</div>
+  <div class="drawer-item" onclick="navigateDrawer('insumos')"      id="drawer-insumos">     <span class="drawer-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>Insumos</div>
+  <div class="drawer-item" onclick="navigateDrawer('config')"       id="drawer-config">      <span class="drawer-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></span>Configurações</div>
 </div>
 
 <!-- FAB -->
@@ -1768,7 +1768,7 @@ function renderIngredientes(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">🧂</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2h-3"/><path d="M18 2h3"/><path d="M21 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3h5z"/></svg></div>
       <div class="empty-state-title">Nenhum ingrediente</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -1918,7 +1918,7 @@ function renderInsumos(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <div class="empty-state-title">Nenhum insumo</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -2099,7 +2099,7 @@ function renderReceitas() {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
       <div class="empty-state-title">Nenhuma receita</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -2434,7 +2434,7 @@ function renderPedidos(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <div class="empty-state-title">Nenhum pedido</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -2808,7 +2808,7 @@ function renderEstoque() {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <div class="empty-state-title">Nenhum item</div>
       <div class="empty-state-text">Toque em + para adicionar ao estoque</div>
     </div>`;
@@ -3007,7 +3007,7 @@ function gerarListaMercado() {
 
     if (itens.length === 0) {
       container.innerHTML = `<div class="empty-state" style="padding:16px">
-        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></div>
         <div class="empty-state-text">Estoque suficiente para todos os pedidos!</div>
       </div>`;
       return;
@@ -3057,7 +3057,7 @@ function atualizarDashboard() {
 
   if (semana.length === 0) {
     lista.innerHTML = `<div class="empty-state" style="padding:16px">
-      <div class="empty-state-icon">📅</div>
+      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div class="empty-state-text">Nenhum pedido esta semana.</div>
     </div>`;
     return;
