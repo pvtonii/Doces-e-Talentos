@@ -1437,72 +1437,87 @@ async function carregarTudo() {
 }
 
 async function carregarIngredientes() {
-  if (supabase) {
-    const { data, error } = await supabase.from('ingredientes').select('*').order('nome');
-    if (!error) { DB.ingredientes = data; localSave('ingredientes', data); }
-    else DB.ingredientes = localLoad('ingredientes');
+  if (!supabase) { toast('Conecte ao Supabase para carregar ingredientes.', 'warning'); return; }
+  const { data, error } = await supabase.from('ingredientes').select('*').order('nome');
+  if (error) { toast('Erro ao carregar ingredientes: ' + error.message, 'error'); return; }
+  if (data.length === 0) {
+    toast('Importando ingredientes iniciais...', 'success');
+    await popularIngredientesDefault();
   } else {
-    DB.ingredientes = localLoad('ingredientes');
-    if (DB.ingredientes.length === 0) DB.ingredientes = INGREDIENTES_INICIAIS;
+    DB.ingredientes = data;
   }
   renderIngredientes();
   renderIngChips();
 }
 
+async function popularIngredientesDefault() {
+  // Insere em lotes de 20 para evitar timeout
+  const lotes = [];
+  for (let i = 0; i < INGREDIENTES_INICIAIS.length; i += 20) {
+    lotes.push(INGREDIENTES_INICIAIS.slice(i, i + 20));
+  }
+  for (const lote of lotes) {
+    const payload = lote.map(({ id, ...rest }) => rest); // remove id local, deixa Supabase gerar uuid
+    const { error } = await supabase.from('ingredientes').insert(payload);
+    if (error) { toast('Erro ao importar ingredientes: ' + error.message, 'error'); return; }
+  }
+  const { data } = await supabase.from('ingredientes').select('*').order('nome');
+  DB.ingredientes = data || [];
+  toast(`${DB.ingredientes.length} ingredientes importados!`, 'success');
+}
+
 async function carregarInsumos() {
-  if (supabase) {
-    const { data, error } = await supabase.from('insumos').select('*').order('nome');
-    if (!error) { DB.insumos = data; localSave('insumos', data); }
-    else DB.insumos = localLoad('insumos');
+  if (!supabase) { toast('Conecte ao Supabase para carregar insumos.', 'warning'); return; }
+  const { data, error } = await supabase.from('insumos').select('*').order('nome');
+  if (error) { toast('Erro ao carregar insumos: ' + error.message, 'error'); return; }
+  if (data.length === 0) {
+    toast('Importando insumos iniciais...', 'success');
+    await popularInsumosDefault();
   } else {
-    DB.insumos = localLoad('insumos');
-    if (DB.insumos.length === 0) DB.insumos = INSUMOS_INICIAIS;
+    DB.insumos = data;
   }
   renderInsumos();
   renderInsChips();
 }
 
+async function popularInsumosDefault() {
+  const payload = INSUMOS_INICIAIS.map(({ id, ...rest }) => rest);
+  const { error } = await supabase.from('insumos').insert(payload);
+  if (error) { toast('Erro ao importar insumos: ' + error.message, 'error'); return; }
+  const { data } = await supabase.from('insumos').select('*').order('nome');
+  DB.insumos = data || [];
+  toast(`${DB.insumos.length} insumos importados!`, 'success');
+}
+
 async function carregarReceitas() {
-  if (supabase) {
-    const { data, error } = await supabase.from('receitas').select('*').order('nome');
-    if (!error) { DB.receitas = data; localSave('receitas', data); }
-    else DB.receitas = localLoad('receitas');
-  } else {
-    DB.receitas = localLoad('receitas');
-  }
+  if (!supabase) return;
+  const { data, error } = await supabase.from('receitas').select('*').order('nome');
+  if (error) { toast('Erro ao carregar receitas: ' + error.message, 'error'); return; }
+  DB.receitas = data;
   renderReceitas();
 }
 
 async function carregarPedidos() {
-  if (supabase) {
-    const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
-    if (!error) { DB.pedidos = data; localSave('pedidos', data); }
-    else DB.pedidos = localLoad('pedidos');
-  } else {
-    DB.pedidos = localLoad('pedidos');
-  }
+  if (!supabase) return;
+  const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Erro ao carregar pedidos: ' + error.message, 'error'); return; }
+  DB.pedidos = data;
   renderPedidos();
 }
 
 async function carregarEstoque() {
-  if (supabase) {
-    const { data, error } = await supabase.from('estoque').select('*');
-    if (!error) { DB.estoque = data; localSave('estoque', data); }
-    else DB.estoque = localLoad('estoque');
-  } else {
-    DB.estoque = localLoad('estoque');
-  }
+  if (!supabase) return;
+  const { data, error } = await supabase.from('estoque').select('*');
+  if (error) { toast('Erro ao carregar estoque: ' + error.message, 'error'); return; }
+  DB.estoque = data;
   renderEstoque();
 }
 
 async function carregarClientes() {
-  if (supabase) {
-    const { data, error } = await supabase.from('clientes').select('*');
-    if (!error) { DB.clientes = data; localSave('clientes', data); }
-    else DB.clientes = localLoad('clientes');
-  } else {
-    DB.clientes = localLoad('clientes');
-  }
+  if (!supabase) return;
+  const { data, error } = await supabase.from('clientes').select('*');
+  if (error) { toast('Erro ao carregar clientes: ' + error.message, 'error'); return; }
+  DB.clientes = data;
   atualizarDatalistClientes();
 }
 
@@ -1857,8 +1872,6 @@ async function salvarIngrediente() {
     DB.ingredientes.push(payload);
     DB.ingredientes.sort((a, b) => a.nome.localeCompare(b.nome));
   }
-
-  localSave('ingredientes', DB.ingredientes);
   renderIngredientes();
   renderIngChips();
   fecharModal('modal-ingrediente');
@@ -1872,7 +1885,6 @@ async function deletarIngrediente(id) {
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
   }
   DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
-  localSave('ingredientes', DB.ingredientes);
   renderIngredientes();
   renderIngChips();
   toast('Ingrediente removido.', 'success');
@@ -1999,8 +2011,6 @@ async function salvarInsumo() {
     DB.insumos.push(payload);
     DB.insumos.sort((a, b) => a.nome.localeCompare(b.nome));
   }
-
-  localSave('insumos', DB.insumos);
   renderInsumos();
   renderInsChips();
   fecharModal('modal-insumo');
@@ -2014,7 +2024,6 @@ async function deletarInsumo(id) {
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
   }
   DB.insumos = DB.insumos.filter(x => String(x.id) !== String(id));
-  localSave('insumos', DB.insumos);
   renderInsumos();
   renderInsChips();
   toast('Insumo removido.', 'success');
@@ -2307,8 +2316,6 @@ async function salvarReceita() {
     DB.receitas.push(payload);
     DB.receitas.sort((a, b) => a.nome.localeCompare(b.nome));
   }
-
-  localSave('receitas', DB.receitas);
   renderReceitas();
   fecharModal('modal-receita');
   toast(editId ? 'Receita atualizada!' : 'Receita salva!', 'success');
@@ -2321,7 +2328,6 @@ async function deletarReceita(id) {
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
   }
   DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
-  localSave('receitas', DB.receitas);
   renderReceitas();
   toast('Receita removida.', 'success');
 }
@@ -2639,7 +2645,6 @@ async function salvarPedido() {
   }
 
   await salvarCliente({ nome, telefone, preferencias: payload.preferencias });
-  localSave('pedidos', DB.pedidos);
   renderPedidos();
   atualizarDashboard();
   fecharModal('modal-pedido');
@@ -2653,7 +2658,6 @@ async function deletarPedido(id) {
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
   }
   DB.pedidos = DB.pedidos.filter(x => String(x.id) !== String(id));
-  localSave('pedidos', DB.pedidos);
   renderPedidos();
   atualizarDashboard();
   toast('Pedido removido.', 'success');
@@ -2769,7 +2773,6 @@ async function salvarCliente(dados) {
     }
     DB.clientes.push(nc);
   }
-  localSave('clientes', DB.clientes);
   atualizarDatalistClientes();
 }
 
@@ -2902,8 +2905,6 @@ async function salvarEstoque() {
     }
     DB.estoque.push(payload);
   }
-
-  localSave('estoque', DB.estoque);
   renderEstoque();
   verificarEstoqueCritico();
   fecharModal('modal-estoque');
@@ -2914,7 +2915,6 @@ async function deletarEstoque(id) {
   if (!confirm('Remover este item do estoque?')) return;
   if (supabase) await supabase.from('estoque').delete().eq('id', id);
   DB.estoque = DB.estoque.filter(x => String(x.id) !== String(id));
-  localSave('estoque', DB.estoque);
   renderEstoque();
   toast('Removido do estoque.', 'success');
 }
@@ -2941,8 +2941,6 @@ function descontarEstoquePedido(pedido) {
       if (est) est.quantidade = Math.max(0, est.quantidade - (ins.quantidade * item.quantidade));
     });
   });
-
-  localSave('estoque', DB.estoque);
   renderEstoque();
   verificarEstoqueCritico();
 }
