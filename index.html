@@ -1,0 +1,3314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a110a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Doceria">
+<title>Doceria — Gestão</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+
+/* ══════════════════════════════════════════
+   VARIÁVEIS
+══════════════════════════════════════════ */
+:root {
+  --bg:           #faf7f2;
+  --bg2:          #f3ede3;
+  --bg3:          #ede4d6;
+  --surface:      #ffffff;
+  --border:       #e8ddd0;
+  --border2:      #d4c4b0;
+  --text:         #1a110a;
+  --text2:        #5c4033;
+  --text3:        #9c7b6a;
+  --accent:       #c8621a;
+  --accent2:      #e8832a;
+  --accent-light: #fdf0e6;
+  --green:        #4a7c59;
+  --green-light:  #eaf3ed;
+  --red:          #c0392b;
+  --red-light:    #fdecea;
+  --yellow:       #b8860b;
+  --yellow-light: #fdf8e6;
+  --shadow:       0 2px 12px rgba(60,30,10,0.08);
+  --shadow-lg:    0 8px 32px rgba(60,30,10,0.14);
+  --radius:       14px;
+  --radius-lg:    20px;
+  --font:         'Lato', sans-serif;
+  --nav-h:        72px;
+  --header-h:     56px;
+  --safe-top:     env(safe-area-inset-top, 0px);
+  --safe-bottom:  env(safe-area-inset-bottom, 0px);
+}
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+.app-header {
+  background: var(--text);
+  color: white;
+  height: calc(var(--header-h) + var(--safe-top));
+  padding: calc(var(--safe-top) + 10px) 18px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.app-logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+}
+.app-logo em { color: var(--accent2); font-style: italic; }
+.conn-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+.conn-dot.online { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+/* ══════════════════════════════════════════
+   SCROLL AREA
+══════════════════════════════════════════ */
+.app-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+}
+
+/* ══════════════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════════════ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: calc(var(--nav-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--surface);
+  border-top: 1.5px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(60,30,10,0.10);
+}
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+  gap: 3px;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  position: relative;
+  min-height: var(--nav-h);
+  transition: color 0.18s;
+}
+.nav-icon { font-size: 1.5rem; line-height: 1; transition: transform 0.2s; }
+.nav-tab.active { color: var(--accent); }
+.nav-tab.active .nav-icon { transform: scale(1.1); }
+.nav-dot {
+  position: absolute;
+  top: 8px;
+  right: calc(50% - 16px);
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* ══════════════════════════════════════════
+   MORE DRAWER
+══════════════════════════════════════════ */
+.more-drawer {
+  position: fixed;
+  bottom: calc(var(--nav-h) + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(110%);
+  width: 100%;
+  max-width: 430px;
+  background: var(--surface);
+  border-top: 1.5px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 8px 0 16px;
+  z-index: 99;
+  box-shadow: 0 -8px 32px rgba(60,30,10,0.12);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.more-drawer.open { transform: translateX(-50%) translateY(0); }
+.drawer-handle {
+  width: 36px; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 10px auto 12px;
+}
+.drawer-section-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  padding: 4px 20px 8px;
+}
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text2);
+  transition: background 0.15s;
+}
+.drawer-item:active { background: var(--bg2); }
+.drawer-item.active { color: var(--accent); background: var(--accent-light); }
+.drawer-icon { font-size: 1.2rem; width: 26px; text-align: center; }
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,17,10,0.4);
+  z-index: 98;
+  backdrop-filter: blur(2px);
+  display: none;
+}
+.drawer-overlay.open { display: block; }
+
+/* ══════════════════════════════════════════
+   FAB
+══════════════════════════════════════════ */
+.fab {
+  position: fixed;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+  right: 18px;
+  width: 54px; height: 54px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(200,98,26,0.50);
+  z-index: 80;
+  font-family: var(--font);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(200,98,26,0.4); }
+
+/* ══════════════════════════════════════════
+   PAGES
+══════════════════════════════════════════ */
+.section-page { display: none; padding: 16px; }
+.section-page.active { display: block; }
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+.page-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.page-subtitle {
+  font-size: 0.8rem;
+  color: var(--text3);
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary  { background: var(--accent); color: white; }
+.btn-secondary { background: var(--bg2); color: var(--text2); border: 1.5px solid var(--border); }
+.btn-danger   { background: var(--red-light); color: var(--red); border: 1.5px solid #f5c6c2; }
+.btn-ghost    { background: transparent; color: var(--text3); padding: 8px 10px; }
+.btn-sm   { padding: 7px 13px; font-size: 0.82rem; }
+.btn-icon { padding: 9px; border-radius: 10px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ══════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+/* ══════════════════════════════════════════
+   STAT CARDS (dashboard)
+══════════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
+.stat-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 4px; }
+.stat-value { font-size: 1.55rem; font-weight: 700; line-height: 1; color: var(--text); }
+.stat-sub   { font-size: 0.7rem; color: var(--text3); margin-top: 3px; font-style: italic; }
+
+/* ══════════════════════════════════════════
+   LIST ITEMS (ingredientes, insumos)
+══════════════════════════════════════════ */
+.list-item {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
+}
+.list-item-body  { flex: 1; min-width: 0; }
+.list-item-name  { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-item-sub   { font-size: 0.77rem; color: var(--text3); margin-top: 2px; font-style: italic; }
+.list-item-right { text-align: right; flex-shrink: 0; }
+.list-item-price { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+.list-item-unit  { font-size: 0.7rem; color: var(--text3); font-style: italic; }
+.list-actions    { display: flex; gap: 8px; align-items: center; margin-top: 6px; justify-content: flex-end; }
+
+/* ══════════════════════════════════════════
+   PEDIDO ROW
+══════════════════════════════════════════ */
+.ped-row {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.ped-row-top  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.ped-id       { font-size: 0.7rem; font-weight: 700; color: var(--accent); background: var(--accent-light); padding: 3px 10px; border-radius: 20px; }
+.ped-nome     { font-size: 1rem; font-weight: 700; }
+.ped-tel      { font-size: 0.78rem; color: var(--text3); font-style: italic; }
+.ped-items-text { font-size: 0.82rem; color: var(--text2); margin: 6px 0; }
+.ped-row-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap; }
+.ped-total    { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.ped-actions  { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ══════════════════════════════════════════
+   RECEITA CARD
+══════════════════════════════════════════ */
+.rec-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.rec-card-top  { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.rec-card-emoji { font-size: 2rem; }
+.rec-card-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+.rec-card-desc { font-size: 0.8rem; color: var(--text3); font-style: italic; margin-bottom: 10px; }
+.rec-card-footer { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text2); margin-top: 6px; }
+.rec-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ══════════════════════════════════════════
+   ESTOQUE ROW
+══════════════════════════════════════════ */
+.est-row {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.est-row.critico { border-color: var(--red); background: var(--red-light); }
+.est-info  { flex: 1; }
+.est-name  { font-size: 0.95rem; font-weight: 600; }
+.est-qty   { font-size: 0.78rem; color: var(--text3); font-style: italic; margin-top: 2px; }
+
+/* ══════════════════════════════════════════
+   MERCADO
+══════════════════════════════════════════ */
+.mercado-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.mercado-item:last-child { border-bottom: none; }
+.mercado-comprar { font-weight: 700; color: var(--red); font-size: 0.85rem; }
+.mercado-detail  { font-size: 0.7rem; color: var(--text3); font-style: italic; margin-top: 2px; }
+
+/* ══════════════════════════════════════════
+   FORM
+══════════════════════════════════════════ */
+.form-group  { margin-bottom: 14px; }
+.form-label  { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.02em; }
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200,98,26,0.12);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row-2    { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-hint     { font-size: 0.75rem; color: var(--text3); margin-top: 4px; font-style: italic; }
+
+/* ══════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════ */
+.search-wrap { position: relative; margin-bottom: 14px; }
+.search-wrap input {
+  width: 100%;
+  padding: 11px 14px 11px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.18s;
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-wrap::before {
+  content: '🔍';
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════
+   CHIPS / CATEGORY TABS
+══════════════════════════════════════════ */
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0;
+  padding: 7px 15px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+.chip:active { transform: scale(0.95); }
+
+/* ══════════════════════════════════════════
+   BADGES
+══════════════════════════════════════════ */
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+.badge-green  { background: var(--green-light);  color: var(--green); }
+.badge-red    { background: var(--red-light);    color: var(--red); }
+.badge-yellow { background: var(--yellow-light); color: var(--yellow); }
+.badge-accent { background: var(--accent-light); color: var(--accent); }
+.badge-gray   { background: var(--bg3);          color: var(--text2); }
+
+/* ══════════════════════════════════════════
+   MODAL — sheet style (sobe de baixo)
+══════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,17,10,0.52);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.18s ease;
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-height: 93vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding-bottom: var(--safe-bottom);
+}
+.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 12px auto 0; }
+.modal-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px solid var(--border);
+}
+.modal-title  { font-size: 1.15rem; font-weight: 700; }
+.modal-body   { padding: 18px; }
+.modal-footer {
+  padding: 14px 18px;
+  border-top: 1.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  top: calc(var(--header-h) + var(--safe-top) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: calc(100% - 32px);
+  max-width: 400px;
+}
+.toast {
+  background: var(--text);
+  color: white;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.22s ease;
+}
+.toast.success { border-left: 4px solid var(--green); }
+.toast.error   { border-left: 4px solid var(--red); }
+.toast.warning { border-left: 4px solid var(--yellow); }
+
+/* ══════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════ */
+.empty-state       { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-state-icon  { font-size: 2.8rem; margin-bottom: 12px; }
+.empty-state-title { font-size: 1.1rem; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.empty-state-text  { font-size: 0.85rem; font-style: italic; }
+
+/* ══════════════════════════════════════════
+   ALERTA BANNER
+══════════════════════════════════════════ */
+.alerta-banner {
+  background: var(--yellow-light);
+  border: 1.5px solid #f0d58a;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--yellow);
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════
+   HIST CHIP (histórico de preços)
+══════════════════════════════════════════ */
+.hist-chip {
+  display: inline-flex;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  color: var(--text2);
+  margin: 2px;
+}
+
+/* ══════════════════════════════════════════
+   CALENDÁRIO
+══════════════════════════════════════════ */
+.cal-grid        { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+.cal-day-header  { text-align: center; font-size: 0.68rem; font-weight: 700; color: var(--text3); padding: 4px; }
+.cal-day         { text-align: center; padding: 7px 2px; border-radius: 10px; font-size: 0.82rem; cursor: default; }
+.cal-day.has-ped { background: var(--accent-light); color: var(--accent); font-weight: 700; }
+.cal-day.hoje    { background: var(--accent); color: white; font-weight: 700; }
+.cal-day-count   { font-size: 0.58rem; margin-top: 1px; }
+
+/* ══════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════ */
+.config-block { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.config-block-title { font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.supabase-status { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.supabase-status.connected    { background: var(--green-light); color: var(--green); }
+.supabase-status.disconnected { background: var(--red-light);   color: var(--red); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sql-block { background: var(--text); color: #e8d5c0; padding: 14px; border-radius: var(--radius); font-family: monospace; font-size: 0.7rem; white-space: pre; overflow-x: auto; line-height: 1.65; }
+
+/* ══════════════════════════════════════════
+   RECIPE & PEDIDO INLINE ROWS
+══════════════════════════════════════════ */
+.recipe-row {
+  display: grid;
+  grid-template-columns: 1fr 72px 24px auto;
+  gap: 7px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.pedido-item-row {
+  display: grid;
+  grid-template-columns: 1fr 58px auto;
+  gap: 7px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* ══════════════════════════════════════════
+   ORÇAMENTO BOX
+══════════════════════════════════════════ */
+.orcamento-box { background: var(--bg2); border-radius: var(--radius); padding: 14px; margin-top: 14px; }
+.orcamento-text {
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  min-height: 120px;
+  resize: none;
+  outline: none;
+  color: var(--text);
+  font-style: normal;
+}
+
+/* ══════════════════════════════════════════
+   UTILIDADES
+══════════════════════════════════════════ */
+.hidden       { display: none !important; }
+.text-muted   { color: var(--text3); font-size: 0.82rem; font-style: italic; }
+.fw-700       { font-weight: 700; }
+.color-accent { color: var(--accent); }
+.color-green  { color: var(--green); }
+.color-red    { color: var(--red); }
+.mt-12        { margin-top: 12px; }
+.mb-12        { margin-bottom: 12px; }
+.divider      { height: 1px; background: var(--border); margin: 14px 0; }
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  margin-bottom: 10px;
+  margin-top: 4px;
+}
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-center  { display: flex; align-items: center; gap: 8px; }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header class="app-header">
+  <div class="app-logo">🎂 <em>Doceria</em></div>
+  <div id="header-date" style="font-size:0.72rem;color:#bbb;font-style:italic;"></div>
+  <div id="conn-dot" class="conn-dot"></div>
+</header>
+
+<!-- ════════════════ SCROLL ════════════════ -->
+<div class="app-scroll" id="app-scroll">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="section-page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Olá! 🎂</div>
+        <div class="page-subtitle">Resumo desta semana</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Entradas</div><div class="stat-value" id="dash-entradas">R$ 0</div><div class="stat-sub">pedidos pagos</div></div>
+      <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Pedidos</div><div class="stat-value" id="dash-pedidos-count">0</div><div class="stat-sub">esta semana</div></div>
+      <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Orçamentos</div><div class="stat-value" id="dash-orcamentos">0</div><div class="stat-sub">em aberto</div></div>
+      <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-label">Estoque</div><div class="stat-value" id="dash-estoque-critico">0</div><div class="stat-sub">itens críticos</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Entregas desta semana</div>
+      <div id="dash-pedidos-lista">
+        <div class="empty-state" style="padding:16px"><div class="empty-state-icon">📅</div><div class="empty-state-text">Nenhum pedido esta semana.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PEDIDOS -->
+  <div id="page-pedidos" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Pedidos</div><div class="page-subtitle" id="ped-count-label">—</div></div>
+    </div>
+    <div class="search-wrap"><input type="text" id="ped-search" placeholder="Buscar por cliente ou #ID..." oninput="filtrarPedidos()"></div>
+    <div class="chip-row" id="ped-chips">
+      <div class="chip active" onclick="filtrarPedidosStatus('')"          data-s="">Todos</div>
+      <div class="chip"        onclick="filtrarPedidosStatus('orcamento')" data-s="orcamento">📋 Orçamento</div>
+      <div class="chip"        onclick="filtrarPedidosStatus('efetuado')"  data-s="efetuado">✅ Efetuado</div>
+      <div class="chip"        onclick="toggleCalendario()"                id="chip-cal">📅 Calendário</div>
+    </div>
+    <div id="ped-calendario" class="card hidden" style="margin-bottom:14px">
+      <div class="card-title">Entregas do mês</div>
+      <div class="cal-grid" id="cal-body"></div>
+    </div>
+    <div id="ped-lista"></div>
+  </div>
+
+  <!-- RECEITAS -->
+  <div id="page-receitas" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Receitas</div><div class="page-subtitle" id="rec-count-label">—</div></div>
+    </div>
+    <div class="chip-row" id="rec-chips">
+      <div class="chip active" onclick="filtrarReceitas('')"              data-cat="">Todas</div>
+      <div class="chip"        onclick="filtrarReceitas('Bolo Caseiro')"  data-cat="Bolo Caseiro">🍰 Caseiro</div>
+      <div class="chip"        onclick="filtrarReceitas('Bolo Saudável')" data-cat="Bolo Saudável">🥗 Saudável</div>
+      <div class="chip"        onclick="filtrarReceitas('Bolo de Festas')"data-cat="Bolo de Festas">🎉 Festas</div>
+      <div class="chip"        onclick="filtrarReceitas('Sobremesas')"    data-cat="Sobremesas">🍮 Sobremesas</div>
+      <div class="chip"        onclick="filtrarReceitas('Docinhos')"      data-cat="Docinhos">🍬 Docinhos</div>
+      <div class="chip"        onclick="filtrarReceitas('Sazonal')"       data-cat="Sazonal">🌸 Sazonal</div>
+    </div>
+    <div id="rec-lista"></div>
+  </div>
+
+  <!-- INGREDIENTES -->
+  <div id="page-ingredientes" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Ingredientes</div><div class="page-subtitle" id="ing-count-label">—</div></div>
+    </div>
+    <div class="search-wrap"><input type="text" id="ing-search" placeholder="Buscar ingrediente..." oninput="filtrarIngredientes()"></div>
+    <div class="chip-row" id="ing-cat-chips"></div>
+    <div id="ing-alertas"></div>
+    <div id="ing-lista"></div>
+  </div>
+
+  <!-- INSUMOS -->
+  <div id="page-insumos" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Insumos</div><div class="page-subtitle" id="ins-count-label">—</div></div>
+    </div>
+    <div class="search-wrap"><input type="text" id="ins-search" placeholder="Buscar insumo..." oninput="filtrarInsumos()"></div>
+    <div class="chip-row" id="ins-cat-chips"></div>
+    <div id="ins-lista"></div>
+  </div>
+
+  <!-- ESTOQUE -->
+  <div id="page-estoque" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Estoque</div><div class="page-subtitle">Quantidades em estoque</div></div>
+    </div>
+    <div id="est-alertas"></div>
+    <div class="chip-row">
+      <div class="chip active" onclick="filtrarEstoque('ingrediente')" id="est-chip-ing">🧂 Ingredientes</div>
+      <div class="chip"        onclick="filtrarEstoque('insumo')"      id="est-chip-ins">📦 Insumos</div>
+    </div>
+    <div id="est-lista"></div>
+  </div>
+
+  <!-- MERCADO -->
+  <div id="page-mercado" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Mercado</div><div class="page-subtitle">O que precisa comprar</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="gerarListaMercado()">🔄 Atualizar</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🛒 Pedidos efetuados</div>
+      <div id="mercado-efetuados"><div class="empty-state" style="padding:14px"><div class="empty-state-icon">✅</div><div class="empty-state-text">Estoque suficiente.</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Orçamentos abertos</div>
+      <div id="mercado-orcamentos"><div class="empty-state" style="padding:14px"><div class="empty-state-icon">📋</div><div class="empty-state-text">Nenhum orçamento.</div></div></div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="page-config" class="section-page">
+    <div class="page-header">
+      <div><div class="page-title">Configurações</div><div class="page-subtitle">Banco de dados e sistema</div></div>
+    </div>
+    <div class="config-block">
+      <div class="config-block-title">🏷️ Gerenciar Categorias</div>
+
+      <div class="section-label">Ingredientes</div>
+      <div id="cat-ing-lista" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" class="form-input" id="cat-ing-nova" placeholder="Nova categoria..." style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="adicionarCategoria('ing')">+ Add</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Insumos</div>
+      <div id="cat-ins-lista" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" class="form-input" id="cat-ins-nova" placeholder="Nova categoria..." style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="adicionarCategoria('ins')">+ Add</button>
+      </div>
+    </div>
+
+    <div class="config-block">
+      <div class="config-block-title">🔌 Supabase <span id="cfg-status" class="supabase-status disconnected"><span class="status-dot"></span> Desconectado</span></div>
+      <div class="form-group"><label class="form-label">URL do Projeto</label><input type="text" class="form-input" id="cfg-url" placeholder="https://xxxx.supabase.co"></div>
+      <div class="form-group"><label class="form-label">Anon Key</label><input type="password" class="form-input" id="cfg-key" placeholder="eyJhbGci..."></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn btn-primary btn-sm"    onclick="salvarConfig()">💾 Salvar</button>
+        <button class="btn btn-secondary btn-sm"  onclick="testarConexao()">🔍 Testar</button>
+        <button class="btn btn-danger btn-sm"     onclick="limparConfig()">🗑️ Limpar</button>
+      </div>
+    </div>
+    <div class="config-block">
+      <div class="config-block-title">📋 SQL — Criar Tabelas</div>
+      <p class="text-muted" style="margin-bottom:12px">Cole no SQL Editor do seu projeto Supabase.</p>
+      <div class="sql-block" id="sql-block"></div>
+      <button class="btn btn-secondary btn-sm mt-12" onclick="copiarSQL()">📋 Copiar SQL</button>
+    </div>
+    <div class="config-block">
+      <div class="config-block-title">🎂 Sobre</div>
+      <p class="text-muted">Doceria Gestão — Feito com ❤️ para a mamãe confeiteira.</p>
+    </div>
+  </div>
+
+</div><!-- /app-scroll -->
+
+<!-- ════════════════ BOTTOM NAV ════════════════ -->
+<nav class="bottom-nav">
+  <div class="nav-tab active" onclick="navigate('dashboard')" id="nav-dashboard">
+    <span class="nav-icon">📊</span>Início
+  </div>
+  <div class="nav-tab" onclick="navigate('pedidos')" id="nav-pedidos">
+    <span class="nav-icon">📦</span>Pedidos
+    <div class="nav-dot hidden" id="badge-pedidos"></div>
+  </div>
+  <div class="nav-tab" onclick="navigate('receitas')" id="nav-receitas">
+    <span class="nav-icon">📋</span>Receitas
+  </div>
+  <div class="nav-tab" onclick="toggleDrawer()" id="nav-mais">
+    <span class="nav-icon">☰</span>Mais
+  </div>
+</nav>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="fecharDrawer()"></div>
+
+<!-- MORE DRAWER -->
+<div class="more-drawer" id="more-drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-section-title">Estoque & Sistema</div>
+  <div class="drawer-item" onclick="navigateDrawer('estoque')"      id="drawer-estoque">     <span class="drawer-icon">🏪</span>Estoque</div>
+  <div class="drawer-item" onclick="navigateDrawer('mercado')"      id="drawer-mercado">     <span class="drawer-icon">🛒</span>Lista de Mercado</div>
+  <div class="drawer-item" onclick="navigateDrawer('ingredientes')" id="drawer-ingredientes"><span class="drawer-icon">🧂</span>Ingredientes</div>
+  <div class="drawer-item" onclick="navigateDrawer('insumos')"      id="drawer-insumos">     <span class="drawer-icon">📦</span>Insumos</div>
+  <div class="drawer-item" onclick="navigateDrawer('config')"       id="drawer-config">      <span class="drawer-icon">⚙️</span>Configurações</div>
+</div>
+
+<!-- FAB -->
+<button class="fab hidden" id="fab">+</button>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════
+     MODAIS
+════════════════════════════════════════════ -->
+
+<!-- MODAL INGREDIENTE -->
+<div id="modal-ingrediente" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="ing-modal-title">Novo Ingrediente</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-ingrediente')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ing-edit-id">
+      <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="ing-nome" placeholder="Ex: Farinha de trigo"></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Qtd. embalagem *</label><input type="number" class="form-input" id="ing-qtd" placeholder="1000" oninput="atualizarPrecoUnit()"></div>
+        <div class="form-group"><label class="form-label">Unidade *</label>
+          <select class="form-select" id="ing-unidade" onchange="atualizarPrecoUnit()">
+            <option value="grama">grama (g)</option><option value="kg">kg</option>
+            <option value="ml">ml</option><option value="litro">litro (L)</option>
+            <option value="unidade">unidade (un)</option><option value="metro">metro (m)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Preço embalagem (R$) *</label><input type="number" class="form-input" id="ing-preco" placeholder="6.00" step="0.01" oninput="atualizarPrecoUnit()"></div>
+        <div class="form-group"><label class="form-label">Categoria</label>
+          <select class="form-select" id="ing-categoria">
+            <option value="">Selecionar...</option>
+          </select>
+        </div>
+      </div>
+      <div id="ing-preco-unit-preview" class="text-muted"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full"    onclick="salvarIngrediente()">💾 Salvar Ingrediente</button>
+      <button class="btn btn-secondary btn-full"  onclick="fecharModal('modal-ingrediente')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSUMO -->
+<div id="modal-insumo" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="ins-modal-title">Novo Insumo</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-insumo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ins-edit-id">
+      <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="ins-nome" placeholder="Ex: Caixa bolo M"></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Qtd. embalagem *</label><input type="number" class="form-input" id="ins-qtd" placeholder="1"></div>
+        <div class="form-group"><label class="form-label">Unidade *</label>
+          <select class="form-select" id="ins-unidade">
+            <option value="unidade">unidade (un)</option><option value="metro">metro (m)</option>
+            <option value="grama">grama (g)</option><option value="ml">ml</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Preço embalagem (R$) *</label><input type="number" class="form-input" id="ins-preco" placeholder="7.00" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Categoria</label>
+        <select class="form-select" id="ins-categoria">
+          <option value="">Selecionar...</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full"   onclick="salvarInsumo()">💾 Salvar Insumo</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-insumo')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECEITA -->
+<div id="modal-receita" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="rec-modal-title">Nova Receita</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-receita')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rec-edit-id">
+      <div class="form-group"><label class="form-label">Nome da Receita *</label><input type="text" class="form-input" id="rec-nome" placeholder="Ex: Bolo de Chocolate"></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Categoria *</label>
+          <select class="form-select" id="rec-categoria">
+            <option value="Bolo Caseiro">🍰 Bolo Caseiro</option>
+            <option value="Bolo Saudável">🥗 Bolo Saudável</option>
+            <option value="Bolo de Festas">🎉 Bolo de Festas</option>
+            <option value="Sobremesas">🍮 Sobremesas</option>
+            <option value="Docinhos">🍬 Docinhos</option>
+            <option value="Sazonal">🌸 Sazonal</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="10 porções"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
+      <div class="divider"></div>
+      <div class="flex-between mb-12">
+        <div class="section-label">🧂 Ingredientes</div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaIngReceira()">+ Adicionar</button>
+      </div>
+      <div id="rec-ing-lista"></div>
+      <div class="divider"></div>
+      <div class="flex-between mb-12">
+        <div class="section-label">📦 Insumos</div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaInsReceira()">+ Adicionar</button>
+      </div>
+      <div id="rec-ins-lista"></div>
+      <div class="divider"></div>
+      <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
+        <div class="flex-between" style="margin-bottom:10px">
+          <span style="font-weight:700;color:var(--accent)">Custo Total:</span>
+          <span style="font-weight:700;color:var(--accent)" id="rec-custo-total">R$ 0,00</span>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Preço de Venda (R$)</label>
+          <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="calcularMargem()">
+        </div>
+        <div class="flex-between mt-12">
+          <span class="text-muted">Margem de lucro:</span>
+          <span id="rec-margem" style="font-weight:700">—</span>
+        </div>
+      </div>
+      <div class="form-group mt-12"><label class="form-label">Observações</label><textarea class="form-textarea" id="rec-obs" placeholder="Modo de preparo, dicas..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full"   onclick="salvarReceita()">💾 Salvar Receita</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-receita')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PEDIDO -->
+<div id="modal-pedido" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="ped-modal-title">Novo Pedido</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-pedido')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ped-edit-id">
+      <div class="section-label">👤 Cliente</div>
+      <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="ped-cliente" placeholder="Nome completo" list="clientes-datalist" oninput="autoFillCliente()"><datalist id="clientes-datalist"></datalist></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Telefone</label><input type="tel" class="form-input" id="ped-telefone" placeholder="(99) 99999-9999"></div>
+        <div class="form-group"><label class="form-label">Preferências</label><input type="text" class="form-input" id="ped-preferencias" placeholder="sem lactose..."></div>
+      </div>
+      <div class="form-group"><label class="form-label">Endereço de Entrega</label><input type="text" class="form-input" id="ped-endereco" placeholder="Rua, número, bairro"></div>
+      <div class="divider"></div>
+      <div class="section-label">📅 Datas & Status</div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Data do Pedido</label><input type="date" class="form-input" id="ped-data-pedido"></div>
+        <div class="form-group"><label class="form-label">Data de Entrega *</label><input type="date" class="form-input" id="ped-data-entrega"></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Status *</label>
+          <select class="form-select" id="ped-status">
+            <option value="orcamento">📋 Orçamento</option>
+            <option value="efetuado">✅ Efetuado</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Pago?</label>
+          <select class="form-select" id="ped-pago">
+            <option value="false">❌ Não</option>
+            <option value="true">✅ Sim</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Forma de Pagamento</label>
+        <select class="form-select" id="ped-pagamento">
+          <option value="">Selecionar...</option>
+          <option value="pix">PIX</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="cartao_credito">Cartão de Crédito</option>
+          <option value="cartao_debito">Cartão de Débito</option>
+        </select>
+      </div>
+      <div class="divider"></div>
+      <div class="flex-between mb-12">
+        <div class="section-label">🍰 Itens do Pedido</div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaPedido()">+ Item</button>
+      </div>
+      <div id="ped-itens-lista"></div>
+      <div class="form-group mt-12"><label class="form-label">Observações</label><textarea class="form-textarea" id="ped-obs" placeholder="Tema, cores, mensagem no bolo..."></textarea></div>
+      <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px;margin-top:8px">
+        <div class="flex-between">
+          <span style="font-weight:700;color:var(--accent)">Total:</span>
+          <span style="font-weight:700;color:var(--accent);font-size:1.1rem" id="ped-total-display">R$ 0,00</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">📄 Orçamento para enviar</div>
+      <div class="orcamento-box">
+        <div class="flex-between mb-12">
+          <span style="font-size:0.8rem;font-weight:600">Texto do orçamento</span>
+          <button class="btn btn-secondary btn-sm" onclick="gerarOrcamento()">🔄 Gerar</button>
+        </div>
+        <textarea class="orcamento-text" id="ped-orcamento-text" placeholder="Clique em Gerar..."></textarea>
+        <button class="btn btn-secondary btn-sm mt-12" onclick="copiarOrcamento()">📋 Copiar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full"   onclick="salvarPedido()">💾 Salvar Pedido</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-pedido')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESTOQUE -->
+<div id="modal-estoque" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Adicionar ao Estoque</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-estoque')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="est-tipo" onchange="carregarOpcoesEstoque()">
+          <option value="ingrediente">Ingrediente</option>
+          <option value="insumo">Insumo</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Item *</label><select class="form-select" id="est-item"></select></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Quantidade *</label><input type="number" class="form-input" id="est-quantidade" placeholder="2"></div>
+        <div class="form-group"><label class="form-label">Mínimo em estoque</label><input type="number" class="form-input" id="est-minimo" placeholder="1"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-full"   onclick="salvarEstoque()">💾 Salvar</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-estoque')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE PEDIDO -->
+<div id="modal-detalhe-pedido" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="det-ped-title">Pedido</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-detalhe-pedido')">✕</button>
+    </div>
+    <div class="modal-body" id="det-ped-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-detalhe-pedido')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE RECEITA -->
+<div id="modal-detalhe-receita" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="det-rec-title">Receita</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-detalhe-receita')">✕</button>
+    </div>
+    <div class="modal-body" id="det-rec-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm"   onclick="imprimirReceita()">🖨️ Imprimir</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-detalhe-receita')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- JS VEM AQUI (partes 2, 3 e 4) -->
+<script>
+// ════════════════════════════════════════════════════════
+//  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
+//  Usados como fallback quando não há Supabase configurado
+// ════════════════════════════════════════════════════════
+
+const INGREDIENTES_INICIAIS = [
+  { id:'i1',  nome:'Açúcar',                      qtd_embalagem:1000, unidade:'grama',   preco:4.29,   categoria:'Açúcares',      historico_precos:[] },
+  { id:'i2',  nome:'Açúcar cristal branco',        qtd_embalagem:5000, unidade:'grama',   preco:18.99,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i3',  nome:'Açúcar cristal colorido',      qtd_embalagem:80,   unidade:'grama',   preco:3.15,   categoria:'Açúcares',      historico_precos:[] },
+  { id:'i4',  nome:'Açúcar demerara',              qtd_embalagem:1000, unidade:'grama',   preco:10.00,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i5',  nome:'Açúcar gelado',                qtd_embalagem:500,  unidade:'grama',   preco:18.49,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i6',  nome:'Açúcar impalpável',            qtd_embalagem:1000, unidade:'grama',   preco:14.95,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i7',  nome:'Açúcar mascavo',               qtd_embalagem:1000, unidade:'grama',   preco:10.00,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i8',  nome:'Adoçante xilitol',             qtd_embalagem:1000, unidade:'grama',   preco:49.95,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i9',  nome:'Glucose de milho',             qtd_embalagem:1000, unidade:'grama',   preco:17.49,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i10', nome:'Mel',                          qtd_embalagem:1100, unidade:'ml',      preco:13.00,  categoria:'Açúcares',      historico_precos:[] },
+  { id:'i11', nome:'Água',                         qtd_embalagem:1500, unidade:'ml',      preco:3.39,   categoria:'Líquidos',      historico_precos:[] },
+  { id:'i12', nome:'Leite',                        qtd_embalagem:1000, unidade:'ml',      preco:6.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i13', nome:'Leite condensado',             qtd_embalagem:395,  unidade:'grama',   preco:7.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i14', nome:'Leite condensado Moça',        qtd_embalagem:395,  unidade:'grama',   preco:10.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i15', nome:'Leite condensado sem lactose', qtd_embalagem:395,  unidade:'grama',   preco:10.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i16', nome:'Leite de coco',                qtd_embalagem:200,  unidade:'grama',   preco:7.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i17', nome:'Leite em pó',                  qtd_embalagem:400,  unidade:'grama',   preco:21.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i18', nome:'Creme de leite',               qtd_embalagem:200,  unidade:'grama',   preco:4.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i19', nome:'Creme de leite fresco',        qtd_embalagem:500,  unidade:'ml',      preco:25.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i20', nome:'Creme de leite lata',          qtd_embalagem:390,  unidade:'grama',   preco:8.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i21', nome:'Creme de leite sem lactose',   qtd_embalagem:200,  unidade:'grama',   preco:6.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i22', nome:'Creme de confeiteiro',         qtd_embalagem:1000, unidade:'grama',   preco:13.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i23', nome:'Cream cheese',                 qtd_embalagem:1000, unidade:'grama',   preco:40.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i24', nome:'Cream cheese (150g)',           qtd_embalagem:150,  unidade:'grama',   preco:12.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i25', nome:'Doce de leite',                qtd_embalagem:950,  unidade:'grama',   preco:26.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i26', nome:'Doce de leite sem lactose',    qtd_embalagem:350,  unidade:'grama',   preco:14.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i27', nome:'Manteiga',                     qtd_embalagem:500,  unidade:'grama',   preco:29.00,  categoria:'Laticínios',    historico_precos:[] },
+  { id:'i28', nome:'Margarina',                    qtd_embalagem:500,  unidade:'grama',   preco:7.00,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i29', nome:'Iogurte',                      qtd_embalagem:170,  unidade:'grama',   preco:3.39,   categoria:'Laticínios',    historico_precos:[] },
+  { id:'i30', nome:'Ovo',                          qtd_embalagem:30,   unidade:'unidade', preco:28.00,  categoria:'Ovos',          historico_precos:[] },
+  { id:'i31', nome:'Farinha de trigo',             qtd_embalagem:1000, unidade:'grama',   preco:6.00,   categoria:'Farinhas',      historico_precos:[] },
+  { id:'i32', nome:'Farinha de trigo pastel',      qtd_embalagem:5000, unidade:'grama',   preco:22.90,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i33', nome:'Farinha de amêndoa',           qtd_embalagem:1000, unidade:'grama',   preco:80.00,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i34', nome:'Farinha de arroz',             qtd_embalagem:1000, unidade:'grama',   preco:12.00,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i35', nome:'Farinha de milho flocada',     qtd_embalagem:500,  unidade:'grama',   preco:12.49,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i36', nome:'Mix de farinha',               qtd_embalagem:1765, unidade:'grama',   preco:35.00,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i37', nome:'Fubá',                         qtd_embalagem:1000, unidade:'grama',   preco:8.59,   categoria:'Farinhas',      historico_precos:[] },
+  { id:'i38', nome:'Amido de milho',               qtd_embalagem:500,  unidade:'grama',   preco:20.99,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i39', nome:'Polvilho doce',                qtd_embalagem:500,  unidade:'grama',   preco:17.00,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i40', nome:'Fécula de batata',             qtd_embalagem:1000, unidade:'grama',   preco:19.99,  categoria:'Farinhas',      historico_precos:[] },
+  { id:'i41', nome:'Cacau em pó 100%',             qtd_embalagem:1000, unidade:'grama',   preco:49.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i42', nome:'Cacau em pó 50%',              qtd_embalagem:1000, unidade:'grama',   preco:44.95,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i43', nome:'Cacau em pó callebaut',        qtd_embalagem:1000, unidade:'grama',   preco:90.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i44', nome:'Chocolate 70%',                qtd_embalagem:1000, unidade:'grama',   preco:132.00, categoria:'Chocolates',    historico_precos:[] },
+  { id:'i45', nome:'Chocolate ao leite',           qtd_embalagem:1000, unidade:'grama',   preco:90.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i46', nome:'Chocolate ao leite fracionado',qtd_embalagem:2000, unidade:'grama',   preco:65.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i47', nome:'Chocolate branco',             qtd_embalagem:2000, unidade:'grama',   preco:165.00, categoria:'Chocolates',    historico_precos:[] },
+  { id:'i48', nome:'Chocolate branco fracionado',  qtd_embalagem:2000, unidade:'grama',   preco:80.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i49', nome:'Chocolate meio amargo',        qtd_embalagem:1000, unidade:'grama',   preco:80.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i50', nome:'Chocolate meio amargo fracionado', qtd_embalagem:500, unidade:'grama',preco:35.95,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i51', nome:'Chips cookies ao leite',       qtd_embalagem:1000, unidade:'grama',   preco:50.00,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i52', nome:'Chips cookies branco',         qtd_embalagem:1000, unidade:'grama',   preco:29.95,  categoria:'Chocolates',    historico_precos:[] },
+  { id:'i53', nome:'Granulado',                    qtd_embalagem:400,  unidade:'grama',   preco:39.00,  categoria:'Coberturas',    historico_precos:[] },
+  { id:'i54', nome:'Granulado 70%',                qtd_embalagem:400,  unidade:'grama',   preco:40.00,  categoria:'Coberturas',    historico_precos:[] },
+  { id:'i55', nome:'Granulado belga',              qtd_embalagem:1000, unidade:'grama',   preco:251.99, categoria:'Coberturas',    historico_precos:[] },
+  { id:'i56', nome:'Granulado meio amargo',        qtd_embalagem:400,  unidade:'grama',   preco:37.00,  categoria:'Coberturas',    historico_precos:[] },
+  { id:'i57', nome:'Aveia flocos finos',           qtd_embalagem:450,  unidade:'grama',   preco:16.99,  categoria:'Cereais',       historico_precos:[] },
+  { id:'i58', nome:'Farelo de aveia',              qtd_embalagem:1000, unidade:'grama',   preco:12.00,  categoria:'Cereais',       historico_precos:[] },
+  { id:'i59', nome:'Baunilha',                     qtd_embalagem:960,  unidade:'ml',      preco:13.95,  categoria:'Aromatizantes', historico_precos:[] },
+  { id:'i60', nome:'Baunilha extrato',             qtd_embalagem:42,   unidade:'grama',   preco:40.00,  categoria:'Aromatizantes', historico_precos:[] },
+  { id:'i61', nome:'Bicarbonato',                  qtd_embalagem:80,   unidade:'grama',   preco:6.69,   categoria:'Fermentos',     historico_precos:[] },
+  { id:'i62', nome:'Bolacha champanhe',            qtd_embalagem:150,  unidade:'grama',   preco:13.00,  categoria:'Biscoitos',     historico_precos:[] },
+  { id:'i63', nome:'Bolacha maizena',              qtd_embalagem:350,  unidade:'grama',   preco:5.79,   categoria:'Biscoitos',     historico_precos:[] },
+  { id:'i64', nome:'Coco ralado fino',             qtd_embalagem:1000, unidade:'grama',   preco:43.00,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i65', nome:'Coco ralado flococo',          qtd_embalagem:100,  unidade:'grama',   preco:12.00,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i66', nome:'Banana',                       qtd_embalagem:1000, unidade:'grama',   preco:7.99,   categoria:'Frutas',        historico_precos:[] },
+  { id:'i67', nome:'Ameixa em calda',              qtd_embalagem:400,  unidade:'unidade', preco:20.00,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i68', nome:'Frutas cristalizadas',         qtd_embalagem:1000, unidade:'grama',   preco:20.00,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i69', nome:'Mix frutas vermelhas secas',   qtd_embalagem:1000, unidade:'grama',   preco:100.00, categoria:'Frutas',        historico_precos:[] },
+  { id:'i70', nome:'Cereja com cabo',              qtd_embalagem:1000, unidade:'grama',   preco:99.95,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i71', nome:'Cereja em calda',              qtd_embalagem:1000, unidade:'grama',   preco:79.95,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i72', nome:'Groselha',                     qtd_embalagem:970,  unidade:'ml',      preco:10.00,  categoria:'Frutas',        historico_precos:[] },
+  { id:'i73', nome:'Goiabada',                     qtd_embalagem:300,  unidade:'grama',   preco:4.79,   categoria:'Geleias',       historico_precos:[] },
+  { id:'i74', nome:'Geleia',                       qtd_embalagem:320,  unidade:'grama',   preco:35.00,  categoria:'Geleias',       historico_precos:[] },
+  { id:'i75', nome:'Geleia diet',                  qtd_embalagem:280,  unidade:'grama',   preco:35.00,  categoria:'Geleias',       historico_precos:[] },
+  { id:'i76', nome:'Geleia brilho morango',        qtd_embalagem:300,  unidade:'grama',   preco:8.99,   categoria:'Geleias',       historico_precos:[] },
+  { id:'i77', nome:'Geleia brilho natural',        qtd_embalagem:200,  unidade:'grama',   preco:6.95,   categoria:'Geleias',       historico_precos:[] },
+  { id:'i78', nome:'Canela em pó',                 qtd_embalagem:30,   unidade:'grama',   preco:5.00,   categoria:'Temperos',      historico_precos:[] },
+  { id:'i79', nome:'Cravo da índia',               qtd_embalagem:1000, unidade:'grama',   preco:139.00, categoria:'Temperos',      historico_precos:[] },
+  { id:'i80', nome:'Cravo em pó',                  qtd_embalagem:1000, unidade:'grama',   preco:29.95,  categoria:'Temperos',      historico_precos:[] },
+  { id:'i81', nome:'Sal',                          qtd_embalagem:1000, unidade:'grama',   preco:3.29,   categoria:'Temperos',      historico_precos:[] },
+  { id:'i82', nome:'Flor de sal',                  qtd_embalagem:1000, unidade:'grama',   preco:79.95,  categoria:'Temperos',      historico_precos:[] },
+  { id:'i83', nome:'Castanha do pará',             qtd_embalagem:1000, unidade:'grama',   preco:200.00, categoria:'Castanhas',     historico_precos:[] },
+  { id:'i84', nome:'Nozes',                        qtd_embalagem:1000, unidade:'grama',   preco:95.00,  categoria:'Castanhas',     historico_precos:[] },
+  { id:'i85', nome:'Pistache',                     qtd_embalagem:1000, unidade:'grama',   preco:290.00, categoria:'Castanhas',     historico_precos:[] },
+  { id:'i86', nome:'Xerém de castanha',            qtd_embalagem:1000, unidade:'grama',   preco:79.90,  categoria:'Castanhas',     historico_precos:[] },
+  { id:'i87', nome:'Mix de castanhas',             qtd_embalagem:1000, unidade:'grama',   preco:95.00,  categoria:'Castanhas',     historico_precos:[] },
+  { id:'i88', nome:'Cappuccino',                   qtd_embalagem:200,  unidade:'grama',   preco:15.79,  categoria:'Bebidas',       historico_precos:[] },
+  { id:'i89', nome:'Nescau',                       qtd_embalagem:350,  unidade:'grama',   preco:10.00,  categoria:'Bebidas',       historico_precos:[] },
+  { id:'i90', nome:'Ovomaltine',                   qtd_embalagem:260,  unidade:'grama',   preco:35.00,  categoria:'Bebidas',       historico_precos:[] },
+  { id:'i91', nome:'Óleo de coco',                 qtd_embalagem:200,  unidade:'ml',      preco:19.00,  categoria:'Óleos',         historico_precos:[] },
+  { id:'i92', nome:'Óleo de girassol',             qtd_embalagem:900,  unidade:'ml',      preco:18.00,  categoria:'Óleos',         historico_precos:[] },
+  { id:'i93', nome:'Óleo de soja',                 qtd_embalagem:900,  unidade:'ml',      preco:8.60,   categoria:'Óleos',         historico_precos:[] },
+];
+
+const INSUMOS_INICIAIS = [
+  { id:'s1',  nome:'Adesivo logo',                qtd_embalagem:65,  unidade:'unidade', preco:35.00,  categoria:'Adesivos',        historico_precos:[] },
+  { id:'s2',  nome:'Adesivo logo quadrado',       qtd_embalagem:70,  unidade:'unidade', preco:22.35,  categoria:'Adesivos',        historico_precos:[] },
+  { id:'s3',  nome:'Adesivo redondo pequeno',     qtd_embalagem:65,  unidade:'unidade', preco:11.10,  categoria:'Adesivos',        historico_precos:[] },
+  { id:'s4',  nome:'Caixa 4 doces',               qtd_embalagem:1,   unidade:'unidade', preco:1.50,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s5',  nome:'Caixa 6 doces',               qtd_embalagem:1,   unidade:'unidade', preco:2.00,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s6',  nome:'Caixa bolo alta',             qtd_embalagem:1,   unidade:'unidade', preco:9.95,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s7',  nome:'Caixa bolo M oitavada',       qtd_embalagem:1,   unidade:'unidade', preco:7.00,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s8',  nome:'Caixa bolo M retangular',     qtd_embalagem:1,   unidade:'unidade', preco:8.50,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s9',  nome:'Caixa bolo P oitavada',       qtd_embalagem:1,   unidade:'unidade', preco:6.50,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s10', nome:'Caixa bolo P retangular',     qtd_embalagem:1,   unidade:'unidade', preco:8.95,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s11', nome:'Caixa cupcake',               qtd_embalagem:1,   unidade:'unidade', preco:4.90,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s12', nome:'Caixa cupcake 4 un',          qtd_embalagem:20,  unidade:'unidade', preco:80.00,  categoria:'Caixas',          historico_precos:[] },
+  { id:'s13', nome:'Caixa cupcake mini',          qtd_embalagem:1,   unidade:'unidade', preco:3.90,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s14', nome:'Caixa cupcake mini individual',qtd_embalagem:10, unidade:'unidade', preco:18.00,  categoria:'Caixas',          historico_precos:[] },
+  { id:'s15', nome:'Caixa doce 100',              qtd_embalagem:1,   unidade:'unidade', preco:6.95,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s16', nome:'Caixa doce 50',               qtd_embalagem:1,   unidade:'unidade', preco:4.95,   categoria:'Caixas',          historico_precos:[] },
+  { id:'s17', nome:'Caixa ovo 350g',              qtd_embalagem:6,   unidade:'unidade', preco:44.90,  categoria:'Caixas',          historico_precos:[] },
+  { id:'s18', nome:'Embalagem bolo fit',          qtd_embalagem:10,  unidade:'unidade', preco:16.00,  categoria:'Embalagens',      historico_precos:[] },
+  { id:'s19', nome:'Embalagem caseiro GM32',      qtd_embalagem:100, unidade:'unidade', preco:100.00, categoria:'Embalagens',      historico_precos:[] },
+  { id:'s20', nome:'Embalagem torta mousse',      qtd_embalagem:1,   unidade:'unidade', preco:6.00,   categoria:'Embalagens',      historico_precos:[] },
+  { id:'s21', nome:'Embalagem travessa G',        qtd_embalagem:1,   unidade:'unidade', preco:6.00,   categoria:'Embalagens',      historico_precos:[] },
+  { id:'s22', nome:'Embalagem travessa P',        qtd_embalagem:1,   unidade:'unidade', preco:3.00,   categoria:'Embalagens',      historico_precos:[] },
+  { id:'s23', nome:'Marmitinha',                  qtd_embalagem:200, unidade:'unidade', preco:73.51,  categoria:'Embalagens',      historico_precos:[] },
+  { id:'s24', nome:'Pote quadrado 150ml',         qtd_embalagem:20,  unidade:'unidade', preco:11.95,  categoria:'Potes',           historico_precos:[] },
+  { id:'s25', nome:'Pote quadrado lacre 220ml',   qtd_embalagem:10,  unidade:'unidade', preco:13.95,  categoria:'Potes',           historico_precos:[] },
+  { id:'s26', nome:'Forminha cupcake G',          qtd_embalagem:57,  unidade:'unidade', preco:10.32,  categoria:'Forminhas',       historico_precos:[] },
+  { id:'s27', nome:'Forminha doce',               qtd_embalagem:50,  unidade:'unidade', preco:4.75,   categoria:'Forminhas',       historico_precos:[] },
+  { id:'s28', nome:'Forminha doce nº6',           qtd_embalagem:100, unidade:'unidade', preco:2.00,   categoria:'Forminhas',       historico_precos:[] },
+  { id:'s29', nome:'Saia mini cupcake',           qtd_embalagem:1,   unidade:'unidade', preco:0.14,   categoria:'Forminhas',       historico_precos:[] },
+  { id:'s30', nome:'Garfo pequeno',               qtd_embalagem:10,  unidade:'unidade', preco:9.99,   categoria:'Outros',          historico_precos:[] },
+  { id:'s31', nome:'Papel chumbo',                qtd_embalagem:40,  unidade:'unidade', preco:16.99,  categoria:'Outros',          historico_precos:[] },
+  { id:'s32', nome:'Saquinho 10x15',              qtd_embalagem:100, unidade:'unidade', preco:5.95,   categoria:'Sacos & Sacolas', historico_precos:[] },
+  { id:'s33', nome:'Saco ovo 350g',               qtd_embalagem:25,  unidade:'unidade', preco:39.90,  categoria:'Sacos & Sacolas', historico_precos:[] },
+  { id:'s34', nome:'Sacola páscoa',               qtd_embalagem:1,   unidade:'unidade', preco:2.83,   categoria:'Sacos & Sacolas', historico_precos:[] },
+  { id:'s35', nome:'Suporte ovo 350g',            qtd_embalagem:10,  unidade:'unidade', preco:3.90,   categoria:'Suportes & Tábuas', historico_precos:[] },
+  { id:'s36', nome:'Tábua de bolo 24',            qtd_embalagem:1,   unidade:'unidade', preco:6.50,   categoria:'Suportes & Tábuas', historico_precos:[] },
+  { id:'s37', nome:'Tábua de bolo 30',            qtd_embalagem:1,   unidade:'unidade', preco:7.50,   categoria:'Suportes & Tábuas', historico_precos:[] },
+  { id:'s38', nome:'Palito',                      qtd_embalagem:100, unidade:'unidade', preco:15.00,  categoria:'Outros',          historico_precos:[] },
+  { id:'s39', nome:'Plástico bem casado',         qtd_embalagem:50,  unidade:'unidade', preco:24.00,  categoria:'Outros',          historico_precos:[] },
+  { id:'s40', nome:'Fita 15mm',                   qtd_embalagem:10,  unidade:'metro',   preco:8.90,   categoria:'Fitas',           historico_precos:[] },
+  { id:'s41', nome:'Fita páscoa',                 qtd_embalagem:50,  unidade:'metro',   preco:63.90,  categoria:'Fitas',           historico_precos:[] },
+  { id:'s42', nome:'Fita personalizada',          qtd_embalagem:50,  unidade:'metro',   preco:76.00,  categoria:'Fitas',           historico_precos:[] },
+  { id:'s43', nome:'Lacre personalizado',         qtd_embalagem:50,  unidade:'metro',   preco:24.00,  categoria:'Fitas',           historico_precos:[] },
+];
+
+
+// ════════════════════════════════════════════════════════
+//  PARTE 2 — STATE · SUPABASE · NAVEGAÇÃO · INGREDIENTES · INSUMOS
+// ════════════════════════════════════════════════════════
+
+// ──────────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────────
+let supabase = null;
+let DB = {
+  ingredientes: [],
+  insumos: [],
+  receitas: [],
+  pedidos: [],
+  estoque: [],
+  clientes: []
+};
+let currentPage      = 'dashboard';
+let currentEstoqueTab = 'ingrediente';
+let recCatFilter     = '';
+let pedStatusFilter  = '';
+let ingCatFilter     = '';
+let insCatFilter     = '';
+
+const MAIN_PAGES   = ['dashboard', 'pedidos', 'receitas'];
+const DRAWER_PAGES = ['ingredientes', 'insumos', 'estoque', 'mercado', 'config'];
+
+// ──────────────────────────────────────────
+//  SUPABASE
+// ──────────────────────────────────────────
+const SUPA_URL_KEY = 'doceria_supa_url';
+const SUPA_KEY_KEY = 'doceria_supa_key';
+
+async function initSupabase() {
+  const url = localStorage.getItem(SUPA_URL_KEY);
+  const key = localStorage.getItem(SUPA_KEY_KEY);
+  if (!url || !key) { setSupabaseStatus(false); return; }
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    supabase = createClient(url, key);
+    await carregarTudo();
+    setSupabaseStatus(true);
+  } catch(e) {
+    setSupabaseStatus(false);
+    toast('Erro ao conectar: ' + e.message, 'error');
+  }
+}
+
+function setSupabaseStatus(ok) {
+  const dot = document.getElementById('conn-dot');
+  const cfg = document.getElementById('cfg-status');
+  if (ok) {
+    if (dot) dot.className = 'conn-dot online';
+    if (cfg) { cfg.className = 'supabase-status connected'; cfg.innerHTML = '<span class="status-dot"></span> Conectado'; }
+  } else {
+    if (dot) dot.className = 'conn-dot';
+    if (cfg) { cfg.className = 'supabase-status disconnected'; cfg.innerHTML = '<span class="status-dot"></span> Desconectado'; }
+  }
+}
+
+// ──────────────────────────────────────────
+//  LOCAL STORAGE FALLBACK
+// ──────────────────────────────────────────
+function localLoad(key) {
+  try { return JSON.parse(localStorage.getItem('doceria_' + key) || '[]'); } catch { return []; }
+}
+function localSave(key, data) {
+  localStorage.setItem('doceria_' + key, JSON.stringify(data));
+}
+
+// ──────────────────────────────────────────
+//  CARREGAR TUDO
+// ──────────────────────────────────────────
+async function carregarTudo() {
+  await Promise.all([
+    carregarCategorias(),
+    carregarIngredientes(),
+    carregarInsumos(),
+    carregarReceitas(),
+    carregarPedidos(),
+    carregarEstoque(),
+    carregarClientes()
+  ]);
+  atualizarDashboard();
+  verificarEstoqueCritico();
+}
+
+async function carregarIngredientes() {
+  if (supabase) {
+    const { data, error } = await supabase.from('ingredientes').select('*').order('nome');
+    if (!error) { DB.ingredientes = data; localSave('ingredientes', data); }
+    else DB.ingredientes = localLoad('ingredientes');
+  } else {
+    DB.ingredientes = localLoad('ingredientes');
+    if (DB.ingredientes.length === 0) DB.ingredientes = INGREDIENTES_INICIAIS;
+  }
+  renderIngredientes();
+  renderIngChips();
+}
+
+async function carregarInsumos() {
+  if (supabase) {
+    const { data, error } = await supabase.from('insumos').select('*').order('nome');
+    if (!error) { DB.insumos = data; localSave('insumos', data); }
+    else DB.insumos = localLoad('insumos');
+  } else {
+    DB.insumos = localLoad('insumos');
+    if (DB.insumos.length === 0) DB.insumos = INSUMOS_INICIAIS;
+  }
+  renderInsumos();
+  renderInsChips();
+}
+
+async function carregarReceitas() {
+  if (supabase) {
+    const { data, error } = await supabase.from('receitas').select('*').order('nome');
+    if (!error) { DB.receitas = data; localSave('receitas', data); }
+    else DB.receitas = localLoad('receitas');
+  } else {
+    DB.receitas = localLoad('receitas');
+  }
+  renderReceitas();
+}
+
+async function carregarPedidos() {
+  if (supabase) {
+    const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
+    if (!error) { DB.pedidos = data; localSave('pedidos', data); }
+    else DB.pedidos = localLoad('pedidos');
+  } else {
+    DB.pedidos = localLoad('pedidos');
+  }
+  renderPedidos();
+}
+
+async function carregarEstoque() {
+  if (supabase) {
+    const { data, error } = await supabase.from('estoque').select('*');
+    if (!error) { DB.estoque = data; localSave('estoque', data); }
+    else DB.estoque = localLoad('estoque');
+  } else {
+    DB.estoque = localLoad('estoque');
+  }
+  renderEstoque();
+}
+
+async function carregarClientes() {
+  if (supabase) {
+    const { data, error } = await supabase.from('clientes').select('*');
+    if (!error) { DB.clientes = data; localSave('clientes', data); }
+    else DB.clientes = localLoad('clientes');
+  } else {
+    DB.clientes = localLoad('clientes');
+  }
+  atualizarDatalistClientes();
+}
+
+// ──────────────────────────────────────────
+//  NAVEGAÇÃO
+// ──────────────────────────────────────────
+function navigate(page) {
+  currentPage = page;
+
+  // Troca de página visível
+  document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('app-scroll').scrollTop = 0;
+
+  // Bottom nav highlight
+  MAIN_PAGES.forEach(p => {
+    const el = document.getElementById('nav-' + p);
+    if (el) el.classList.toggle('active', p === page);
+  });
+  document.getElementById('nav-mais').classList.toggle('active', DRAWER_PAGES.includes(page));
+
+  // FAB
+  updateFab(page);
+
+  // Ações ao entrar na página
+  if (page === 'mercado') gerarListaMercado();
+}
+
+function navigateDrawer(page) {
+  fecharDrawer();
+  navigate(page);
+  DRAWER_PAGES.forEach(p => {
+    const el = document.getElementById('drawer-' + p);
+    if (el) el.classList.toggle('active', p === page);
+  });
+}
+
+function toggleDrawer() {
+  document.getElementById('more-drawer').classList.toggle('open');
+  document.getElementById('drawer-overlay').classList.toggle('open');
+}
+
+function fecharDrawer() {
+  document.getElementById('more-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+function updateFab(page) {
+  const fab = document.getElementById('fab');
+  if (!fab) return;
+  const acoes = {
+    pedidos:      () => abrirModalPedido(),
+    receitas:     () => abrirModalReceita(),
+    ingredientes: () => abrirModalIngrediente(),
+    insumos:      () => abrirModalInsumo(),
+    estoque:      () => abrirModalEstoque(),
+  };
+  if (acoes[page]) {
+    fab.classList.remove('hidden');
+    fab.onclick = acoes[page];
+  } else {
+    fab.classList.add('hidden');
+  }
+}
+
+// ──────────────────────────────────────────
+//  INGREDIENTES — RENDER
+// ──────────────────────────────────────────
+// ──────────────────────────────────────────
+//  GERENCIAR CATEGORIAS (Supabase)
+// ──────────────────────────────────────────
+const CAT_ING_DEFAULT = ['Açúcares','Aromatizantes','Bebidas','Biscoitos','Castanhas','Cereais','Chocolates','Coberturas','Farinhas','Fermentos','Frutas','Geleias','Laticínios','Líquidos','Óleos','Ovos','Temperos'];
+const CAT_INS_DEFAULT = ['Adesivos','Caixas','Embalagens','Fitas','Forminhas','Potes','Sacos & Sacolas','Suportes & Tábuas','Outros'];
+
+// DB.categorias = { ing: [...], ins: [...] }
+DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT] };
+
+async function carregarCategorias() {
+  if (!supabase) {
+    toast('Conecte ao Supabase para gerenciar categorias.', 'warning');
+    return;
+  }
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('tipo, nome')
+    .order('nome');
+
+  if (error) {
+    toast('Erro ao carregar categorias: ' + error.message, 'error');
+    return;
+  }
+
+  if (data.length === 0) {
+    // Primeira vez: popula com os defaults
+    await popularCategoriesDefault();
+  } else {
+    DB.categorias.ing = data.filter(c => c.tipo === 'ing').map(c => c.nome);
+    DB.categorias.ins = data.filter(c => c.tipo === 'ins').map(c => c.nome);
+  }
+
+  renderCatManager();
+  renderIngChips();
+  renderInsChips();
+}
+
+async function popularCategoriesDefault() {
+  const rows = [
+    ...CAT_ING_DEFAULT.map(nome => ({ tipo: 'ing', nome })),
+    ...CAT_INS_DEFAULT.map(nome => ({ tipo: 'ins', nome }))
+  ];
+  const { error } = await supabase.from('categorias').insert(rows);
+  if (error) {
+    toast('Erro ao popular categorias: ' + error.message, 'error');
+    return;
+  }
+  DB.categorias.ing = [...CAT_ING_DEFAULT];
+  DB.categorias.ins = [...CAT_INS_DEFAULT];
+}
+
+function getCats(tipo) {
+  return tipo === 'ing' ? DB.categorias.ing : DB.categorias.ins;
+}
+
+async function adicionarCategoria(tipo) {
+  if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
+
+  const inputId = tipo === 'ing' ? 'cat-ing-nova' : 'cat-ins-nova';
+  const nova    = document.getElementById(inputId).value.trim();
+  if (!nova) return;
+
+  const cats = getCats(tipo);
+  if (cats.includes(nova)) { toast('Categoria já existe!', 'warning'); return; }
+
+  const { error } = await supabase
+    .from('categorias')
+    .insert([{ tipo, nome: nova }]);
+
+  if (error) { toast('Erro ao adicionar: ' + error.message, 'error'); return; }
+
+  cats.push(nova);
+  cats.sort();
+  document.getElementById(inputId).value = '';
+  renderCatManager();
+  tipo === 'ing' ? renderIngChips() : renderInsChips();
+  toast(`Categoria "${nova}" adicionada!`, 'success');
+}
+
+async function removerCategoria(tipo, cat) {
+  if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
+  if (!confirm(`Remover categoria "${cat}"?\n\nOs itens com esta categoria não serão deletados, apenas ficarão sem categoria.`)) return;
+
+  const { error } = await supabase
+    .from('categorias')
+    .delete()
+    .eq('tipo', tipo)
+    .eq('nome', cat);
+
+  if (error) { toast('Erro ao remover: ' + error.message, 'error'); return; }
+
+  if (tipo === 'ing') {
+    DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
+  } else {
+    DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
+  }
+
+  renderCatManager();
+  tipo === 'ing' ? renderIngChips() : renderInsChips();
+  toast(`Categoria "${cat}" removida.`, 'success');
+}
+
+function renderCatManager() {
+  ['ing','ins'].forEach(tipo => {
+    const el   = document.getElementById(`cat-${tipo}-lista`);
+    if (!el) return;
+    const cats = getCats(tipo);
+    if (cats.length === 0) {
+      el.innerHTML = '<span class="text-muted">Nenhuma categoria.</span>';
+      return;
+    }
+    el.innerHTML = cats.map(c => `
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.82rem;font-weight:600">
+        ${c}
+        <button onclick="removerCategoria('${tipo}','${c.replace(/'/g,"\\'")}')
+        " style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:0.9rem;line-height:1;padding:0">✕</button>
+      </div>`
+    ).join('');
+  });
+}
+
+function renderIngChips() {
+  const cats = getCats('ing');
+  const row  = document.getElementById('ing-cat-chips');
+  if (row) {
+    row.innerHTML =
+      `<div class="chip ${ingCatFilter === '' ? 'active' : ''}" onclick="filtrarIngCat('')" data-cat="">Todos</div>` +
+      cats.map(c =>
+        `<div class="chip ${ingCatFilter === c ? 'active' : ''}" onclick="filtrarIngCat('${c}')" data-cat="${c}">${c}</div>`
+      ).join('');
+  }
+  const sel = document.getElementById('ing-categoria');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Selecionar...</option>' +
+      cats.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
+  }
+}
+
+function renderInsChips() {
+  const cats = getCats('ins');
+  const row  = document.getElementById('ins-cat-chips');
+  if (row) {
+    row.innerHTML =
+      `<div class="chip ${insCatFilter === '' ? 'active' : ''}" onclick="filtrarInsCat('')" data-cat="">Todos</div>` +
+      cats.map(c =>
+        `<div class="chip ${insCatFilter === c ? 'active' : ''}" onclick="filtrarInsCat('${c}')" data-cat="${c}">${c}</div>`
+      ).join('');
+  }
+  const sel = document.getElementById('ins-categoria');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Selecionar...</option>' +
+      cats.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
+  }
+}
+
+function filtrarIngCat(cat) {
+  ingCatFilter = cat;
+  renderIngChips();
+  filtrarIngredientes();
+}
+
+function filtrarIngredientes() {
+  const q = (document.getElementById('ing-search').value || '').toLowerCase();
+  const filtrado = DB.ingredientes.filter(i =>
+    i.nome.toLowerCase().includes(q) &&
+    (!ingCatFilter || i.categoria === ingCatFilter)
+  );
+  renderIngredientes(filtrado);
+}
+
+function renderIngredientes(lista) {
+  const dados = lista !== undefined ? lista : DB.ingredientes;
+  const label = document.getElementById('ing-count-label');
+  if (label) label.textContent = DB.ingredientes.length + ' ingredientes';
+
+  const el = document.getElementById('ing-lista');
+  if (!el) return;
+
+  if (dados.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">🧂</div>
+      <div class="empty-state-title">Nenhum ingrediente</div>
+      <div class="empty-state-text">Toque em + para adicionar</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = dados.map(i => {
+    const pu   = i.qtd_embalagem > 0 ? (i.preco / i.qtd_embalagem) : 0;
+    const hist = (i.historico_precos || []).slice(-3)
+      .map(h => `<span class="hist-chip">R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
+    return `<div class="list-item">
+      <div class="list-item-body">
+        <div class="list-item-name">${i.nome}</div>
+        <div class="list-item-sub">${i.qtd_embalagem} ${i.unidade}${i.categoria ? ' · ' + i.categoria : ''}</div>
+        ${hist ? `<div style="margin-top:5px">${hist}</div>` : ''}
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-price">R$ ${parseFloat(i.preco).toFixed(2)}</div>
+        <div class="list-item-unit">R$ ${pu.toFixed(4)}/${i.unidade}</div>
+        <div class="list-actions">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editarIngrediente('${i.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarIngrediente('${i.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  INGREDIENTES — CRUD
+// ──────────────────────────────────────────
+function abrirModalIngrediente() {
+  document.getElementById('ing-edit-id').value    = '';
+  document.getElementById('ing-modal-title').textContent = 'Novo Ingrediente';
+  document.getElementById('ing-nome').value       = '';
+  document.getElementById('ing-qtd').value        = '';
+  document.getElementById('ing-unidade').value    = 'grama';
+  document.getElementById('ing-preco').value      = '';
+  document.getElementById('ing-categoria').value  = '';
+  document.getElementById('ing-preco-unit-preview').textContent = '';
+  document.getElementById('modal-ingrediente').classList.remove('hidden');
+  setTimeout(() => document.getElementById('ing-nome').focus(), 150);
+}
+
+function editarIngrediente(id) {
+  const i = DB.ingredientes.find(x => String(x.id) === String(id));
+  if (!i) return;
+  document.getElementById('ing-edit-id').value    = id;
+  document.getElementById('ing-modal-title').textContent = 'Editar Ingrediente';
+  document.getElementById('ing-nome').value       = i.nome;
+  document.getElementById('ing-qtd').value        = i.qtd_embalagem;
+  document.getElementById('ing-unidade').value    = i.unidade;
+  document.getElementById('ing-preco').value      = i.preco;
+  document.getElementById('ing-categoria').value  = i.categoria || '';
+  atualizarPrecoUnit();
+  document.getElementById('modal-ingrediente').classList.remove('hidden');
+}
+
+function atualizarPrecoUnit() {
+  const qtd   = parseFloat(document.getElementById('ing-qtd').value)   || 0;
+  const preco = parseFloat(document.getElementById('ing-preco').value)  || 0;
+  const un    = document.getElementById('ing-unidade').value;
+  const el    = document.getElementById('ing-preco-unit-preview');
+  el.textContent = (qtd > 0 && preco > 0) ? `→ R$ ${(preco / qtd).toFixed(4)} por ${un}` : '';
+}
+
+async function salvarIngrediente() {
+  const nome      = document.getElementById('ing-nome').value.trim();
+  const qtd       = parseFloat(document.getElementById('ing-qtd').value);
+  const unidade   = document.getElementById('ing-unidade').value;
+  const preco     = parseFloat(document.getElementById('ing-preco').value);
+  const categoria = document.getElementById('ing-categoria').value.trim();
+  const editId    = document.getElementById('ing-edit-id').value;
+
+  if (!nome || !qtd || !preco) { toast('Preencha os campos obrigatórios!', 'error'); return; }
+
+  const payload = { nome, qtd_embalagem: qtd, unidade, preco, categoria };
+
+  if (editId) {
+    // Guarda histórico se preço mudou
+    const atual = DB.ingredientes.find(x => String(x.id) === String(editId));
+    const hist  = atual?.historico_precos || [];
+    if (atual && atual.preco !== preco) hist.push({ preco: atual.preco, data: new Date().toISOString() });
+    payload.historico_precos = hist;
+
+    if (supabase) {
+      const { error } = await supabase.from('ingredientes').update(payload).eq('id', editId);
+      if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    }
+    const idx = DB.ingredientes.findIndex(x => String(x.id) === String(editId));
+    DB.ingredientes[idx] = { ...DB.ingredientes[idx], ...payload };
+  } else {
+    payload.historico_precos = [];
+    if (supabase) {
+      const { data, error } = await supabase.from('ingredientes').insert([payload]).select().single();
+      if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+      payload.id = data.id;
+    } else {
+      payload.id = Date.now();
+    }
+    DB.ingredientes.push(payload);
+    DB.ingredientes.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  localSave('ingredientes', DB.ingredientes);
+  renderIngredientes();
+  renderIngChips();
+  fecharModal('modal-ingrediente');
+  toast(editId ? 'Ingrediente atualizado!' : 'Ingrediente adicionado!', 'success');
+}
+
+async function deletarIngrediente(id) {
+  if (!confirm('Deletar este ingrediente?')) return;
+  if (supabase) {
+    const { error } = await supabase.from('ingredientes').delete().eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  }
+  DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
+  localSave('ingredientes', DB.ingredientes);
+  renderIngredientes();
+  renderIngChips();
+  toast('Ingrediente removido.', 'success');
+}
+
+// ──────────────────────────────────────────
+//  INSUMOS — RENDER
+// ──────────────────────────────────────────
+
+function filtrarInsCat(cat) {
+  insCatFilter = cat;
+  renderInsChips();
+  filtrarInsumos();
+}
+
+function filtrarInsumos() {
+  const q = (document.getElementById('ins-search').value || '').toLowerCase();
+  renderInsumos(DB.insumos.filter(i =>
+    i.nome.toLowerCase().includes(q) &&
+    (!insCatFilter || i.categoria === insCatFilter)
+  ));
+}
+
+function renderInsumos(lista) {
+  const dados = lista !== undefined ? lista : DB.insumos;
+  const label = document.getElementById('ins-count-label');
+  if (label) label.textContent = DB.insumos.length + ' insumos';
+
+  const el = document.getElementById('ins-lista');
+  if (!el) return;
+
+  if (dados.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-title">Nenhum insumo</div>
+      <div class="empty-state-text">Toque em + para adicionar</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = dados.map(i => {
+    const pu   = i.qtd_embalagem > 0 ? (i.preco / i.qtd_embalagem) : 0;
+    const hist = (i.historico_precos || []).slice(-3)
+      .map(h => `<span class="hist-chip">R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
+    return `<div class="list-item">
+      <div class="list-item-body">
+        <div class="list-item-name">${i.nome}</div>
+        <div class="list-item-sub">${i.qtd_embalagem} ${i.unidade}${i.categoria ? ' · ' + i.categoria : ''}</div>
+        ${hist ? `<div style="margin-top:5px">${hist}</div>` : ''}
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-price">R$ ${parseFloat(i.preco).toFixed(2)}</div>
+        <div class="list-item-unit">R$ ${pu.toFixed(4)}/${i.unidade}</div>
+        <div class="list-actions">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editarInsumo('${i.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarInsumo('${i.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  INSUMOS — CRUD
+// ──────────────────────────────────────────
+function abrirModalInsumo() {
+  document.getElementById('ins-edit-id').value    = '';
+  document.getElementById('ins-modal-title').textContent = 'Novo Insumo';
+  document.getElementById('ins-nome').value       = '';
+  document.getElementById('ins-qtd').value        = '';
+  document.getElementById('ins-unidade').value    = 'unidade';
+  document.getElementById('ins-preco').value      = '';
+  document.getElementById('ins-categoria').value  = '';
+  document.getElementById('modal-insumo').classList.remove('hidden');
+  setTimeout(() => document.getElementById('ins-nome').focus(), 150);
+}
+
+function editarInsumo(id) {
+  const i = DB.insumos.find(x => String(x.id) === String(id));
+  if (!i) return;
+  document.getElementById('ins-edit-id').value    = id;
+  document.getElementById('ins-modal-title').textContent = 'Editar Insumo';
+  document.getElementById('ins-nome').value       = i.nome;
+  document.getElementById('ins-qtd').value        = i.qtd_embalagem;
+  document.getElementById('ins-unidade').value    = i.unidade;
+  document.getElementById('ins-preco').value      = i.preco;
+  document.getElementById('ins-categoria').value  = i.categoria || '';
+  document.getElementById('modal-insumo').classList.remove('hidden');
+}
+
+async function salvarInsumo() {
+  const nome      = document.getElementById('ins-nome').value.trim();
+  const qtd       = parseFloat(document.getElementById('ins-qtd').value);
+  const unidade   = document.getElementById('ins-unidade').value;
+  const preco     = parseFloat(document.getElementById('ins-preco').value);
+  const categoria = document.getElementById('ins-categoria').value.trim();
+  const editId    = document.getElementById('ins-edit-id').value;
+
+  if (!nome || !qtd || !preco) { toast('Preencha os campos obrigatórios!', 'error'); return; }
+
+  const payload = { nome, qtd_embalagem: qtd, unidade, preco, categoria };
+
+  if (editId) {
+    const atual = DB.insumos.find(x => String(x.id) === String(editId));
+    const hist  = atual?.historico_precos || [];
+    if (atual && atual.preco !== preco) hist.push({ preco: atual.preco, data: new Date().toISOString() });
+    payload.historico_precos = hist;
+
+    if (supabase) {
+      const { error } = await supabase.from('insumos').update(payload).eq('id', editId);
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    }
+    const idx = DB.insumos.findIndex(x => String(x.id) === String(editId));
+    DB.insumos[idx] = { ...DB.insumos[idx], ...payload };
+  } else {
+    payload.historico_precos = [];
+    if (supabase) {
+      const { data, error } = await supabase.from('insumos').insert([payload]).select().single();
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      payload.id = data.id;
+    } else {
+      payload.id = Date.now();
+    }
+    DB.insumos.push(payload);
+    DB.insumos.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  localSave('insumos', DB.insumos);
+  renderInsumos();
+  renderInsChips();
+  fecharModal('modal-insumo');
+  toast(editId ? 'Insumo atualizado!' : 'Insumo adicionado!', 'success');
+}
+
+async function deletarInsumo(id) {
+  if (!confirm('Deletar este insumo?')) return;
+  if (supabase) {
+    const { error } = await supabase.from('insumos').delete().eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  }
+  DB.insumos = DB.insumos.filter(x => String(x.id) !== String(id));
+  localSave('insumos', DB.insumos);
+  renderInsumos();
+  renderInsChips();
+  toast('Insumo removido.', 'success');
+}
+
+// ──────────────────────────────────────────
+//  HELPERS GERAIS
+// ──────────────────────────────────────────
+function fecharModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+function toast(msg, tipo = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${tipo}`;
+  el.innerHTML = `<span>${tipo === 'success' ? '✅' : tipo === 'error' ? '❌' : '⚠️'}</span>${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function formatarData(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR');
+}
+
+// Fecha modal ao clicar no overlay
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id);
+});
+
+// Data no header
+document.getElementById('header-date').textContent =
+  new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+
+// ════════════════════════════════════════════════════════
+//  PARTE 3 — RECEITAS · PEDIDOS
+// ════════════════════════════════════════════════════════
+
+const CAT_ICONS = {
+  'Bolo Caseiro':  '🍰',
+  'Bolo Saudável': '🥗',
+  'Bolo de Festas':'🎉',
+  'Sobremesas':    '🍮',
+  'Docinhos':      '🍬',
+  'Sazonal':       '🌸'
+};
+
+// ──────────────────────────────────────────
+//  RECEITAS — RENDER
+// ──────────────────────────────────────────
+function filtrarReceitas(cat) {
+  recCatFilter = cat;
+  document.querySelectorAll('#rec-chips .chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.cat === cat)
+  );
+  renderReceitas();
+}
+
+function renderReceitas() {
+  const dados = recCatFilter
+    ? DB.receitas.filter(r => r.categoria === recCatFilter)
+    : DB.receitas;
+
+  const label = document.getElementById('rec-count-label');
+  if (label) label.textContent = DB.receitas.length + ' receitas';
+
+  const el = document.getElementById('rec-lista');
+  if (!el) return;
+
+  if (dados.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <div class="empty-state-title">Nenhuma receita</div>
+      <div class="empty-state-text">Toque em + para adicionar</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = dados.map(r => {
+    const custo  = calcularCustoReceita(r);
+    const margem = r.preco_venda > 0
+      ? (((r.preco_venda - custo) / r.preco_venda) * 100).toFixed(0)
+      : null;
+    return `<div class="rec-card" onclick="verReceita('${r.id}')">
+      <div class="rec-card-top">
+        <span class="rec-card-emoji">${CAT_ICONS[r.categoria] || '🍰'}</span>
+        <span class="badge badge-accent">${r.categoria}</span>
+      </div>
+      <div class="rec-card-name">${r.nome}</div>
+      <div class="rec-card-desc">${r.descricao || '—'}</div>
+      <div class="rec-card-footer">
+        <span>Custo: <b style="color:var(--accent)">R$ ${custo.toFixed(2)}</b></span>
+        <span>Venda: <b>${r.preco_venda ? 'R$ ' + parseFloat(r.preco_venda).toFixed(2) : '—'}</b></span>
+      </div>
+      ${margem ? `<div style="margin-top:8px"><span class="badge badge-green">Margem: ${margem}%</span></div>` : ''}
+      <div class="rec-card-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deletarReceita('${r.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcularCustoReceita(r) {
+  let total = 0;
+  (r.ingredientes || []).forEach(item => {
+    const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
+    if (ing && ing.qtd_embalagem > 0)
+      total += (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0);
+  });
+  (r.insumos || []).forEach(item => {
+    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
+    if (ins && ins.qtd_embalagem > 0)
+      total += (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0);
+  });
+  return total;
+}
+
+// ──────────────────────────────────────────
+//  RECEITAS — MODAL (linhas dinâmicas)
+// ──────────────────────────────────────────
+function addLinhaIngReceira() {
+  const div = document.createElement('div');
+  div.className = 'recipe-row';
+  div.innerHTML = `
+    <select class="form-select" style="font-size:0.85rem;padding:9px"
+      onchange="recalcularCusto(); this.closest('.recipe-row').querySelector('.un-label').textContent = DB.ingredientes.find(x=>String(x.id)===this.value)?.unidade || '—'">
+      <option value="">Ingrediente...</option>
+      ${DB.ingredientes.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" oninput="recalcularCusto()">
+    <span class="un-label text-muted" style="font-size:0.75rem;min-width:22px">—</span>
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+  `;
+  document.getElementById('rec-ing-lista').appendChild(div);
+}
+
+function addLinhaInsReceira() {
+  const div = document.createElement('div');
+  div.className = 'recipe-row';
+  div.innerHTML = `
+    <select class="form-select" style="font-size:0.85rem;padding:9px"
+      onchange="recalcularCusto(); this.closest('.recipe-row').querySelector('.un-label').textContent = DB.insumos.find(x=>String(x.id)===this.value)?.unidade || '—'">
+      <option value="">Insumo...</option>
+      ${DB.insumos.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" oninput="recalcularCusto()">
+    <span class="un-label text-muted" style="font-size:0.75rem;min-width:22px">—</span>
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+  `;
+  document.getElementById('rec-ins-lista').appendChild(div);
+}
+
+function recalcularCusto() {
+  let total = 0;
+  document.querySelectorAll('#rec-ing-lista .recipe-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseFloat(row.querySelector('input').value) || 0;
+    const ing = DB.ingredientes.find(x => String(x.id) === id);
+    if (ing && ing.qtd_embalagem > 0) total += (ing.preco / ing.qtd_embalagem) * qtd;
+  });
+  document.querySelectorAll('#rec-ins-lista .recipe-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseFloat(row.querySelector('input').value) || 0;
+    const ins = DB.insumos.find(x => String(x.id) === id);
+    if (ins && ins.qtd_embalagem > 0) total += (ins.preco / ins.qtd_embalagem) * qtd;
+  });
+  document.getElementById('rec-custo-total').textContent = 'R$ ' + total.toFixed(2);
+  calcularMargem(total);
+}
+
+function calcularMargem(custo) {
+  const c     = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
+  const venda = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const el    = document.getElementById('rec-margem');
+  if (venda > 0 && c > 0) {
+    const m = ((venda - c) / venda * 100).toFixed(1);
+    el.textContent  = m + '%';
+    el.style.color  = parseFloat(m) >= 30 ? 'var(--green)' : parseFloat(m) >= 0 ? 'var(--yellow)' : 'var(--red)';
+  } else {
+    el.textContent = '—';
+    el.style.color = '';
+  }
+}
+
+// ──────────────────────────────────────────
+//  RECEITAS — CRUD
+// ──────────────────────────────────────────
+function abrirModalReceita() {
+  document.getElementById('rec-edit-id').value = '';
+  document.getElementById('rec-modal-title').textContent = 'Nova Receita';
+  ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rec-rendimento').value   = '';
+  document.getElementById('rec-preco-venda').value  = '';
+  document.getElementById('rec-ing-lista').innerHTML = '';
+  document.getElementById('rec-ins-lista').innerHTML = '';
+  document.getElementById('rec-custo-total').textContent = 'R$ 0,00';
+  document.getElementById('rec-margem').textContent = '—';
+  document.getElementById('modal-receita').classList.remove('hidden');
+}
+
+function editarReceita(id) {
+  const r = DB.receitas.find(x => String(x.id) === String(id));
+  if (!r) return;
+  document.getElementById('rec-edit-id').value          = id;
+  document.getElementById('rec-modal-title').textContent = 'Editar Receita';
+  document.getElementById('rec-nome').value             = r.nome;
+  document.getElementById('rec-categoria').value        = r.categoria;
+  document.getElementById('rec-descricao').value        = r.descricao || '';
+  document.getElementById('rec-rendimento').value       = r.rendimento || '';
+  document.getElementById('rec-preco-venda').value      = r.preco_venda || '';
+  document.getElementById('rec-obs').value              = r.obs || '';
+  document.getElementById('rec-ing-lista').innerHTML    = '';
+  document.getElementById('rec-ins-lista').innerHTML    = '';
+
+  (r.ingredientes || []).forEach(item => {
+    addLinhaIngReceira();
+    const linhas = document.querySelectorAll('#rec-ing-lista .recipe-row');
+    const linha  = linhas[linhas.length - 1];
+    linha.querySelector('select').value = item.id;
+    linha.querySelector('input').value  = item.quantidade;
+    const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
+    if (ing) linha.querySelector('.un-label').textContent = ing.unidade;
+  });
+
+  (r.insumos || []).forEach(item => {
+    addLinhaInsReceira();
+    const linhas = document.querySelectorAll('#rec-ins-lista .recipe-row');
+    const linha  = linhas[linhas.length - 1];
+    linha.querySelector('select').value = item.id;
+    linha.querySelector('input').value  = item.quantidade;
+    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
+    if (ins) linha.querySelector('.un-label').textContent = ins.unidade;
+  });
+
+  recalcularCusto();
+  document.getElementById('modal-receita').classList.remove('hidden');
+}
+
+async function salvarReceita() {
+  const nome = document.getElementById('rec-nome').value.trim();
+  if (!nome) { toast('Informe o nome da receita!', 'error'); return; }
+
+  const ingredientes = [];
+  document.querySelectorAll('#rec-ing-lista .recipe-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseFloat(row.querySelector('input').value) || 0;
+    if (id && qtd > 0) ingredientes.push({ id, quantidade: qtd });
+  });
+
+  const insumos = [];
+  document.querySelectorAll('#rec-ins-lista .recipe-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseFloat(row.querySelector('input').value) || 0;
+    if (id && qtd > 0) insumos.push({ id, quantidade: qtd });
+  });
+
+  const payload = {
+    nome,
+    categoria:   document.getElementById('rec-categoria').value,
+    descricao:   document.getElementById('rec-descricao').value.trim(),
+    rendimento:  parseInt(document.getElementById('rec-rendimento').value) || null,
+    preco_venda: parseFloat(document.getElementById('rec-preco-venda').value) || null,
+    obs:         document.getElementById('rec-obs').value.trim(),
+    ingredientes,
+    insumos
+  };
+
+  const editId = document.getElementById('rec-edit-id').value;
+
+  if (editId) {
+    if (supabase) {
+      const { error } = await supabase.from('receitas').update(payload).eq('id', editId);
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    }
+    const idx = DB.receitas.findIndex(x => String(x.id) === String(editId));
+    DB.receitas[idx] = { ...DB.receitas[idx], ...payload };
+  } else {
+    if (supabase) {
+      const { data, error } = await supabase.from('receitas').insert([payload]).select().single();
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      payload.id = data.id;
+    } else {
+      payload.id = Date.now();
+    }
+    DB.receitas.push(payload);
+    DB.receitas.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  localSave('receitas', DB.receitas);
+  renderReceitas();
+  fecharModal('modal-receita');
+  toast(editId ? 'Receita atualizada!' : 'Receita salva!', 'success');
+}
+
+async function deletarReceita(id) {
+  if (!confirm('Deletar esta receita?')) return;
+  if (supabase) {
+    const { error } = await supabase.from('receitas').delete().eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  }
+  DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
+  localSave('receitas', DB.receitas);
+  renderReceitas();
+  toast('Receita removida.', 'success');
+}
+
+function verReceita(id) {
+  const r = DB.receitas.find(x => String(x.id) === String(id));
+  if (!r) return;
+  const custo = calcularCustoReceita(r);
+
+  const ingRows = (r.ingredientes || []).map(item => {
+    const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
+    return `<div class="mercado-item"><span>${ing?.nome || '?'}</span><span>${item.quantidade} ${ing?.unidade || ''}</span></div>`;
+  }).join('');
+
+  const insRows = (r.insumos || []).map(item => {
+    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
+    return `<div class="mercado-item"><span>${ins?.nome || '?'}</span><span>${item.quantidade} ${ins?.unidade || ''}</span></div>`;
+  }).join('');
+
+  document.getElementById('det-rec-title').textContent = r.nome;
+  document.getElementById('det-rec-body').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="badge badge-accent">${r.categoria}</span>
+      ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} porções</span>` : ''}
+      <span class="badge badge-green">Custo: R$ ${custo.toFixed(2)}</span>
+      ${r.preco_venda ? `<span class="badge badge-yellow">Venda: R$ ${parseFloat(r.preco_venda).toFixed(2)}</span>` : ''}
+    </div>
+    ${r.descricao ? `<p class="text-muted" style="margin-bottom:14px">${r.descricao}</p>` : ''}
+    ${ingRows ? `<div class="section-label">🧂 Ingredientes</div><div class="card" style="padding:12px;margin-bottom:12px">${ingRows}</div>` : ''}
+    ${insRows ? `<div class="section-label">📦 Insumos</div><div class="card" style="padding:12px;margin-bottom:12px">${insRows}</div>` : ''}
+    ${r.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${r.obs}</p>` : ''}
+    <p class="text-muted" style="margin-top:16px">⏳ Tabela Nutricional — pendente (TACO)</p>
+  `;
+  document.getElementById('modal-detalhe-receita').classList.remove('hidden');
+}
+
+function imprimirReceita() {
+  const body = document.getElementById('det-rec-body').innerHTML;
+  const win  = window.open('', '_blank');
+  win.document.write(`<html><head><title>Receita</title>
+    <style>body{font-family:sans-serif;padding:20px;color:#222}
+    .mercado-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee}
+    .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;margin:2px;background:#eee}
+    </style></head><body>${body}</body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ──────────────────────────────────────────
+//  PEDIDOS — HELPERS
+// ──────────────────────────────────────────
+function gerarIdPedido() {
+  if (DB.pedidos.length === 0) return '0001';
+  const maxId = Math.max(...DB.pedidos.map(p => parseInt(p.numero_pedido || '0') || 0));
+  return String(maxId + 1).padStart(4, '0');
+}
+
+function formatarItensPedido(p) {
+  return (p.itens || []).map(i => {
+    const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    return r ? `${r.nome} ×${i.quantidade}` : '?';
+  }).join(', ') || '—';
+}
+
+function calcularTotalPedido(p) {
+  return (p.itens || []).reduce((acc, i) => {
+    const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    return acc + (r?.preco_venda || 0) * (i.quantidade || 1);
+  }, 0);
+}
+
+// ──────────────────────────────────────────
+//  PEDIDOS — RENDER
+// ──────────────────────────────────────────
+function filtrarPedidosStatus(status) {
+  pedStatusFilter = status;
+  document.querySelectorAll('#ped-chips .chip[data-s]').forEach(c =>
+    c.classList.toggle('active', c.dataset.s === status)
+  );
+  filtrarPedidos();
+}
+
+function filtrarPedidos() {
+  const q = (document.getElementById('ped-search').value || '').toLowerCase();
+  const filtrado = DB.pedidos.filter(p => {
+    const matchQ = !q || p.cliente_nome?.toLowerCase().includes(q) || String(p.numero_pedido).includes(q);
+    const matchS = !pedStatusFilter || p.status === pedStatusFilter;
+    return matchQ && matchS;
+  });
+  renderPedidos(filtrado);
+}
+
+function renderPedidos(lista) {
+  const dados    = lista !== undefined ? lista : DB.pedidos;
+  const badge    = document.getElementById('badge-pedidos');
+  const pendentes = DB.pedidos.filter(p => p.status === 'efetuado' && !p.pago);
+  badge.classList.toggle('hidden', pendentes.length === 0);
+
+  const label = document.getElementById('ped-count-label');
+  if (label) label.textContent = DB.pedidos.length + ' pedidos';
+
+  const el = document.getElementById('ped-lista');
+  if (!el) return;
+
+  if (dados.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-title">Nenhum pedido</div>
+      <div class="empty-state-text">Toque em + para adicionar</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = dados.map(p => {
+    const total       = calcularTotalPedido(p);
+    const statusBadge = p.status === 'efetuado'
+      ? '<span class="badge badge-green">✅ Efetuado</span>'
+      : '<span class="badge badge-yellow">📋 Orçamento</span>';
+    const pagoBadge   = p.pago
+      ? '<span class="badge badge-green">Pago</span>'
+      : '<span class="badge badge-red">Pendente</span>';
+
+    return `<div class="ped-row">
+      <div class="ped-row-top">
+        <div>
+          <div class="ped-nome">${p.cliente_nome}</div>
+          <div class="ped-tel">${p.cliente_telefone || ''}</div>
+        </div>
+        <span class="ped-id">#${p.numero_pedido || '?'}</span>
+      </div>
+      <div class="ped-items-text">${formatarItensPedido(p)}</div>
+      ${p.data_entrega ? `<div style="font-size:0.8rem;color:var(--text3)">📅 Entrega: <b>${formatarData(p.data_entrega)}</b></div>` : ''}
+      <div class="ped-row-bottom">
+        ${statusBadge} ${pagoBadge}
+        <span class="ped-total">R$ ${total.toFixed(2)}</span>
+      </div>
+      <div class="ped-actions">
+        <button class="btn btn-secondary btn-sm" onclick="verPedido('${p.id}')">👁️ Ver</button>
+        <button class="btn btn-secondary btn-sm" onclick="editarPedido('${p.id}')">✏️ Editar</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deletarPedido('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  PEDIDOS — CALENDÁRIO
+// ──────────────────────────────────────────
+function toggleCalendario() {
+  const el = document.getElementById('ped-calendario');
+  el.classList.toggle('hidden');
+  if (!el.classList.contains('hidden')) renderCalendario();
+}
+
+function renderCalendario() {
+  const hoje        = new Date();
+  const ano         = hoje.getFullYear();
+  const mes         = hoje.getMonth();
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes   = new Date(ano, mes + 1, 0).getDate();
+
+  const pedPorDia = {};
+  DB.pedidos.forEach(p => {
+    if (p.data_entrega) {
+      const d = new Date(p.data_entrega + 'T00:00:00');
+      if (d.getFullYear() === ano && d.getMonth() === mes) {
+        const dia = d.getDate();
+        pedPorDia[dia] = (pedPorDia[dia] || 0) + 1;
+      }
+    }
+  });
+
+  const semana = ['D','S','T','Q','Q','S','S'];
+  let html = semana.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+  for (let i = 0; i < primeiroDia; i++) html += '<div></div>';
+  for (let d = 1; d <= diasNoMes; d++) {
+    const temP = pedPorDia[d] > 0;
+    const isH  = d === hoje.getDate();
+    html += `<div class="cal-day ${isH ? 'hoje' : temP ? 'has-ped' : ''}">${d}${temP ? `<div class="cal-day-count">${pedPorDia[d]}p</div>` : ''}</div>`;
+  }
+  document.getElementById('cal-body').innerHTML = html;
+}
+
+// ──────────────────────────────────────────
+//  PEDIDOS — MODAL
+// ──────────────────────────────────────────
+function addLinhaPedido() {
+  const div = document.createElement('div');
+  div.className = 'pedido-item-row';
+  div.innerHTML = `
+    <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="calcularTotalPedidoForm()">
+      <option value="">Receita...</option>
+      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1" oninput="calcularTotalPedidoForm()">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
+  `;
+  document.getElementById('ped-itens-lista').appendChild(div);
+}
+
+function calcularTotalPedidoForm() {
+  let total = 0;
+  document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input').value) || 1;
+    const r   = DB.receitas.find(x => String(x.id) === id);
+    if (r?.preco_venda) total += r.preco_venda * qtd;
+  });
+  document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
+}
+
+function abrirModalPedido() {
+  document.getElementById('ped-edit-id').value = '';
+  document.getElementById('ped-modal-title').textContent = `Novo Pedido #${gerarIdPedido()}`;
+  ['ped-cliente','ped-telefone','ped-endereco','ped-preferencias','ped-obs'].forEach(id =>
+    document.getElementById(id).value = ''
+  );
+  document.getElementById('ped-data-pedido').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('ped-data-entrega').value = '';
+  document.getElementById('ped-status').value       = 'orcamento';
+  document.getElementById('ped-pagamento').value    = '';
+  document.getElementById('ped-pago').value         = 'false';
+  document.getElementById('ped-itens-lista').innerHTML  = '';
+  document.getElementById('ped-total-display').textContent = 'R$ 0,00';
+  document.getElementById('ped-orcamento-text').value  = '';
+  document.getElementById('modal-pedido').classList.remove('hidden');
+}
+
+function editarPedido(id) {
+  const p = DB.pedidos.find(x => String(x.id) === String(id));
+  if (!p) return;
+  document.getElementById('ped-edit-id').value          = id;
+  document.getElementById('ped-modal-title').textContent = `Editar Pedido #${p.numero_pedido}`;
+  document.getElementById('ped-cliente').value          = p.cliente_nome;
+  document.getElementById('ped-telefone').value         = p.cliente_telefone || '';
+  document.getElementById('ped-endereco').value         = p.endereco || '';
+  document.getElementById('ped-data-pedido').value      = p.data_pedido || '';
+  document.getElementById('ped-data-entrega').value     = p.data_entrega || '';
+  document.getElementById('ped-status').value           = p.status;
+  document.getElementById('ped-pagamento').value        = p.forma_pagamento || '';
+  document.getElementById('ped-pago').value             = p.pago ? 'true' : 'false';
+  document.getElementById('ped-preferencias').value     = p.preferencias || '';
+  document.getElementById('ped-obs').value              = p.obs || '';
+  document.getElementById('ped-itens-lista').innerHTML  = '';
+
+  (p.itens || []).forEach(item => {
+    addLinhaPedido();
+    const linhas = document.querySelectorAll('#ped-itens-lista .pedido-item-row');
+    const linha  = linhas[linhas.length - 1];
+    linha.querySelector('select').value = item.receita_id;
+    linha.querySelector('input').value  = item.quantidade;
+  });
+
+  calcularTotalPedidoForm();
+  document.getElementById('modal-pedido').classList.remove('hidden');
+}
+
+// ──────────────────────────────────────────
+//  PEDIDOS — CRUD
+// ──────────────────────────────────────────
+async function salvarPedido() {
+  const nome     = document.getElementById('ped-cliente').value.trim();
+  const telefone = document.getElementById('ped-telefone').value.trim();
+  if (!nome) { toast('Informe o nome do cliente!', 'error'); return; }
+
+  const itens = [];
+  document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input').value) || 1;
+    if (id) itens.push({ receita_id: id, quantidade: qtd, tipo: 'receita' });
+  });
+
+  const editId = document.getElementById('ped-edit-id').value;
+  const status = document.getElementById('ped-status').value;
+  const pago   = document.getElementById('ped-pago').value === 'true';
+
+  const payload = {
+    cliente_nome:     nome,
+    cliente_telefone: telefone,
+    endereco:         document.getElementById('ped-endereco').value.trim(),
+    data_pedido:      document.getElementById('ped-data-pedido').value,
+    data_entrega:     document.getElementById('ped-data-entrega').value,
+    status,
+    pago,
+    forma_pagamento:  document.getElementById('ped-pagamento').value,
+    preferencias:     document.getElementById('ped-preferencias').value.trim(),
+    obs:              document.getElementById('ped-obs').value.trim(),
+    itens
+  };
+
+  // Verifica se mudou de orçamento → efetuado (para descontar estoque)
+  const eraOrcamento = editId
+    ? DB.pedidos.find(x => String(x.id) === String(editId))?.status === 'orcamento'
+    : false;
+
+  if (editId) {
+    if (supabase) {
+      const { error } = await supabase.from('pedidos').update(payload).eq('id', editId);
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    }
+    const idx = DB.pedidos.findIndex(x => String(x.id) === String(editId));
+    DB.pedidos[idx] = { ...DB.pedidos[idx], ...payload };
+    if (eraOrcamento && status === 'efetuado') descontarEstoquePedido(DB.pedidos[idx]);
+  } else {
+    payload.numero_pedido = gerarIdPedido();
+    if (supabase) {
+      const { data, error } = await supabase.from('pedidos').insert([payload]).select().single();
+      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      payload.id = data.id;
+    } else {
+      payload.id = Date.now();
+    }
+    DB.pedidos.unshift(payload);
+    if (status === 'efetuado') descontarEstoquePedido(payload);
+  }
+
+  await salvarCliente({ nome, telefone, preferencias: payload.preferencias });
+  localSave('pedidos', DB.pedidos);
+  renderPedidos();
+  atualizarDashboard();
+  fecharModal('modal-pedido');
+  toast(editId ? 'Pedido atualizado!' : `Pedido #${payload.numero_pedido} criado!`, 'success');
+}
+
+async function deletarPedido(id) {
+  if (!confirm('Deletar este pedido?')) return;
+  if (supabase) {
+    const { error } = await supabase.from('pedidos').delete().eq('id', id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  }
+  DB.pedidos = DB.pedidos.filter(x => String(x.id) !== String(id));
+  localSave('pedidos', DB.pedidos);
+  renderPedidos();
+  atualizarDashboard();
+  toast('Pedido removido.', 'success');
+}
+
+function verPedido(id) {
+  const p = DB.pedidos.find(x => String(x.id) === String(id));
+  if (!p) return;
+  const total = calcularTotalPedido(p);
+
+  document.getElementById('det-ped-title').textContent = `Pedido #${p.numero_pedido}`;
+  document.getElementById('det-ped-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="section-label">Cliente</div><div style="font-weight:700">${p.cliente_nome}</div></div>
+      <div><div class="section-label">Telefone</div><div>${p.cliente_telefone || '—'}</div></div>
+      <div><div class="section-label">Entrega</div><div style="font-weight:700">${p.data_entrega ? formatarData(p.data_entrega) : '—'}</div></div>
+      <div><div class="section-label">Status</div>${p.status === 'efetuado' ? '<span class="badge badge-green">✅ Efetuado</span>' : '<span class="badge badge-yellow">📋 Orçamento</span>'}</div>
+      <div><div class="section-label">Pagamento</div>${p.pago ? '<span class="badge badge-green">✅ Pago</span>' : '<span class="badge badge-red">❌ Pendente</span>'}</div>
+      ${p.forma_pagamento ? `<div><div class="section-label">Forma</div><div>${p.forma_pagamento}</div></div>` : ''}
+      ${p.preferencias ? `<div style="grid-column:1/-1"><div class="section-label">Preferências</div><div class="text-muted">${p.preferencias}</div></div>` : ''}
+      ${p.endereco ? `<div style="grid-column:1/-1"><div class="section-label">📍 Endereço</div><div class="text-muted">${p.endereco}</div></div>` : ''}
+    </div>
+    <div class="section-label">🍰 Itens</div>
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      ${(p.itens || []).map(i => {
+        const r   = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+        const val = r?.preco_venda || 0;
+        return `<div class="mercado-item">
+          <span>${r?.nome || '?'} ×${i.quantidade}</span>
+          <span style="font-weight:700">R$ ${(val * i.quantidade).toFixed(2)}</span>
+        </div>`;
+      }).join('')}
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
+        <span style="font-weight:700">Total</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${total.toFixed(2)}</span>
+      </div>
+    </div>
+    ${p.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${p.obs}</p>` : ''}
+  `;
+  document.getElementById('modal-detalhe-pedido').classList.remove('hidden');
+}
+
+// ──────────────────────────────────────────
+//  ORÇAMENTO
+// ──────────────────────────────────────────
+function gerarOrcamento() {
+  const nome    = document.getElementById('ped-cliente').value    || '—';
+  const entrega = document.getElementById('ped-data-entrega').value;
+  const obs     = document.getElementById('ped-obs').value;
+  const itens   = [];
+  let total = 0;
+
+  document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input').value) || 1;
+    const r   = DB.receitas.find(x => String(x.id) === id);
+    if (r) {
+      itens.push(`• ${r.nome} ×${qtd} — R$ ${((r.preco_venda || 0) * qtd).toFixed(2)}`);
+      total += (r.preco_venda || 0) * qtd;
+    }
+  });
+
+  const texto = [
+    `📋 *ORÇAMENTO*`,
+    ``,
+    `Olá ${nome}! 🎂`,
+    ``,
+    itens.join('\n'),
+    ``,
+    `💰 *Total: R$ ${total.toFixed(2)}*`,
+    entrega ? `📅 Entrega: ${formatarData(entrega)}` : '',
+    obs     ? `📝 ${obs}` : '',
+    ``,
+    `Qualquer dúvida estou à disposição! 😊`
+  ].filter(l => l !== null).join('\n');
+
+  document.getElementById('ped-orcamento-text').value = texto;
+}
+
+function copiarOrcamento() {
+  const text = document.getElementById('ped-orcamento-text').value;
+  navigator.clipboard.writeText(text);
+  toast('Orçamento copiado!', 'success');
+}
+
+// ──────────────────────────────────────────
+//  CLIENTES (autocomplete + save)
+// ──────────────────────────────────────────
+function autoFillCliente() {
+  const nome    = document.getElementById('ped-cliente').value;
+  const cliente = DB.clientes.find(c => c.nome === nome);
+  if (cliente) {
+    if (cliente.telefone)     document.getElementById('ped-telefone').value     = cliente.telefone;
+    if (cliente.preferencias) document.getElementById('ped-preferencias').value = cliente.preferencias;
+  }
+}
+
+function atualizarDatalistClientes() {
+  const dl = document.getElementById('clientes-datalist');
+  if (dl) dl.innerHTML = DB.clientes.map(c => `<option value="${c.nome}">`).join('');
+}
+
+async function salvarCliente(dados) {
+  const ex = DB.clientes.find(c => c.telefone === dados.telefone || c.nome === dados.nome);
+  if (ex) {
+    if (dados.preferencias) ex.preferencias = dados.preferencias;
+    if (supabase) await supabase.from('clientes').update(ex).eq('id', ex.id);
+  } else {
+    const nc = { nome: dados.nome, telefone: dados.telefone, preferencias: dados.preferencias, id: Date.now() };
+    if (supabase) {
+      const { data } = await supabase.from('clientes').insert([nc]).select().single();
+      if (data) nc.id = data.id;
+    }
+    DB.clientes.push(nc);
+  }
+  localSave('clientes', DB.clientes);
+  atualizarDatalistClientes();
+}
+
+
+// ════════════════════════════════════════════════════════
+//  PARTE 4 — ESTOQUE · MERCADO · DASHBOARD
+// ════════════════════════════════════════════════════════
+
+// ──────────────────────────────────────────
+//  ESTOQUE — RENDER
+// ──────────────────────────────────────────
+function filtrarEstoque(tipo) {
+  currentEstoqueTab = tipo;
+  document.getElementById('est-chip-ing').classList.toggle('active', tipo === 'ingrediente');
+  document.getElementById('est-chip-ins').classList.toggle('active', tipo === 'insumo');
+  renderEstoque();
+}
+
+function renderEstoque() {
+  const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
+
+  // Alerta de estoque crítico
+  const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
+  const alertEl  = document.getElementById('est-alertas');
+  if (alertEl) {
+    alertEl.innerHTML = criticos.length > 0
+      ? `<div class="alerta-banner">⚠️ ${criticos.length} item(s) abaixo do estoque mínimo!</div>`
+      : '';
+  }
+
+  const el = document.getElementById('est-lista');
+  if (!el) return;
+
+  if (dados.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <div class="empty-state-title">Nenhum item</div>
+      <div class="empty-state-text">Toque em + para adicionar ao estoque</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = dados.map(e => {
+    const item = currentEstoqueTab === 'ingrediente'
+      ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
+      : DB.insumos.find(x => String(x.id) === String(e.item_id));
+
+    const critico = e.minimo && e.quantidade <= e.minimo;
+    const badge   = critico
+      ? '<span class="badge badge-red">⚠️ Crítico</span>'
+      : e.quantidade === 0
+        ? '<span class="badge badge-red">❌ Zerado</span>'
+        : '<span class="badge badge-green">✅ OK</span>';
+
+    return `<div class="est-row${critico ? ' critico' : ''}">
+      <div class="est-info">
+        <div class="est-name">${item?.nome || e.item_id}</div>
+        <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}</div>
+      </div>
+      ${badge}
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="ajustarEstoque('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarEstoque('${e.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
+//  ESTOQUE — MODAL
+// ──────────────────────────────────────────
+function carregarOpcoesEstoque() {
+  const tipo  = document.getElementById('est-tipo').value;
+  const lista = tipo === 'ingrediente' ? DB.ingredientes : DB.insumos;
+  document.getElementById('est-item').innerHTML =
+    lista.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
+}
+
+function abrirModalEstoque() {
+  document.getElementById('est-quantidade').value = '';
+  document.getElementById('est-minimo').value     = '';
+  delete document.getElementById('est-item').dataset.editId;
+  carregarOpcoesEstoque();
+  document.getElementById('modal-estoque').classList.remove('hidden');
+}
+
+function ajustarEstoque(id) {
+  const e = DB.estoque.find(x => String(x.id) === String(id));
+  if (!e) return;
+  document.getElementById('est-tipo').value      = e.tipo;
+  carregarOpcoesEstoque();
+  document.getElementById('est-item').value      = e.item_id;
+  document.getElementById('est-quantidade').value = e.quantidade;
+  document.getElementById('est-minimo').value     = e.minimo ?? '';
+  document.getElementById('est-item').dataset.editId = id;
+  document.getElementById('modal-estoque').classList.remove('hidden');
+}
+
+// ──────────────────────────────────────────
+//  ESTOQUE — CRUD
+// ──────────────────────────────────────────
+async function salvarEstoque() {
+  const tipo   = document.getElementById('est-tipo').value;
+  const itemId = document.getElementById('est-item').value;
+  const qtd    = parseFloat(document.getElementById('est-quantidade').value);
+  const min    = parseFloat(document.getElementById('est-minimo').value) || null;
+  const editId = document.getElementById('est-item').dataset.editId;
+
+  if (!itemId || isNaN(qtd)) { toast('Preencha todos os campos!', 'error'); return; }
+
+  const payload = { tipo, item_id: itemId, quantidade: qtd, minimo: min };
+
+  // Se já existe uma entrada para esse item, atualiza em vez de duplicar
+  const existing = DB.estoque.find(e =>
+    String(e.item_id) === String(itemId) && e.tipo === tipo
+  );
+
+  if (editId || existing) {
+    const target = editId
+      ? DB.estoque.find(e => String(e.id) === String(editId))
+      : existing;
+    Object.assign(target, payload);
+    if (supabase) await supabase.from('estoque').update(payload).eq('id', target.id);
+    delete document.getElementById('est-item').dataset.editId;
+  } else {
+    payload.id = Date.now();
+    if (supabase) {
+      const { data } = await supabase.from('estoque').insert([payload]).select().single();
+      if (data) payload.id = data.id;
+    }
+    DB.estoque.push(payload);
+  }
+
+  localSave('estoque', DB.estoque);
+  renderEstoque();
+  verificarEstoqueCritico();
+  fecharModal('modal-estoque');
+  toast('Estoque atualizado!', 'success');
+}
+
+async function deletarEstoque(id) {
+  if (!confirm('Remover este item do estoque?')) return;
+  if (supabase) await supabase.from('estoque').delete().eq('id', id);
+  DB.estoque = DB.estoque.filter(x => String(x.id) !== String(id));
+  localSave('estoque', DB.estoque);
+  renderEstoque();
+  toast('Removido do estoque.', 'success');
+}
+
+// ──────────────────────────────────────────
+//  ESTOQUE — DESCONTAR AO CONFIRMAR PEDIDO
+// ──────────────────────────────────────────
+function descontarEstoquePedido(pedido) {
+  (pedido.itens || []).forEach(item => {
+    const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
+    if (!r) return;
+
+    (r.ingredientes || []).forEach(ing => {
+      const est = DB.estoque.find(e =>
+        String(e.item_id) === String(ing.id) && e.tipo === 'ingrediente'
+      );
+      if (est) est.quantidade = Math.max(0, est.quantidade - (ing.quantidade * item.quantidade));
+    });
+
+    (r.insumos || []).forEach(ins => {
+      const est = DB.estoque.find(e =>
+        String(e.item_id) === String(ins.id) && e.tipo === 'insumo'
+      );
+      if (est) est.quantidade = Math.max(0, est.quantidade - (ins.quantidade * item.quantidade));
+    });
+  });
+
+  localSave('estoque', DB.estoque);
+  renderEstoque();
+  verificarEstoqueCritico();
+}
+
+// ──────────────────────────────────────────
+//  ESTOQUE — ALERTAS
+// ──────────────────────────────────────────
+function verificarEstoqueCritico() {
+  const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
+  const el = document.getElementById('dash-estoque-critico');
+  if (el) el.textContent = criticos.length;
+
+  // Mostra toast para os primeiros 2 críticos
+  criticos.slice(0, 2).forEach(e => {
+    const item = e.tipo === 'ingrediente'
+      ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
+      : DB.insumos.find(x => String(x.id) === String(e.item_id));
+    if (item) toast(`⚠️ Estoque crítico: ${item.nome} (${e.quantidade} restantes)`, 'warning');
+  });
+}
+
+// ──────────────────────────────────────────
+//  MERCADO
+// ──────────────────────────────────────────
+function gerarListaMercado() {
+  const pedEfetuados = DB.pedidos.filter(p => p.status === 'efetuado');
+  const pedOrcamentos = DB.pedidos.filter(p => p.status === 'orcamento');
+
+  function calcularNecessidades(pedidos) {
+    const nec = {};
+    pedidos.forEach(pedido => {
+      (pedido.itens || []).forEach(item => {
+        const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
+        if (!r) return;
+        (r.ingredientes || []).forEach(ing => {
+          const k = 'ing_' + ing.id;
+          nec[k] = (nec[k] || 0) + ing.quantidade * item.quantidade;
+        });
+        (r.insumos || []).forEach(ins => {
+          const k = 'ins_' + ins.id;
+          nec[k] = (nec[k] || 0) + ins.quantidade * item.quantidade;
+        });
+      });
+    });
+    return nec;
+  }
+
+  function renderNecessidades(nec, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const itens = Object.entries(nec).map(([key, qtdNecessaria]) => {
+      const tipo   = key.startsWith('ing_') ? 'ingrediente' : 'insumo';
+      const itemId = key.replace(/^(ing|ins)_/, '');
+      const item   = tipo === 'ingrediente'
+        ? DB.ingredientes.find(x => String(x.id) === itemId)
+        : DB.insumos.find(x => String(x.id) === itemId);
+      const est     = DB.estoque.find(e => String(e.item_id) === itemId && e.tipo === tipo);
+      const emEstoque = est?.quantidade || 0;
+      const comprar   = Math.max(0, qtdNecessaria - emEstoque);
+      if (comprar <= 0) return null;
+      return { nome: item?.nome || itemId, unidade: item?.unidade || '', qtdNecessaria, emEstoque, comprar };
+    }).filter(Boolean);
+
+    if (itens.length === 0) {
+      container.innerHTML = `<div class="empty-state" style="padding:16px">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-text">Estoque suficiente para todos os pedidos!</div>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = itens.map(i => `
+      <div class="mercado-item">
+        <span style="font-weight:600">${i.nome}</span>
+        <div style="text-align:right">
+          <div class="mercado-comprar">Comprar: ${i.comprar} ${i.unidade}</div>
+          <div class="mercado-detail">Precisa ${i.qtdNecessaria} · Tem ${i.emEstoque}</div>
+        </div>
+      </div>`
+    ).join('');
+  }
+
+  renderNecessidades(calcularNecessidades(pedEfetuados),  'mercado-efetuados');
+  renderNecessidades(calcularNecessidades(pedOrcamentos), 'mercado-orcamentos');
+  toast('Lista atualizada!', 'success');
+}
+
+// ──────────────────────────────────────────
+//  DASHBOARD
+// ──────────────────────────────────────────
+function atualizarDashboard() {
+  const hoje = new Date();
+  const ini  = new Date(hoje); ini.setDate(hoje.getDate() - hoje.getDay());
+  const fim  = new Date(ini);  fim.setDate(ini.getDate() + 6);
+
+  const semana    = DB.pedidos.filter(p => {
+    const d = new Date((p.data_entrega || p.data_pedido || '') + 'T00:00:00');
+    return d >= ini && d <= fim;
+  });
+  const efetuados  = semana.filter(p => p.status === 'efetuado');
+  const orcamentos = DB.pedidos.filter(p => p.status === 'orcamento');
+  const entradas   = efetuados.filter(p => p.pago)
+    .reduce((acc, p) => acc + calcularTotalPedido(p), 0);
+
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('dash-entradas',       'R$ ' + entradas.toFixed(2));
+  setEl('dash-pedidos-count',  semana.length);
+  setEl('dash-orcamentos',     orcamentos.length);
+
+  // Lista da semana
+  const lista = document.getElementById('dash-pedidos-lista');
+  if (!lista) return;
+
+  if (semana.length === 0) {
+    lista.innerHTML = `<div class="empty-state" style="padding:16px">
+      <div class="empty-state-icon">📅</div>
+      <div class="empty-state-text">Nenhum pedido esta semana.</div>
+    </div>`;
+    return;
+  }
+
+  lista.innerHTML = semana.map(p => `
+    <div class="mercado-item">
+      <div>
+        <div style="font-weight:700">${p.cliente_nome}
+          <span class="ped-id" style="margin-left:6px">#${p.numero_pedido}</span>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text3)">${formatarItensPedido(p)}</div>
+        ${p.data_entrega ? `<div style="font-size:0.75rem;color:var(--text3)">📅 ${formatarData(p.data_entrega)}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:700;color:var(--accent)">R$ ${calcularTotalPedido(p).toFixed(2)}</div>
+        ${p.status === 'efetuado'
+          ? '<span class="badge badge-green" style="font-size:0.65rem">✅</span>'
+          : '<span class="badge badge-yellow" style="font-size:0.65rem">📋</span>'}
+      </div>
+    </div>`
+  ).join('');
+}
+
+
+// ════════════════════════════════════════════════════════
+//  PARTE 5 — CONFIG · SQL · INIT
+// ════════════════════════════════════════════════════════
+
+// ──────────────────────────────────────────
+//  CONFIG — SUPABASE
+// ──────────────────────────────────────────
+function salvarConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { toast('Preencha a URL e a Anon Key!', 'error'); return; }
+  localStorage.setItem(SUPA_URL_KEY, url);
+  localStorage.setItem(SUPA_KEY_KEY, key);
+  toast('Salvando e conectando...', 'success');
+  supabase = null;
+  initSupabase();
+}
+
+async function testarConexao() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { toast('Preencha a URL e a Anon Key!', 'error'); return; }
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const client = createClient(url, key);
+    const { error } = await client.from('ingredientes').select('count').limit(1);
+    if (error && error.code !== 'PGRST116') throw error;
+    toast('✅ Conexão OK!', 'success');
+  } catch(e) {
+    toast('❌ Falha na conexão: ' + e.message, 'error');
+  }
+}
+
+function limparConfig() {
+  if (!confirm('Remover configuração do Supabase?')) return;
+  localStorage.removeItem(SUPA_URL_KEY);
+  localStorage.removeItem(SUPA_KEY_KEY);
+  supabase = null;
+  setSupabaseStatus(false);
+  document.getElementById('cfg-url').value = '';
+  document.getElementById('cfg-key').value = '';
+  toast('Configuração removida.', 'success');
+}
+
+// ──────────────────────────────────────────
+//  SQL — CRIAR TABELAS
+// ──────────────────────────────────────────
+const SQL_CRIAR_TABELAS = `-- DOCERIA GESTÃO — Cole no SQL Editor do Supabase
+-- Execute uma única vez para criar todas as tabelas
+
+-- ─── INGREDIENTES ───────────────────────────────────────
+create table if not exists ingredientes (
+  id               uuid default gen_random_uuid() primary key,
+  nome             text not null,
+  qtd_embalagem    numeric not null check (qtd_embalagem > 0),
+  unidade          text not null,
+  preco            numeric not null check (preco >= 0),
+  categoria        text,
+  historico_precos jsonb not null default '[]',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists idx_ingredientes_nome      on ingredientes (nome);
+create index if not exists idx_ingredientes_categoria on ingredientes (categoria);
+
+-- ─── INSUMOS ────────────────────────────────────────────
+create table if not exists insumos (
+  id               uuid default gen_random_uuid() primary key,
+  nome             text not null,
+  qtd_embalagem    numeric not null check (qtd_embalagem > 0),
+  unidade          text not null,
+  preco            numeric not null check (preco >= 0),
+  categoria        text,
+  historico_precos jsonb not null default '[]',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists idx_insumos_nome      on insumos (nome);
+create index if not exists idx_insumos_categoria on insumos (categoria);
+
+-- ─── CATEGORIAS ─────────────────────────────────────────
+create table if not exists categorias (
+  id         uuid default gen_random_uuid() primary key,
+  tipo       text not null check (tipo in ('ing', 'ins')),
+  nome       text not null,
+  created_at timestamptz not null default now(),
+  constraint categorias_tipo_nome_unique unique (tipo, nome)
+);
+create index if not exists idx_categorias_tipo on categorias (tipo);
+
+-- ─── RECEITAS ───────────────────────────────────────────
+create table if not exists receitas (
+  id           uuid default gen_random_uuid() primary key,
+  nome         text not null,
+  categoria    text not null,
+  descricao    text,
+  rendimento   integer check (rendimento > 0),
+  preco_venda  numeric check (preco_venda >= 0),
+  obs          text,
+  ingredientes jsonb not null default '[]',
+  insumos      jsonb not null default '[]',
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index if not exists idx_receitas_nome      on receitas (nome);
+create index if not exists idx_receitas_categoria on receitas (categoria);
+
+-- ─── PEDIDOS ────────────────────────────────────────────
+create table if not exists pedidos (
+  id               uuid default gen_random_uuid() primary key,
+  numero_pedido    text not null unique,
+  cliente_nome     text not null,
+  cliente_telefone text,
+  endereco         text,
+  data_pedido      date,
+  data_entrega     date,
+  status           text not null default 'orcamento'
+                     check (status in ('orcamento', 'efetuado')),
+  pago             boolean not null default false,
+  forma_pagamento  text,
+  preferencias     text,
+  obs              text,
+  itens            jsonb not null default '[]',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists idx_pedidos_status       on pedidos (status);
+create index if not exists idx_pedidos_data_entrega on pedidos (data_entrega);
+create index if not exists idx_pedidos_cliente_nome on pedidos (cliente_nome);
+
+-- ─── ESTOQUE ────────────────────────────────────────────
+create table if not exists estoque (
+  id         uuid default gen_random_uuid() primary key,
+  tipo       text not null check (tipo in ('ingrediente', 'insumo')),
+  item_id    text not null,
+  quantidade numeric not null default 0 check (quantidade >= 0),
+  minimo     numeric check (minimo >= 0),
+  updated_at timestamptz not null default now(),
+  constraint estoque_tipo_item_unique unique (tipo, item_id)
+);
+create index if not exists idx_estoque_tipo    on estoque (tipo);
+create index if not exists idx_estoque_item_id on estoque (item_id);
+
+-- ─── CLIENTES ───────────────────────────────────────────
+create table if not exists clientes (
+  id           uuid default gen_random_uuid() primary key,
+  nome         text not null,
+  telefone     text,
+  preferencias text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index if not exists idx_clientes_nome     on clientes (nome);
+create index if not exists idx_clientes_telefone on clientes (telefone);
+
+-- ─── TRIGGER: updated_at automático ─────────────────────
+create or replace function set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+do $$ declare t text;
+begin
+  foreach t in array array[
+    'ingredientes','insumos','receitas','pedidos','estoque','clientes'
+  ] loop
+    execute format(
+      'create trigger trg_%s_updated_at
+       before update on %s
+       for each row execute function set_updated_at()',
+      t, t
+    );
+  end loop;
+exception when duplicate_object then null;
+end $$;
+
+-- ─── RLS ────────────────────────────────────────────────
+alter table ingredientes enable row level security;
+alter table insumos       enable row level security;
+alter table categorias    enable row level security;
+alter table receitas      enable row level security;
+alter table pedidos       enable row level security;
+alter table estoque       enable row level security;
+alter table clientes      enable row level security;
+
+-- Policies (anon key com acesso total — ajuste se usar autenticação)
+do $$ declare t text;
+begin
+  foreach t in array array[
+    'ingredientes','insumos','categorias','receitas',
+    'pedidos','estoque','clientes'
+  ] loop
+    execute format(
+      'create policy "acesso_total" on %s for all using (true) with check (true)',
+      t
+    );
+  end loop;
+exception when duplicate_object then null;
+end $$;`;
+
+
+document.getElementById('sql-block').textContent = SQL_CRIAR_TABELAS;
+
+function copiarSQL() {
+  navigator.clipboard.writeText(SQL_CRIAR_TABELAS);
+  toast('SQL copiado!', 'success');
+}
+
+// ──────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Preenche campos de config se já salvos
+  const url = localStorage.getItem(SUPA_URL_KEY);
+  const key = localStorage.getItem(SUPA_KEY_KEY);
+  if (url) document.getElementById('cfg-url').value = url;
+  if (key) document.getElementById('cfg-key').value = key;
+
+  // Tenta conectar ao Supabase; se não tiver config, carrega do localStorage
+  initSupabase().then(() => {
+    if (!supabase) carregarTudo();
+  });
+});
+
+</script>
+</body>
+</html>
