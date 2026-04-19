@@ -778,6 +778,7 @@ body {
     <div class="page-header">
       <div><div class="page-title">Receitas</div><div class="page-subtitle" id="rec-count-label">—</div></div>
     </div>
+    <div class="search-wrap"><input type="text" id="rec-search" placeholder="Buscar receita..." oninput="filtrarReceitas(recCatFilter)"></div>
     <div class="chip-row" id="rec-chips">
       <div class="chip active" onclick="filtrarReceitas('')"              data-cat="">Todas</div>
       <div class="chip"        onclick="filtrarReceitas('Bolo Caseiro')"  data-cat="Bolo Caseiro">🍰 Caseiro</div>
@@ -2075,9 +2076,11 @@ function filtrarReceitas(cat) {
 }
 
 function renderReceitas() {
-  const dados = recCatFilter
-    ? DB.receitas.filter(r => r.categoria === recCatFilter)
-    : DB.receitas;
+  const q     = (document.getElementById('rec-search')?.value || '').toLowerCase();
+  const dados = DB.receitas.filter(r =>
+    (!recCatFilter || r.categoria === recCatFilter) &&
+    (!q || r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q))
+  );
 
   const label = document.getElementById('rec-count-label');
   if (label) label.textContent = DB.receitas.length + ' receitas';
