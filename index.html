@@ -837,13 +837,7 @@ body {
     </div>
     <div class="search-wrap"><input type="text" id="rec-search" placeholder="Buscar receita..." oninput="filtrarReceitas(recCatFilter)"></div>
     <div class="chip-row" id="rec-chips">
-      <div class="chip active" onclick="filtrarReceitas('')"              data-cat="">Todas</div>
-      <div class="chip"        onclick="filtrarReceitas('Bolo Caseiro')"  data-cat="Bolo Caseiro">🍰 Caseiro</div>
-      <div class="chip"        onclick="filtrarReceitas('Bolo Saudável')" data-cat="Bolo Saudável">🥗 Saudável</div>
-      <div class="chip"        onclick="filtrarReceitas('Bolo de Festas')"data-cat="Bolo de Festas">🎉 Festas</div>
-      <div class="chip"        onclick="filtrarReceitas('Sobremesas')"    data-cat="Sobremesas">🍮 Sobremesas</div>
-      <div class="chip"        onclick="filtrarReceitas('Docinhos')"      data-cat="Docinhos">🍬 Docinhos</div>
-      <div class="chip"        onclick="filtrarReceitas('Sazonal')"       data-cat="Sazonal">🌸 Sazonal</div>
+      <div class="chip active" onclick="filtrarReceitas('')" data-cat="">Todas</div>
     </div>
     <div id="rec-lista"></div>
   </div>
@@ -920,6 +914,15 @@ body {
       <div style="display:flex;gap:8px">
         <input type="text" class="form-input" id="cat-ins-nova" placeholder="Nova categoria..." style="flex:1">
         <button class="btn btn-primary btn-sm" onclick="adicionarCategoria('ins')">+ Add</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Receitas</div>
+      <div id="cat-rec-lista" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" class="form-input" id="cat-rec-nova" placeholder="Nova categoria..." style="flex:1">
+        <button class="btn btn-primary btn-sm" onclick="adicionarCategoria('rec')">+ Add</button>
       </div>
     </div>
 
@@ -998,26 +1001,42 @@ body {
     </div>
     <div class="modal-body">
       <input type="hidden" id="ing-edit-id">
-      <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="ing-nome" placeholder="Ex: Farinha de trigo"></div>
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input type="text" class="form-input" id="ing-nome" placeholder="Ex: Farinha de trigo"
+          list="ing-nome-list" autocomplete="off">
+        <datalist id="ing-nome-list"></datalist>
+      </div>
       <div class="form-row-2">
-        <div class="form-group"><label class="form-label">Qtd. embalagem *</label><input type="number" class="form-input" id="ing-qtd" placeholder="1000" oninput="atualizarPrecoUnit()"></div>
-        <div class="form-group"><label class="form-label">Unidade *</label>
+        <div class="form-group">
+          <label class="form-label">Qtd. embalagem *</label>
+          <input type="number" class="form-input" id="ing-qtd" placeholder="1000" oninput="atualizarPrecoUnit()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidade *</label>
           <select class="form-select" id="ing-unidade" onchange="atualizarPrecoUnit()">
-            <option value="grama">grama (g)</option><option value="kg">kg</option>
-            <option value="ml">ml</option><option value="litro">litro (L)</option>
-            <option value="unidade">unidade (un)</option><option value="metro">metro (m)</option>
+            <option value="grama">grama (g)</option>
+            <option value="kg">kg</option>
+            <option value="ml">ml</option>
+            <option value="litro">litro (L)</option>
+            <option value="unidade">unidade (un)</option>
+            <option value="metro">metro (m)</option>
           </select>
         </div>
       </div>
       <div class="form-row-2">
-        <div class="form-group"><label class="form-label">Preço embalagem (R$) *</label><input type="number" class="form-input" id="ing-preco" placeholder="6.00" step="0.01" oninput="atualizarPrecoUnit()"></div>
-        <div class="form-group"><label class="form-label">Categoria</label>
+        <div class="form-group">
+          <label class="form-label">Preço embalagem (R$) *</label>
+          <input type="number" class="form-input" id="ing-preco" placeholder="6.00" step="0.01" oninput="atualizarPrecoUnit()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
           <select class="form-select" id="ing-categoria">
             <option value="">Selecionar...</option>
           </select>
         </div>
       </div>
-      <div id="ing-preco-unit-preview" class="text-muted"></div>
+      <div id="ing-preco-unit-preview" class="text-muted" style="margin-top:-6px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary btn-full"    onclick="salvarIngrediente()">💾 Salvar Ingrediente</button>
@@ -1074,12 +1093,7 @@ body {
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Categoria *</label>
           <select class="form-select" id="rec-categoria">
-            <option value="Bolo Caseiro">🍰 Bolo Caseiro</option>
-            <option value="Bolo Saudável">🥗 Bolo Saudável</option>
-            <option value="Bolo de Festas">🎉 Bolo de Festas</option>
-            <option value="Sobremesas">🍮 Sobremesas</option>
-            <option value="Docinhos">🍬 Docinhos</option>
-            <option value="Sazonal">🌸 Sazonal</option>
+            <option value="">Selecionar...</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="10 porções"></div>
@@ -1649,112 +1663,92 @@ function updateFab(page) {
 // ──────────────────────────────────────────
 const CAT_ING_DEFAULT = ['Açúcares','Aromatizantes','Bebidas','Biscoitos','Castanhas','Cereais','Chocolates','Coberturas','Farinhas','Fermentos','Frutas','Geleias','Laticínios','Líquidos','Óleos','Ovos','Temperos'];
 const CAT_INS_DEFAULT = ['Adesivos','Caixas','Embalagens','Fitas','Forminhas','Potes','Sacos & Sacolas','Suportes & Tábuas','Outros'];
+const CAT_REC_DEFAULT = ['Bolo Caseiro','Bolo de Festas','Bolo Saudável','Docinhos','Sazonal','Sobremesas'];
 
-// DB.categorias = { ing: [...], ins: [...] }
-DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT] };
+DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT], rec: [...CAT_REC_DEFAULT] };
 
 async function carregarCategorias() {
-  if (!supabase) {
-    toast('Conecte ao Supabase para gerenciar categorias.', 'warning');
-    return;
-  }
-  const { data, error } = await supabase
-    .from('categorias')
-    .select('tipo, nome')
-    .order('nome');
-
-  if (error) {
-    toast('Erro ao carregar categorias: ' + error.message, 'error');
-    return;
-  }
-
+  if (!supabase) { toast('Conecte ao Supabase para gerenciar categorias.', 'warning'); return; }
+  const { data, error } = await supabase.from('categorias').select('tipo, nome').order('nome');
+  if (error) { toast('Erro ao carregar categorias: ' + error.message, 'error'); return; }
   if (data.length === 0) {
-    // Primeira vez: popula com os defaults
     await popularCategoriesDefault();
   } else {
     DB.categorias.ing = data.filter(c => c.tipo === 'ing').map(c => c.nome);
     DB.categorias.ins = data.filter(c => c.tipo === 'ins').map(c => c.nome);
+    DB.categorias.rec = data.filter(c => c.tipo === 'rec').map(c => c.nome);
+    // Se rec ainda não tem entradas (banco antigo), popula
+    if (DB.categorias.rec.length === 0) {
+      const rows = CAT_REC_DEFAULT.map(nome => ({ tipo: 'rec', nome }));
+      await supabase.from('categorias').insert(rows);
+      DB.categorias.rec = [...CAT_REC_DEFAULT];
+    }
   }
-
   renderCatManager();
   renderIngChips();
   renderInsChips();
+  renderRecChips();
 }
 
 async function popularCategoriesDefault() {
   const rows = [
     ...CAT_ING_DEFAULT.map(nome => ({ tipo: 'ing', nome })),
-    ...CAT_INS_DEFAULT.map(nome => ({ tipo: 'ins', nome }))
+    ...CAT_INS_DEFAULT.map(nome => ({ tipo: 'ins', nome })),
+    ...CAT_REC_DEFAULT.map(nome => ({ tipo: 'rec', nome }))
   ];
   const { error } = await supabase.from('categorias').insert(rows);
-  if (error) {
-    toast('Erro ao popular categorias: ' + error.message, 'error');
-    return;
-  }
+  if (error) { toast('Erro ao popular categorias: ' + error.message, 'error'); return; }
   DB.categorias.ing = [...CAT_ING_DEFAULT];
   DB.categorias.ins = [...CAT_INS_DEFAULT];
+  DB.categorias.rec = [...CAT_REC_DEFAULT];
 }
 
 function getCats(tipo) {
-  return tipo === 'ing' ? DB.categorias.ing : DB.categorias.ins;
+  if (tipo === 'ing') return DB.categorias.ing;
+  if (tipo === 'ins') return DB.categorias.ins;
+  return DB.categorias.rec;
 }
 
 async function adicionarCategoria(tipo) {
   if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
-
-  const inputId = tipo === 'ing' ? 'cat-ing-nova' : 'cat-ins-nova';
+  const inputId = tipo === 'ing' ? 'cat-ing-nova' : tipo === 'ins' ? 'cat-ins-nova' : 'cat-rec-nova';
   const nova    = document.getElementById(inputId).value.trim();
   if (!nova) return;
-
   const cats = getCats(tipo);
   if (cats.includes(nova)) { toast('Categoria já existe!', 'warning'); return; }
-
-  const { error } = await supabase
-    .from('categorias')
-    .insert([{ tipo, nome: nova }]);
-
+  const { error } = await supabase.from('categorias').insert([{ tipo, nome: nova }]);
   if (error) { toast('Erro ao adicionar: ' + error.message, 'error'); return; }
-
   cats.push(nova);
   cats.sort();
   document.getElementById(inputId).value = '';
   renderCatManager();
-  tipo === 'ing' ? renderIngChips() : renderInsChips();
+  if (tipo === 'ing') renderIngChips();
+  else if (tipo === 'ins') renderInsChips();
+  else renderRecChips();
   toast(`Categoria "${nova}" adicionada!`, 'success');
 }
 
 async function removerCategoria(tipo, cat) {
   if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
   if (!confirm(`Remover categoria "${cat}"?\n\nOs itens com esta categoria não serão deletados, apenas ficarão sem categoria.`)) return;
-
-  const { error } = await supabase
-    .from('categorias')
-    .delete()
-    .eq('tipo', tipo)
-    .eq('nome', cat);
-
+  const { error } = await supabase.from('categorias').delete().eq('tipo', tipo).eq('nome', cat);
   if (error) { toast('Erro ao remover: ' + error.message, 'error'); return; }
-
-  if (tipo === 'ing') {
-    DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
-  } else {
-    DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
-  }
-
+  if (tipo === 'ing') DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
+  else if (tipo === 'ins') DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
+  else DB.categorias.rec = DB.categorias.rec.filter(c => c !== cat);
   renderCatManager();
-  tipo === 'ing' ? renderIngChips() : renderInsChips();
+  if (tipo === 'ing') renderIngChips();
+  else if (tipo === 'ins') renderInsChips();
+  else renderRecChips();
   toast(`Categoria "${cat}" removida.`, 'success');
 }
 
 function renderCatManager() {
-  ['ing','ins'].forEach(tipo => {
-    const el   = document.getElementById(`cat-${tipo}-lista`);
+  ['ing','ins','rec'].forEach(tipo => {
+    const el = document.getElementById(`cat-${tipo}-lista`);
     if (!el) return;
     const cats = getCats(tipo);
-    if (cats.length === 0) {
-      el.innerHTML = '<span class="text-muted">Nenhuma categoria.</span>';
-      return;
-    }
+    if (cats.length === 0) { el.innerHTML = '<span class="text-muted">Nenhuma categoria.</span>'; return; }
     el.innerHTML = cats.map(c => `
       <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:0.82rem;font-weight:600">
         ${c}
@@ -1771,9 +1765,7 @@ function renderIngChips() {
   if (row) {
     row.innerHTML =
       `<div class="chip ${ingCatFilter === '' ? 'active' : ''}" onclick="filtrarIngCat('')" data-cat="">Todos</div>` +
-      cats.map(c =>
-        `<div class="chip ${ingCatFilter === c ? 'active' : ''}" onclick="filtrarIngCat('${c}')" data-cat="${c}">${c}</div>`
-      ).join('');
+      cats.map(c => `<div class="chip ${ingCatFilter === c ? 'active' : ''}" onclick="filtrarIngCat('${c}')" data-cat="${c}">${c}</div>`).join('');
   }
   const sel = document.getElementById('ing-categoria');
   if (sel) {
@@ -1789,15 +1781,30 @@ function renderInsChips() {
   if (row) {
     row.innerHTML =
       `<div class="chip ${insCatFilter === '' ? 'active' : ''}" onclick="filtrarInsCat('')" data-cat="">Todos</div>` +
-      cats.map(c =>
-        `<div class="chip ${insCatFilter === c ? 'active' : ''}" onclick="filtrarInsCat('${c}')" data-cat="${c}">${c}</div>`
-      ).join('');
+      cats.map(c => `<div class="chip ${insCatFilter === c ? 'active' : ''}" onclick="filtrarInsCat('${c}')" data-cat="${c}">${c}</div>`).join('');
   }
   const sel = document.getElementById('ins-categoria');
   if (sel) {
     const cur = sel.value;
     sel.innerHTML = '<option value="">Selecionar...</option>' +
       cats.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
+  }
+}
+
+function renderRecChips() {
+  const cats = getCats('rec');
+  // Chips na página de receitas
+  const row = document.getElementById('rec-chips');
+  if (row) {
+    row.innerHTML =
+      `<div class="chip ${recCatFilter === '' ? 'active' : ''}" onclick="filtrarReceitas('')" data-cat="">Todas</div>` +
+      cats.map(c => `<div class="chip ${recCatFilter === c ? 'active' : ''}" onclick="filtrarReceitas('${c}')" data-cat="${c}">${c}</div>`).join('');
+  }
+  // Select no modal de receita
+  const sel = document.getElementById('rec-categoria');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = cats.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
   }
 }
 
@@ -1836,7 +1843,7 @@ function renderIngredientes(lista) {
   el.innerHTML = dados.map(i => {
     const pu   = i.qtd_embalagem > 0 ? (i.preco / i.qtd_embalagem) : 0;
     const hist = (i.historico_precos || []).slice(-3)
-      .map(h => `<span class="hist-chip">R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
+      .map(h => `<span class="hist-chip" title="Valor anterior">${h.data ? new Date(h.data).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '—'}: R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
     return `<div class="list-item">
       <div class="list-item-body">
         <div class="list-item-name">${i.nome}</div>
@@ -1867,6 +1874,9 @@ function abrirModalIngrediente() {
   document.getElementById('ing-preco').value      = '';
   document.getElementById('ing-categoria').value  = '';
   document.getElementById('ing-preco-unit-preview').textContent = '';
+  // Popular autocomplete com nomes existentes
+  const dl = document.getElementById('ing-nome-list');
+  if (dl) dl.innerHTML = DB.ingredientes.map(i => `<option value="${i.nome}">`).join('');
   document.getElementById('modal-ingrediente').classList.remove('hidden');
   setTimeout(() => document.getElementById('ing-nome').focus(), 150);
 }
@@ -1930,8 +1940,8 @@ async function salvarIngrediente() {
     DB.ingredientes.push(payload);
     DB.ingredientes.sort((a, b) => a.nome.localeCompare(b.nome));
   }
-  renderIngredientes();
   renderIngChips();
+  filtrarIngredientes();
   fecharModal('modal-ingrediente');
   toast(editId ? 'Ingrediente atualizado!' : 'Ingrediente adicionado!', 'success');
 }
@@ -1943,8 +1953,8 @@ async function deletarIngrediente(id) {
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
   }
   DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
-  renderIngredientes();
   renderIngChips();
+  filtrarIngredientes();
   toast('Ingrediente removido.', 'success');
 }
 
@@ -1986,7 +1996,7 @@ function renderInsumos(lista) {
   el.innerHTML = dados.map(i => {
     const pu   = i.qtd_embalagem > 0 ? (i.preco / i.qtd_embalagem) : 0;
     const hist = (i.historico_precos || []).slice(-3)
-      .map(h => `<span class="hist-chip">R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
+      .map(h => `<span class="hist-chip" title="Valor anterior">${h.data ? new Date(h.data).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '—'}: R$ ${parseFloat(h.preco).toFixed(2)}</span>`).join('');
     return `<div class="list-item">
       <div class="list-item-body">
         <div class="list-item-name">${i.nome}</div>
