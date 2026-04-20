@@ -49,6 +49,7 @@
 ══════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; }
+@supports (-webkit-touch-callout: none) { .bottom-nav { padding-bottom: max(var(--safe-bottom), 16px); } }
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -64,7 +65,7 @@ body {
    HEADER
 ══════════════════════════════════════════ */
 .app-header {
-  background: var(--text);
+  background: #904746;
   color: white;
   height: calc(var(--header-h) + var(--safe-top));
   padding: calc(var(--safe-top) + 10px) 18px 10px;
@@ -661,7 +662,7 @@ body {
 ══════════════════════════════════════════ */
 .recipe-row {
   display: grid;
-  grid-template-columns: 1fr 72px 24px auto;
+  grid-template-columns: 1fr 80px auto;
   gap: 7px;
   align-items: center;
   margin-bottom: 8px;
@@ -723,8 +724,8 @@ body {
 
 <!-- ════════════════ HEADER ════════════════ -->
 <header class="app-header">
-  <div class="app-logo">🎂 <em>Doces & Talentos</em></div>
-  <div id="header-date" style="font-size:0.72rem;color:#bbb;font-style:italic;"></div>
+  <div class="app-logo" style="color:#fbf0e1">🎂 <em style="color:#fbf0e1">Doces & Talentos</em></div>
+  <div id="header-date" style="font-size:0.72rem;color:#f5ddd0;font-style:italic;"></div>
   <div id="conn-dot" class="conn-dot"></div>
 </header>
 
@@ -789,12 +790,20 @@ body {
       </div>
     </div>
 
+    <!-- Vencimentos próximos -->
+    <div class="card" id="dash-vencimentos-card" style="margin-bottom:14px">
+      <div class="card-title">⏰ Próximos a vencer</div>
+      <div id="dash-vencimentos-lista">
+        <div class="text-muted" style="padding:8px 0">Nenhum item com validade cadastrada.</div>
+      </div>
+    </div>
+
     <!-- Lista do período -->
     <div class="card">
       <div class="card-title" id="dash-lista-title">Entregas do período</div>
       <div id="dash-pedidos-lista">
         <div class="empty-state" style="padding:16px">
-          <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <div class="empty-state-text">Nenhum pedido neste período.</div>
         </div>
       </div>
@@ -881,11 +890,11 @@ body {
     </div>
     <div class="card">
       <div class="card-title">🛒 Pedidos efetuados</div>
-      <div id="mercado-efetuados"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></div><div class="empty-state-text">Estoque suficiente.</div></div></div>
+      <div id="mercado-efetuados"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg></div><div class="empty-state-text">Estoque suficiente.</div></div></div>
     </div>
     <div class="card">
       <div class="card-title">📋 Orçamentos abertos</div>
-      <div id="mercado-orcamentos"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="empty-state-text">Nenhum orçamento.</div></div></div>
+      <div id="mercado-orcamentos"><div class="empty-state" style="padding:14px"><div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></div><div class="empty-state-text">Nenhum orçamento.</div></div></div>
     </div>
   </div>
 
@@ -1208,6 +1217,7 @@ body {
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Quantidade *</label><input type="number" class="form-input" id="est-quantidade" placeholder="2"></div>
         <div class="form-group"><label class="form-label">Mínimo em estoque</label><input type="number" class="form-input" id="est-minimo" placeholder="1"></div>
+        <div class="form-group"><label class="form-label">Data de validade</label><input type="date" class="form-input" id="est-validade"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1549,7 +1559,7 @@ async function carregarPedidos() {
   if (!supabase) return;
   const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
   if (error) { toast('Erro ao carregar pedidos: ' + error.message, 'error'); return; }
-  DB.pedidos = data;
+  DB.pedidos = data || [];
   renderPedidos();
 }
 
@@ -1816,7 +1826,7 @@ function renderIngredientes(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2h-3"/><path d="M18 2h3"/><path d="M21 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3h5z"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M3 9l9-7 9 7"/><path d="M5 17l7 4 7-4"/><path d="M5 13l7-4 7 4"/></svg></div>
       <div class="empty-state-title">Nenhum ingrediente</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -1835,7 +1845,7 @@ function renderIngredientes(lista) {
       </div>
       <div class="list-item-right">
         <div class="list-item-price">R$ ${parseFloat(i.preco).toFixed(2)}</div>
-        <div class="list-item-unit">R$ ${pu.toFixed(4)}/${i.unidade}</div>
+        <div class="list-item-unit">R$ ${pu < 0.01 ? pu.toFixed(4) : pu.toFixed(2)}/${i.unidade}</div>
         <div class="list-actions">
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarIngrediente('${i.id}')">✏️</button>
           <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarIngrediente('${i.id}')">🗑️</button>
@@ -1880,7 +1890,7 @@ function atualizarPrecoUnit() {
   const preco = parseFloat(document.getElementById('ing-preco').value)  || 0;
   const un    = document.getElementById('ing-unidade').value;
   const el    = document.getElementById('ing-preco-unit-preview');
-  el.textContent = (qtd > 0 && preco > 0) ? `→ R$ ${(preco / qtd).toFixed(4)} por ${un}` : '';
+  el.textContent = (qtd > 0 && preco > 0) ? `→ R$ ${((preco/qtd) < 0.01 ? (preco/qtd).toFixed(4) : (preco/qtd).toFixed(2))} por ${un}` : '';
 }
 
 async function salvarIngrediente() {
@@ -1966,7 +1976,7 @@ function renderInsumos(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
       <div class="empty-state-title">Nenhum insumo</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -1985,7 +1995,7 @@ function renderInsumos(lista) {
       </div>
       <div class="list-item-right">
         <div class="list-item-price">R$ ${parseFloat(i.preco).toFixed(2)}</div>
-        <div class="list-item-unit">R$ ${pu.toFixed(4)}/${i.unidade}</div>
+        <div class="list-item-unit">R$ ${pu < 0.01 ? pu.toFixed(4) : pu.toFixed(2)}/${i.unidade}</div>
         <div class="list-actions">
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarInsumo('${i.id}')">✏️</button>
           <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarInsumo('${i.id}')">🗑️</button>
@@ -2140,14 +2150,14 @@ function renderReceitas() {
   );
 
   const label = document.getElementById('rec-count-label');
-  if (label) label.textContent = DB.receitas.length + ' receitas';
+  if (label) label.textContent = DB.receitas.length + (DB.receitas.length === 1 ? ' receita' : ' receitas');
 
   const el = document.getElementById('rec-lista');
   if (!el) return;
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></div>
       <div class="empty-state-title">Nenhuma receita</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -2207,8 +2217,10 @@ function addLinhaIngReceira() {
       ${DB.ingredientes.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
     </select>
     <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" oninput="recalcularCusto()">
-    <span class="un-label text-muted" style="font-size:0.75rem;min-width:22px">—</span>
-    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+    <div style="display:flex;align-items:center;gap:4px">
+      <span class="un-label text-muted" style="font-size:0.72rem;min-width:20px">—</span>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+    </div>
   `;
   document.getElementById('rec-ing-lista').appendChild(div);
 }
@@ -2223,8 +2235,10 @@ function addLinhaInsReceira() {
       ${DB.insumos.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
     </select>
     <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" oninput="recalcularCusto()">
-    <span class="un-label text-muted" style="font-size:0.75rem;min-width:22px">—</span>
-    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+    <div style="display:flex;align-items:center;gap:4px">
+      <span class="un-label text-muted" style="font-size:0.72rem;min-width:20px">—</span>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+    </div>
   `;
   document.getElementById('rec-ins-lista').appendChild(div);
 }
@@ -2482,7 +2496,7 @@ function renderPedidos(lista) {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <div class="empty-state-title">Nenhum pedido</div>
       <div class="empty-state-text">Toque em + para adicionar</div>
     </div>`;
@@ -2856,7 +2870,7 @@ function renderEstoque() {
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
       <div class="empty-state-title">Nenhum item</div>
       <div class="empty-state-text">Toque em + para adicionar ao estoque</div>
     </div>`;
@@ -2878,7 +2892,7 @@ function renderEstoque() {
     return `<div class="est-row${critico ? ' critico' : ''}">
       <div class="est-info">
         <div class="est-name">${item?.nome || e.item_id}</div>
-        <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}</div>
+        <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}${e.data_validade ? ` · val: ${formatarData(e.data_validade)}` : ''}</div>
       </div>
       ${badge}
       <div style="display:flex;gap:6px">
@@ -2902,6 +2916,7 @@ function carregarOpcoesEstoque() {
 function abrirModalEstoque() {
   document.getElementById('est-quantidade').value = '';
   document.getElementById('est-minimo').value     = '';
+  document.getElementById('est-validade').value   = '';
   delete document.getElementById('est-item').dataset.editId;
   carregarOpcoesEstoque();
   document.getElementById('modal-estoque').classList.remove('hidden');
@@ -2913,8 +2928,9 @@ function ajustarEstoque(id) {
   document.getElementById('est-tipo').value      = e.tipo;
   carregarOpcoesEstoque();
   document.getElementById('est-item').value      = e.item_id;
-  document.getElementById('est-quantidade').value = e.quantidade;
-  document.getElementById('est-minimo').value     = e.minimo ?? '';
+  document.getElementById('est-quantidade').value  = e.quantidade;
+  document.getElementById('est-minimo').value      = e.minimo ?? '';
+  document.getElementById('est-validade').value    = e.data_validade || '';
   document.getElementById('est-item').dataset.editId = id;
   document.getElementById('modal-estoque').classList.remove('hidden');
 }
@@ -2931,7 +2947,8 @@ async function salvarEstoque() {
 
   if (!itemId || isNaN(qtd)) { toast('Preencha todos os campos!', 'error'); return; }
 
-  const payload = { tipo, item_id: itemId, quantidade: qtd, minimo: min };
+  const validade = document.getElementById('est-validade').value || null;
+  const payload = { tipo, item_id: itemId, quantidade: qtd, minimo: min, data_validade: validade };
 
   // Se já existe uma entrada para esse item, atualiza em vez de duplicar
   const existing = DB.estoque.find(e =>
@@ -3055,7 +3072,7 @@ function gerarListaMercado() {
 
     if (itens.length === 0) {
       container.innerHTML = `<div class="empty-state" style="padding:16px">
-        <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></div>
+        <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg></div>
         <div class="empty-state-text">Estoque suficiente para todos os pedidos!</div>
       </div>`;
       return;
@@ -3190,11 +3207,46 @@ function atualizarDashboard() {
   // Título da lista
   setEl('dash-lista-title', 'Entregas do período');
 
+  // Vencimentos próximos (próximos 30 dias)
+  const vencEl = document.getElementById('dash-vencimentos-lista');
+  if (vencEl) {
+    const hoje30 = new Date(); hoje30.setDate(hoje30.getDate() + 30);
+    const vencendo = DB.estoque
+      .filter(e => e.data_validade)
+      .map(e => {
+        const item = e.tipo === 'ingrediente'
+          ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
+          : DB.insumos.find(x => String(x.id) === String(e.item_id));
+        const dataVal = new Date(e.data_validade + 'T00:00:00');
+        const diasRestantes = Math.ceil((dataVal - new Date()) / (1000 * 60 * 60 * 24));
+        return { nome: item?.nome || e.item_id, dataVal, diasRestantes, data_validade: e.data_validade };
+      })
+      .filter(v => v.diasRestantes <= 30)
+      .sort((a, b) => a.dataVal - b.dataVal)
+      .slice(0, 5);
+
+    if (vencendo.length === 0) {
+      vencEl.innerHTML = '<div class="text-muted" style="padding:8px 0">Nenhum item vencendo nos próximos 30 dias.</div>';
+    } else {
+      vencEl.innerHTML = vencendo.map(v => {
+        const cor = v.diasRestantes <= 3 ? 'var(--red)' : v.diasRestantes <= 7 ? 'var(--yellow)' : 'var(--text2)';
+        const bg  = v.diasRestantes <= 3 ? 'var(--red-light)' : v.diasRestantes <= 7 ? 'var(--yellow-light)' : 'transparent';
+        return `<div class="mercado-item" style="background:${bg};border-radius:8px;padding:6px 8px;margin-bottom:4px">
+          <span style="font-weight:600;font-size:0.88rem">${v.nome}</span>
+          <div style="text-align:right">
+            <div style="font-size:0.82rem;font-weight:700;color:${cor}">${formatarData(v.data_validade)}</div>
+            <div style="font-size:0.72rem;color:${cor}">${v.diasRestantes <= 0 ? 'Vencido!' : v.diasRestantes === 1 ? 'amanhã' : `${v.diasRestantes} dias`}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
   // Lista
   const lista = document.getElementById('dash-pedidos-lista');
   if (pedidosPeriodo.length === 0) {
     lista.innerHTML = `<div class="empty-state" style="padding:16px">
-      <div class="empty-state-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
       <div class="empty-state-text">Nenhum pedido neste período.</div>
     </div>`;
     return;
