@@ -1170,7 +1170,12 @@ body {
     <div class="modal-body">
       <input type="hidden" id="ped-edit-id">
       <div class="section-label">👤 Cliente</div>
-      <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="ped-cliente" placeholder="Nome completo" list="clientes-datalist" oninput="autoFillCliente()"><datalist id="clientes-datalist"></datalist></div>
+      <div class="form-group">
+        <label class="form-label">Cliente *</label>
+        <input type="text" class="form-input" id="ped-cliente" placeholder="Digite o nome..." list="clientes-datalist" oninput="autoFillCliente()" autocomplete="off">
+        <datalist id="clientes-datalist"></datalist>
+        <div id="cli-sugestoes" style="display:none;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-top:4px;max-height:160px;overflow-y:auto;box-shadow:var(--shadow-lg);z-index:10;position:relative"></div>
+      </div>
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Telefone</label><input type="tel" class="form-input" id="ped-telefone" placeholder="(99) 99999-9999"></div>
         <div class="form-group"><label class="form-label">Preferências</label><input type="text" class="form-input" id="ped-preferencias" placeholder="sem lactose..."></div>
@@ -1265,9 +1270,23 @@ body {
   </div>
 </div>
 
+<!-- MODAL DETALHE CLIENTE -->
+<div id="modal-detalhe-cliente" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="det-cli-title">Cliente</div>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-detalhe-cliente')">✕</button>
+    </div>
+    <div class="modal-body" id="det-cli-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-detalhe-cliente')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CLIENTE -->
 <div id="modal-cliente" class="modal-overlay hidden">
-  <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="cli-modal-title">Editar Cliente</div>
@@ -1276,8 +1295,14 @@ body {
     <div class="modal-body">
       <input type="hidden" id="cli-edit-id">
       <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="cli-nome" placeholder="Nome completo"></div>
-      <div class="form-group"><label class="form-label">Telefone</label><input type="tel" class="form-input" id="cli-telefone" placeholder="(99) 99999-9999"></div>
-      <div class="form-group"><label class="form-label">Preferências</label><input type="text" class="form-input" id="cli-pref" placeholder="sem lactose, sem glúten..."></div>
+      <div class="form-row-2">
+        <div class="form-group"><label class="form-label">Telefone</label><input type="tel" class="form-input" id="cli-telefone" placeholder="(99) 99999-9999"></div>
+        <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="cli-email" placeholder="email@exemplo.com"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="cli-endereco" placeholder="Rua, número, bairro"></div>
+      <div class="form-group"><label class="form-label">Data de Aniversário</label><input type="date" class="form-input" id="cli-aniversario"></div>
+      <div class="form-group"><label class="form-label">Preferências / Restrições</label><input type="text" class="form-input" id="cli-pref" placeholder="sem lactose, sem glúten..."></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="cli-obs" placeholder="Notas sobre o cliente..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary btn-full"   onclick="salvarClienteModal()">💾 Salvar</button>
@@ -1720,9 +1745,11 @@ function updateFab(page) {
     clientes:     () => {
       document.getElementById('cli-edit-id').value  = '';
       document.getElementById('cli-modal-title').textContent = 'Novo Cliente';
-      document.getElementById('cli-nome').value     = '';
-      document.getElementById('cli-telefone').value = '';
-      document.getElementById('cli-pref').value     = '';
+      ['cli-nome','cli-telefone','cli-email','cli-endereco','cli-aniversario','cli-pref','cli-obs'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      document.getElementById('cli-edit-id').value = '';
+      document.getElementById('cli-modal-title').textContent = 'Novo Cliente';
       document.getElementById('modal-cliente').classList.remove('hidden');
     },
   };
@@ -1742,7 +1769,7 @@ function updateFab(page) {
 // ──────────────────────────────────────────
 const CAT_ING_DEFAULT = ['Açúcares','Aromatizantes','Bebidas','Biscoitos','Castanhas','Cereais','Chocolates','Coberturas','Farinhas','Fermentos','Frutas','Geleias','Laticínios','Líquidos','Óleos','Ovos','Temperos'];
 const CAT_INS_DEFAULT = ['Adesivos','Caixas','Embalagens','Fitas','Forminhas','Potes','Sacos & Sacolas','Suportes & Tábuas','Outros'];
-const CAT_REC_DEFAULT = ['Bolo Caseiro','Bolo de Festas','Bolo Saudável','Docinhos','Sazonal','Sobremesas'];
+const CAT_REC_DEFAULT = ['🍰 Bolo Caseiro','🎉 Bolo de Festas','🥗 Bolo Saudável','🍬 Docinhos','🌸 Sazonal','🍮 Sobremesas'];
 
 DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT], rec: [...CAT_REC_DEFAULT] };
 
@@ -3028,12 +3055,46 @@ function copiarOrcamento() {
 //  CLIENTES (autocomplete + save)
 // ──────────────────────────────────────────
 function autoFillCliente() {
-  const nome    = document.getElementById('ped-cliente').value;
-  const cliente = DB.clientes.find(c => c.nome === nome);
-  if (cliente) {
-    if (cliente.telefone)     document.getElementById('ped-telefone').value     = cliente.telefone;
-    if (cliente.preferencias) document.getElementById('ped-preferencias').value = cliente.preferencias;
+  const val  = document.getElementById('ped-cliente').value.trim();
+  const sug  = document.getElementById('cli-sugestoes');
+
+  // Auto-fill se nome exato
+  const exato = DB.clientes.find(c => c.nome.toLowerCase() === val.toLowerCase());
+  if (exato) {
+    if (exato.telefone)     document.getElementById('ped-telefone').value     = exato.telefone;
+    if (exato.preferencias) document.getElementById('ped-preferencias').value = exato.preferencias;
+    if (exato.endereco)     document.getElementById('ped-endereco').value      = exato.endereco;
+    if (sug) sug.style.display = 'none';
+    return;
   }
+
+  // Mostrar sugestões filtradas
+  if (!val || val.length < 2) { if (sug) sug.style.display = 'none'; return; }
+  const filtrados = DB.clientes.filter(c => c.nome.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+  if (filtrados.length === 0) { if (sug) sug.style.display = 'none'; return; }
+
+  if (sug) {
+    sug.style.display = 'block';
+    sug.innerHTML = filtrados.map(c => `
+      <div onclick="selecionarClientePedido('${c.id}')"
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:0.88rem"
+        onmouseover="this.style.background='var(--bg2)'"
+        onmouseout="this.style.background=''">
+        <div style="font-weight:600">${c.nome}</div>
+        <div style="font-size:0.75rem;color:var(--text3)">${c.telefone || ''}${c.preferencias ? ' · ' + c.preferencias : ''}</div>
+      </div>`).join('');
+  }
+}
+
+function selecionarClientePedido(id) {
+  const c = DB.clientes.find(x => String(x.id) === String(id));
+  if (!c) return;
+  document.getElementById('ped-cliente').value      = c.nome;
+  if (c.telefone)     document.getElementById('ped-telefone').value     = c.telefone;
+  if (c.preferencias) document.getElementById('ped-preferencias').value = c.preferencias;
+  if (c.endereco)     document.getElementById('ped-endereco').value      = c.endereco;
+  const sug = document.getElementById('cli-sugestoes');
+  if (sug) sug.style.display = 'none';
 }
 
 function atualizarDatalistClientes() {
@@ -3047,6 +3108,13 @@ function atualizarDatalistClientes() {
 function filtrarClientes() {
   const q = (document.getElementById('cli-search')?.value || '').toLowerCase();
   renderClientes(q ? DB.clientes.filter(c => c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q)) : DB.clientes);
+}
+
+function contarPedidosCliente(c) {
+  return DB.pedidos.filter(p =>
+    p.cliente_nome === c.nome ||
+    (c.telefone && p.cliente_telefone === c.telefone)
+  ).length;
 }
 
 function renderClientes(lista) {
@@ -3063,21 +3131,67 @@ function renderClientes(lista) {
     </div>`;
     return;
   }
-  el.innerHTML = dados.map(c => `
-    <div class="list-item">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:var(--accent);flex-shrink:0">
+  el.innerHTML = dados.map(c => {
+    const totalPedidos = contarPedidosCliente(c);
+    return `<div class="list-item" style="cursor:pointer" onclick="verCliente('${c.id}')">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:var(--accent);flex-shrink:0">
         ${c.nome.charAt(0).toUpperCase()}
       </div>
       <div class="list-item-body">
         <div class="list-item-name">${c.nome}</div>
         <div class="list-item-sub">${c.telefone || 'Sem telefone'}${c.preferencias ? ' · ' + c.preferencias : ''}</div>
+        ${totalPedidos > 0 ? `<div style="margin-top:4px"><span class="badge badge-accent" style="font-size:0.68rem">${totalPedidos} pedido${totalPedidos > 1 ? 's' : ''}</span></div>` : ''}
       </div>
-      <div class="list-actions">
+      <div class="list-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCliente('${c.id}')">✏️</button>
         <button class="btn btn-danger btn-sm btn-icon"    onclick="deletarCliente('${c.id}')">🗑️</button>
       </div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
+}
+
+function verCliente(id) {
+  const c = DB.clientes.find(x => String(x.id) === String(id));
+  if (!c) return;
+  const pedidos = DB.pedidos.filter(p => p.cliente_nome === c.nome || (c.telefone && p.cliente_telefone === c.telefone));
+  const totalGasto = pedidos.filter(p => p.pago).reduce((acc, p) => acc + calcularTotalPedido(p), 0);
+  document.getElementById('det-cli-title').textContent = c.nome;
+  document.getElementById('det-cli-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:var(--accent);flex-shrink:0">${c.nome.charAt(0).toUpperCase()}</div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:700">${c.nome}</div>
+        ${c.telefone ? `<div class="text-muted">${c.telefone}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="stat-card" style="padding:12px">
+        <div class="stat-label">Pedidos</div>
+        <div class="stat-value" style="font-size:1.4rem">${pedidos.length}</div>
+      </div>
+      <div class="stat-card" style="padding:12px">
+        <div class="stat-label">Total gasto</div>
+        <div class="stat-value" style="font-size:1.1rem">R$ ${totalGasto.toFixed(2)}</div>
+      </div>
+    </div>
+    ${c.email ? `<div class="mercado-item"><span class="text-muted">Email</span><span>${c.email}</span></div>` : ''}
+    ${c.endereco ? `<div class="mercado-item"><span class="text-muted">Endereço</span><span style="text-align:right;max-width:60%">${c.endereco}</span></div>` : ''}
+    ${c.aniversario ? `<div class="mercado-item"><span class="text-muted">Aniversário</span><span>${formatarData(c.aniversario)}</span></div>` : ''}
+    ${c.preferencias ? `<div class="mercado-item"><span class="text-muted">Preferências</span><span>${c.preferencias}</span></div>` : ''}
+    ${c.obs ? `<div style="margin-top:12px"><div class="section-label">Observações</div><p class="text-muted">${c.obs}</p></div>` : ''}
+    ${pedidos.length > 0 ? `
+    <div class="section-label" style="margin-top:14px">Últimos pedidos</div>
+    ${pedidos.slice(0,5).map(p => `
+      <div class="mercado-item">
+        <div><div style="font-weight:600;font-size:0.88rem">#${p.numero_pedido} · ${formatarItensPedido(p)}</div>
+        <div class="text-muted">${p.data_entrega ? formatarData(p.data_entrega) : '—'}</div></div>
+        <div style="text-align:right">
+          <div style="font-weight:700;color:var(--accent)">R$ ${calcularTotalPedido(p).toFixed(2)}</div>
+          ${p.pago ? '<span class="badge badge-green" style="font-size:0.65rem">Pago</span>' : '<span class="badge badge-red" style="font-size:0.65rem">Pendente</span>'}
+        </div>
+      </div>`).join('')}` : ''}
+  `;
+  document.getElementById('modal-detalhe-cliente').classList.remove('hidden');
 }
 
 function editarCliente(id) {
@@ -3087,17 +3201,25 @@ function editarCliente(id) {
   document.getElementById('cli-modal-title').textContent = 'Editar Cliente';
   document.getElementById('cli-nome').value       = c.nome;
   document.getElementById('cli-telefone').value   = c.telefone || '';
+  document.getElementById('cli-email').value      = c.email || '';
+  document.getElementById('cli-endereco').value   = c.endereco || '';
+  document.getElementById('cli-aniversario').value = c.aniversario || '';
   document.getElementById('cli-pref').value       = c.preferencias || '';
+  document.getElementById('cli-obs').value        = c.obs || '';
   document.getElementById('modal-cliente').classList.remove('hidden');
 }
 
 async function salvarClienteModal() {
-  const nome     = document.getElementById('cli-nome').value.trim();
-  const telefone = document.getElementById('cli-telefone').value.trim();
-  const pref     = document.getElementById('cli-pref').value.trim();
-  const editId   = document.getElementById('cli-edit-id').value;
+  const nome       = document.getElementById('cli-nome').value.trim();
+  const telefone   = document.getElementById('cli-telefone').value.trim();
+  const email      = document.getElementById('cli-email').value.trim();
+  const endereco   = document.getElementById('cli-endereco').value.trim();
+  const aniversario = document.getElementById('cli-aniversario').value || null;
+  const pref       = document.getElementById('cli-pref').value.trim();
+  const obs        = document.getElementById('cli-obs').value.trim();
+  const editId     = document.getElementById('cli-edit-id').value;
   if (!nome) { toast('Informe o nome!', 'error'); return; }
-  const payload  = { nome, telefone: telefone || null, preferencias: pref || null };
+  const payload = { nome, telefone: telefone || null, email: email || null, endereco: endereco || null, aniversario: aniversario || null, preferencias: pref || null, obs: obs || null };
   if (editId) {
     if (supabase) {
       const { error } = await supabase.from('clientes').update(payload).eq('id', editId);
