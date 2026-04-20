@@ -2756,7 +2756,7 @@ function abrirModalPedido() {
     document.getElementById(id).value = ''
   );
   document.getElementById('ped-data-pedido').value  = new Date().toISOString().split('T')[0];
-  document.getElementById('ped-data-entrega').value = '';
+  document.getElementById('ped-data-entrega').value = new Date().toISOString().split('T')[0];
   document.getElementById('ped-status').value       = 'orcamento';
   document.getElementById('ped-pagamento').value    = '';
   document.getElementById('ped-pago').value         = 'false';
@@ -2805,9 +2805,9 @@ async function salvarPedido() {
 
   const itens = [];
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id  = row.querySelector('select').value;
-    const qtd = parseInt(row.querySelector('input').value) || 1;
-    if (id) itens.push({ receita_id: id, quantidade: qtd, tipo: 'receita' });
+    const id     = row.querySelector('select').value;
+    const porcoes = parseInt(row.querySelector('input[type="number"]').value) || 1;
+    if (id) itens.push({ receita_id: id, quantidade: porcoes, tipo: 'receita' });
   });
 
   const editId = document.getElementById('ped-edit-id').value;
@@ -2971,15 +2971,26 @@ function atualizarDatalistClientes() {
 }
 
 async function salvarCliente(dados) {
-  const ex = DB.clientes.find(c => c.telefone === dados.telefone || c.nome === dados.nome);
+  if (!dados.nome) return;
+  const ex = DB.clientes.find(c =>
+    (dados.telefone && c.telefone === dados.telefone) || c.nome === dados.nome
+  );
   if (ex) {
     if (dados.preferencias) ex.preferencias = dados.preferencias;
-    if (supabase) await supabase.from('clientes').update(ex).eq('id', ex.id);
-  } else {
-    const nc = { nome: dados.nome, telefone: dados.telefone, preferencias: dados.preferencias, id: Date.now() };
     if (supabase) {
-      const { data } = await supabase.from('clientes').insert([nc]).select().single();
+      const { error } = await supabase.from('clientes').update({
+        nome: ex.nome, telefone: ex.telefone, preferencias: ex.preferencias
+      }).eq('id', ex.id);
+      if (error) console.warn('Erro ao atualizar cliente:', error.message);
+    }
+  } else {
+    const nc = { nome: dados.nome, telefone: dados.telefone || null, preferencias: dados.preferencias || null };
+    if (supabase) {
+      const { data, error } = await supabase.from('clientes').insert([nc]).select().single();
+      if (error) { console.warn('Erro ao salvar cliente:', error.message); return; }
       if (data) nc.id = data.id;
+    } else {
+      nc.id = Date.now();
     }
     DB.clientes.push(nc);
   }
@@ -3336,6 +3347,11 @@ function atualizarDashboard() {
   const margem     = entradas > 0 ? ((lucro / entradas) * 100).toFixed(1) : null;
 
   // Stats
+  // Atualiza estoque crítico sempre que dashboard atualiza
+  const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
+  const elCrit = document.getElementById('dash-estoque-critico');
+  if (elCrit) elCrit.textContent = criticos.length;
+
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setEl('dash-entradas',       'R$ ' + entradas.toFixed(2));
   setEl('dash-pedidos-count',  pedidosPeriodo.length);
