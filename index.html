@@ -1287,6 +1287,7 @@ body {
 
 <!-- MODAL CLIENTE -->
 <div id="modal-cliente" class="modal-overlay hidden">
+  <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="cli-modal-title">Editar Cliente</div>
@@ -1294,13 +1295,13 @@ body {
     </div>
     <div class="modal-body">
       <input type="hidden" id="cli-edit-id">
+      <input type="hidden" id="cli-aniversario">
       <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="cli-nome" placeholder="Nome completo"></div>
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Telefone</label><input type="tel" class="form-input" id="cli-telefone" placeholder="(99) 99999-9999"></div>
         <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="cli-email" placeholder="email@exemplo.com"></div>
       </div>
       <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="cli-endereco" placeholder="Rua, número, bairro"></div>
-      <div class="form-group"><label class="form-label">Data de Aniversário</label><input type="date" class="form-input" id="cli-aniversario"></div>
       <div class="form-group"><label class="form-label">Preferências / Restrições</label><input type="text" class="form-input" id="cli-pref" placeholder="sem lactose, sem glúten..."></div>
       <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="cli-obs" placeholder="Notas sobre o cliente..."></textarea></div>
     </div>
@@ -1769,7 +1770,7 @@ function updateFab(page) {
 // ──────────────────────────────────────────
 const CAT_ING_DEFAULT = ['Açúcares','Aromatizantes','Bebidas','Biscoitos','Castanhas','Cereais','Chocolates','Coberturas','Farinhas','Fermentos','Frutas','Geleias','Laticínios','Líquidos','Óleos','Ovos','Temperos'];
 const CAT_INS_DEFAULT = ['Adesivos','Caixas','Embalagens','Fitas','Forminhas','Potes','Sacos & Sacolas','Suportes & Tábuas','Outros'];
-const CAT_REC_DEFAULT = ['🍰 Bolo Caseiro','🎉 Bolo de Festas','🥗 Bolo Saudável','🍬 Docinhos','🌸 Sazonal','🍮 Sobremesas'];
+const CAT_REC_DEFAULT = ['🍰 Bolo Caseiro','🎉 Bolo de Festas','🥗 Bolo Saudável','🍩 Coberturas','🍬 Docinhos','🌸 Sazonal','🍮 Sobremesas'];
 
 DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT], rec: [...CAT_REC_DEFAULT] };
 
@@ -1784,10 +1785,13 @@ async function carregarCategorias() {
     DB.categorias.ins = data.filter(c => c.tipo === 'ins').map(c => c.nome);
     DB.categorias.rec = data.filter(c => c.tipo === 'rec').map(c => c.nome);
     // Se rec ainda não tem entradas (banco antigo), popula
-    if (DB.categorias.rec.length === 0) {
-      const rows = CAT_REC_DEFAULT.map(nome => ({ tipo: 'rec', nome }));
+    // Insere categorias de rec que ainda não existem (ex: novas adicionadas no código)
+    const recExistentes = DB.categorias.rec;
+    const recFaltando = CAT_REC_DEFAULT.filter(nome => !recExistentes.includes(nome));
+    if (recFaltando.length > 0) {
+      const rows = recFaltando.map(nome => ({ tipo: 'rec', nome }));
       await supabase.from('categorias').insert(rows);
-      DB.categorias.rec = [...CAT_REC_DEFAULT];
+      DB.categorias.rec = [...recExistentes, ...recFaltando].sort();
     }
   }
   renderCatManager();
@@ -3133,14 +3137,15 @@ function renderClientes(lista) {
   }
   el.innerHTML = dados.map(c => {
     const totalPedidos = contarPedidosCliente(c);
+    const totalGasto   = DB.pedidos.filter(p => (p.cliente_nome === c.nome || (c.telefone && p.cliente_telefone === c.telefone)) && p.pago).reduce((acc, p) => acc + calcularTotalPedido(p), 0);
     return `<div class="list-item" style="cursor:pointer" onclick="verCliente('${c.id}')">
-      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:var(--accent);flex-shrink:0">
-        ${c.nome.charAt(0).toUpperCase()}
-      </div>
       <div class="list-item-body">
         <div class="list-item-name">${c.nome}</div>
         <div class="list-item-sub">${c.telefone || 'Sem telefone'}${c.preferencias ? ' · ' + c.preferencias : ''}</div>
-        ${totalPedidos > 0 ? `<div style="margin-top:4px"><span class="badge badge-accent" style="font-size:0.68rem">${totalPedidos} pedido${totalPedidos > 1 ? 's' : ''}</span></div>` : ''}
+        <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="badge badge-accent" style="font-size:0.68rem">${totalPedidos} pedido${totalPedidos !== 1 ? 's' : ''}</span>
+          ${totalGasto > 0 ? `<span class="badge badge-green" style="font-size:0.68rem">R$ ${totalGasto.toFixed(2)}</span>` : ''}
+        </div>
       </div>
       <div class="list-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCliente('${c.id}')">✏️</button>
@@ -3157,12 +3162,9 @@ function verCliente(id) {
   const totalGasto = pedidos.filter(p => p.pago).reduce((acc, p) => acc + calcularTotalPedido(p), 0);
   document.getElementById('det-cli-title').textContent = c.nome;
   document.getElementById('det-cli-body').innerHTML = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-      <div style="width:52px;height:52px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:var(--accent);flex-shrink:0">${c.nome.charAt(0).toUpperCase()}</div>
-      <div>
-        <div style="font-size:1.1rem;font-weight:700">${c.nome}</div>
-        ${c.telefone ? `<div class="text-muted">${c.telefone}</div>` : ''}
-      </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:1.2rem;font-weight:700">${c.nome}</div>
+      ${c.telefone ? `<div class="text-muted" style="margin-top:2px">${c.telefone}</div>` : ''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div class="stat-card" style="padding:12px">
