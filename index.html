@@ -1113,16 +1113,20 @@ body {
       <div id="rec-ins-lista"></div>
       <div class="divider"></div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
-        <div class="flex-between" style="margin-bottom:10px">
+        <div class="flex-between" style="margin-bottom:6px">
           <span style="font-weight:700;color:var(--accent)">Custo Total:</span>
           <span style="font-weight:700;color:var(--accent)" id="rec-custo-total">R$ 0,00</span>
         </div>
+        <div class="flex-between" style="margin-bottom:10px">
+          <span style="font-size:0.8rem;color:var(--accent)">Custo por porção:</span>
+          <span style="font-size:0.8rem;font-weight:700;color:var(--accent)" id="rec-custo-porcao">—</span>
+        </div>
         <div class="form-group" style="margin:0">
-          <label class="form-label">Preço de Venda (R$)</label>
+          <label class="form-label">Preço de Venda por Porção (R$)</label>
           <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="calcularMargem()">
         </div>
         <div class="flex-between mt-12">
-          <span class="text-muted">Margem de lucro:</span>
+          <span class="text-muted">Margem por porção:</span>
           <span id="rec-margem" style="font-weight:700">—</span>
         </div>
       </div>
@@ -1639,6 +1643,9 @@ function navigate(page) {
 
   // Ações ao entrar na página
   if (page === 'mercado') gerarListaMercado();
+  if (page === 'receitas')     renderRecChips();
+  if (page === 'ingredientes') renderIngChips();
+  if (page === 'insumos')      renderInsChips();
 }
 
 function navigateDrawer(page) {
@@ -2214,9 +2221,10 @@ function renderReceitas() {
       <div class="rec-card-name">${r.nome}</div>
       <div class="rec-card-desc">${r.descricao || '—'}</div>
       <div class="rec-card-footer">
-        <span>Custo: <b style="color:var(--accent)">R$ ${custo.toFixed(2)}</b></span>
-        <span>Venda: <b>${r.preco_venda ? 'R$ ' + parseFloat(r.preco_venda).toFixed(2) : '—'}</b></span>
+        <span>Custo${r.rendimento > 1 ? '/porção' : ''}: <b style="color:var(--accent)">R$ ${(custo / (r.rendimento || 1)).toFixed(2)}</b></span>
+        <span>Venda/porção: <b>${r.preco_venda ? 'R$ ' + parseFloat(r.preco_venda).toFixed(2) : '—'}</b></span>
       </div>
+      ${r.rendimento > 1 ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Custo total: R$ ${custo.toFixed(2)} · ${r.rendimento} porções</div>` : ''}
       ${margem ? `<div style="margin-top:8px"><span class="badge badge-green">Margem: ${margem}%</span></div>` : ''}
       <div class="rec-card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
@@ -2319,13 +2327,17 @@ function recalcularCusto() {
 }
 
 function calcularMargem(custo) {
-  const c     = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
-  const venda = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
-  const el    = document.getElementById('rec-margem');
-  if (venda > 0 && c > 0) {
-    const m = ((venda - c) / venda * 100).toFixed(1);
-    el.textContent  = m + '%';
-    el.style.color  = parseFloat(m) >= 30 ? 'var(--green)' : parseFloat(m) >= 0 ? 'var(--yellow)' : 'var(--red)';
+  const c          = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
+  const rendimento = parseInt(document.getElementById('rec-rendimento').value) || 1;
+  const custoPorcao = c / rendimento;
+  const venda      = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const el         = document.getElementById('rec-margem');
+  const elPorcao   = document.getElementById('rec-custo-porcao');
+  if (elPorcao) elPorcao.textContent = rendimento > 1 ? `R$ ${custoPorcao.toFixed(2)} (${rendimento} porções)` : '—';
+  if (venda > 0 && custoPorcao > 0) {
+    const m = ((venda - custoPorcao) / venda * 100).toFixed(1);
+    el.textContent = m + '%';
+    el.style.color = parseFloat(m) >= 30 ? 'var(--green)' : parseFloat(m) >= 0 ? 'var(--yellow)' : 'var(--red)';
   } else {
     el.textContent = '—';
     el.style.color = '';
@@ -2475,8 +2487,9 @@ function verReceita(id) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <span class="badge badge-accent">${r.categoria}</span>
       ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} porções</span>` : ''}
-      <span class="badge badge-green">Custo: R$ ${custo.toFixed(2)}</span>
-      ${r.preco_venda ? `<span class="badge badge-yellow">Venda: R$ ${parseFloat(r.preco_venda).toFixed(2)}</span>` : ''}
+      <span class="badge badge-green">Custo${r.rendimento > 1 ? '/porção' : ''}: R$ ${(custo/(r.rendimento||1)).toFixed(2)}</span>
+      ${r.rendimento > 1 ? `<span class="badge badge-gray">Total: R$ ${custo.toFixed(2)} · ${r.rendimento}p</span>` : ''}
+      ${r.preco_venda ? `<span class="badge badge-yellow">Venda/porção: R$ ${parseFloat(r.preco_venda).toFixed(2)}</span>` : ''}
     </div>
     ${r.descricao ? `<p class="text-muted" style="margin-bottom:14px">${r.descricao}</p>` : ''}
     ${ingRows ? `<div class="section-label">🧂 Ingredientes</div><div class="card" style="padding:12px;margin-bottom:12px">${ingRows}</div>` : ''}
@@ -2518,6 +2531,7 @@ function formatarItensPedido(p) {
 function calcularTotalPedido(p) {
   return (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    // preco_venda é por porção; quantidade = número de porções pedidas
     return acc + (r?.preco_venda || 0) * (i.quantidade || 1);
   }, 0);
 }
@@ -2538,7 +2552,12 @@ function filtrarPedidos() {
   const filtrado = DB.pedidos.filter(p => {
     const matchQ = !q || p.cliente_nome?.toLowerCase().includes(q) || String(p.numero_pedido).includes(q);
     const matchS = !pedStatusFilter || p.status === pedStatusFilter;
-    return matchQ && matchS;
+    const matchD = !calFiltro || (() => {
+      if (!p.data_entrega) return false;
+      const d = new Date(p.data_entrega + 'T00:00:00');
+      return d.getDate() === calFiltro && d.getMonth() === calMes && d.getFullYear() === calAno;
+    })();
+    return matchQ && matchS && matchD;
   });
   renderPedidos(filtrado);
 }
@@ -2599,39 +2618,91 @@ function renderPedidos(lista) {
 // ──────────────────────────────────────────
 //  PEDIDOS — CALENDÁRIO
 // ──────────────────────────────────────────
+let calMes   = new Date().getMonth();
+let calAno   = new Date().getFullYear();
+let calFiltro = null; // dia selecionado
+
 function toggleCalendario() {
-  const el = document.getElementById('ped-calendario');
-  el.classList.toggle('hidden');
-  if (!el.classList.contains('hidden')) renderCalendario();
+  const el   = document.getElementById('ped-calendario');
+  const chip = document.getElementById('chip-cal');
+  const aberto = !el.classList.contains('hidden');
+  if (aberto) {
+    el.classList.add('hidden');
+    chip.classList.remove('active');
+    // Remove filtro de data ao fechar
+    calFiltro = null;
+    filtrarPedidos();
+  } else {
+    el.classList.remove('hidden');
+    chip.classList.add('active');
+    renderCalendario();
+  }
+}
+
+function navegarCalendario(dir) {
+  calMes += dir;
+  if (calMes > 11) { calMes = 0; calAno++; }
+  if (calMes < 0)  { calMes = 11; calAno--; }
+  calFiltro = null;
+  filtrarPedidos();
+  renderCalendario();
 }
 
 function renderCalendario() {
   const hoje        = new Date();
-  const ano         = hoje.getFullYear();
-  const mes         = hoje.getMonth();
-  const primeiroDia = new Date(ano, mes, 1).getDay();
-  const diasNoMes   = new Date(ano, mes + 1, 0).getDate();
+  const primeiroDia = new Date(calAno, calMes, 1).getDay();
+  const diasNoMes   = new Date(calAno, calMes + 1, 0).getDate();
+  const nomeMes     = new Date(calAno, calMes, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const pedPorDia = {};
   DB.pedidos.forEach(p => {
     if (p.data_entrega) {
       const d = new Date(p.data_entrega + 'T00:00:00');
-      if (d.getFullYear() === ano && d.getMonth() === mes) {
-        const dia = d.getDate();
-        pedPorDia[dia] = (pedPorDia[dia] || 0) + 1;
+      if (d.getFullYear() === calAno && d.getMonth() === calMes) {
+        pedPorDia[d.getDate()] = (pedPorDia[d.getDate()] || 0) + 1;
       }
     }
   });
 
+  // Header com navegação de mês
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="navegarCalendario(-1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
+    </button>
+    <span style="font-size:0.9rem;font-weight:700;text-transform:capitalize">${nomeMes}</span>
+    <button class="btn btn-secondary btn-sm btn-icon" onclick="navegarCalendario(1)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
+    </button>
+  </div>
+  <div class="cal-grid">`;
+
   const semana = ['D','S','T','Q','Q','S','S'];
-  let html = semana.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+  html += semana.map(d => `<div class="cal-day-header">${d}</div>`).join('');
   for (let i = 0; i < primeiroDia; i++) html += '<div></div>';
   for (let d = 1; d <= diasNoMes; d++) {
-    const temP = pedPorDia[d] > 0;
-    const isH  = d === hoje.getDate();
-    html += `<div class="cal-day ${isH ? 'hoje' : temP ? 'has-ped' : ''}">${d}${temP ? `<div class="cal-day-count">${pedPorDia[d]}p</div>` : ''}</div>`;
+    const temP    = pedPorDia[d] > 0;
+    const isHoje  = d === hoje.getDate() && calMes === hoje.getMonth() && calAno === hoje.getFullYear();
+    const isSel   = calFiltro === d;
+    let cls = 'cal-day';
+    if (isSel)       cls += ' hoje';         // destaque selecionado
+    else if (isHoje) cls += ' hoje';
+    else if (temP)   cls += ' has-ped';
+    const onclick = temP ? `onclick="filtrarCalDia(${d})"` : '';
+    html += `<div class="${cls}" style="${temP ? 'cursor:pointer' : ''}" ${onclick}>${d}${temP ? `<div class="cal-day-count">${pedPorDia[d]}p</div>` : ''}</div>`;
   }
+  html += '</div>';
   document.getElementById('cal-body').innerHTML = html;
+}
+
+function filtrarCalDia(dia) {
+  if (calFiltro === dia) {
+    // Clicou no mesmo dia → remove filtro
+    calFiltro = null;
+  } else {
+    calFiltro = dia;
+  }
+  renderCalendario();
+  filtrarPedidos();
 }
 
 // ──────────────────────────────────────────
@@ -2641,23 +2712,39 @@ function addLinhaPedido() {
   const div = document.createElement('div');
   div.className = 'pedido-item-row';
   div.innerHTML = `
-    <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="calcularTotalPedidoForm()">
+    <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
       <option value="">Receita...</option>
-      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}</option>`).join('')}
+      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' ('+r.rendimento+'p)' : ''}</option>`).join('')}
     </select>
-    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1" oninput="calcularTotalPedidoForm()">
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1"
+      placeholder="Porções" oninput="calcularTotalPedidoForm()">
     <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
   `;
   document.getElementById('ped-itens-lista').appendChild(div);
 }
 
+function onChangePedidoReceita(sel) {
+  const r   = DB.receitas.find(x => String(x.id) === sel.value);
+  const row = sel.closest('.pedido-item-row');
+  const inp = row.querySelector('input[type="number"]');
+  // Sugere 1 porção por padrão
+  if (r && r.rendimento > 1) {
+    inp.max = r.rendimento;
+    inp.title = `Rendimento total: ${r.rendimento} porções`;
+  } else {
+    inp.removeAttribute('max');
+    inp.removeAttribute('title');
+  }
+  calcularTotalPedidoForm();
+}
+
 function calcularTotalPedidoForm() {
   let total = 0;
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id  = row.querySelector('select').value;
-    const qtd = parseInt(row.querySelector('input').value) || 1;
-    const r   = DB.receitas.find(x => String(x.id) === id);
-    if (r?.preco_venda) total += r.preco_venda * qtd;
+    const id     = row.querySelector('select').value;
+    const porcoes = parseInt(row.querySelector('input[type="number"]').value) || 1;
+    const r      = DB.receitas.find(x => String(x.id) === id);
+    if (r?.preco_venda) total += r.preco_venda * porcoes; // preco_venda já é por porção
   });
   document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
 }
@@ -3020,14 +3107,19 @@ async function salvarEstoque() {
     const target = editId
       ? DB.estoque.find(e => String(e.id) === String(editId))
       : existing;
+    if (supabase) {
+      const { error } = await supabase.from('estoque').update(payload).eq('id', target.id);
+      if (error) { toast('Erro ao salvar estoque: ' + error.message, 'error'); return; }
+    }
     Object.assign(target, payload);
-    if (supabase) await supabase.from('estoque').update(payload).eq('id', target.id);
     delete document.getElementById('est-item').dataset.editId;
   } else {
-    payload.id = Date.now();
     if (supabase) {
-      const { data } = await supabase.from('estoque').insert([payload]).select().single();
+      const { data, error } = await supabase.from('estoque').insert([payload]).select().single();
+      if (error) { toast('Erro ao salvar estoque: ' + error.message, 'error'); return; }
       if (data) payload.id = data.id;
+    } else {
+      payload.id = Date.now();
     }
     DB.estoque.push(payload);
   }
@@ -3181,7 +3273,10 @@ function calcularCMVPedidos(pedidos) {
   return pedidos.reduce((total, p) => {
     return total + (p.itens || []).reduce((acc, item) => {
       const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
-      return acc + (r ? calcularCustoReceita(r) * item.quantidade : 0);
+      if (!r) return acc;
+      // Custo por porção = custo total / rendimento
+      const custoPorcao = calcularCustoReceita(r) / (r.rendimento || 1);
+      return acc + custoPorcao * (item.quantidade || 1);
     }, 0);
   }, 0);
 }
