@@ -815,27 +815,27 @@ body {
   <div id="page-pedidos" class="section-page">
     <div class="page-header">
       <div><div class="page-title">Pedidos</div><div class="page-subtitle" id="ped-count-label">—</div></div>
-      <button class="btn btn-secondary btn-sm" id="btn-cal" onclick="toggleCalendario()" style="display:flex;align-items:center;gap:6px;white-space:nowrap">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Calendário
-      </button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="form-select" id="ped-sort" onchange="filtrarPedidos()" style="width:auto;font-size:0.78rem;padding:6px 10px">
+          <option value="recente">↓ Recente</option>
+          <option value="entrega">📅 Entrega</option>
+          <option value="nome">A–Z</option>
+          <option value="valor">💰 Valor</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="btn-cal" onclick="toggleCalendario()" style="display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Cal
+        </button>
+      </div>
     </div>
     <div id="ped-calendario" class="card hidden" style="margin-bottom:14px">
       <div id="cal-body"></div>
     </div>
     <div class="search-wrap"><input type="text" id="ped-search" placeholder="Buscar por cliente ou #ID..." oninput="filtrarPedidos()"></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <div class="chip-row" id="ped-chips" style="margin-bottom:0;flex:1">
-        <div class="chip active" onclick="filtrarPedidosStatus('')"          data-s="">Todos</div>
-        <div class="chip"        onclick="filtrarPedidosStatus('orcamento')" data-s="orcamento">Orçamento</div>
-        <div class="chip"        onclick="filtrarPedidosStatus('efetuado')"  data-s="efetuado">Efetuado</div>
-      </div>
-      <select class="form-select" id="ped-sort" onchange="filtrarPedidos()" style="width:auto;font-size:0.82rem;padding:7px 10px;flex-shrink:0">
-        <option value="recente">↓ Mais recente</option>
-        <option value="entrega">📅 Entrega</option>
-        <option value="nome">A–Z Nome</option>
-        <option value="valor">💰 Valor</option>
-      </select>
+    <div class="chip-row" id="ped-chips">
+      <div class="chip active" onclick="filtrarPedidosStatus('')"          data-s="">Todos</div>
+      <div class="chip"        onclick="filtrarPedidosStatus('orcamento')" data-s="orcamento">Orçamento</div>
+      <div class="chip"        onclick="filtrarPedidosStatus('efetuado')"  data-s="efetuado">Efetuado</div>
     </div>
     <div id="ped-lista"></div>
   </div>
@@ -955,12 +955,7 @@ body {
         <button class="btn btn-danger btn-sm"     onclick="limparConfig()">🗑️ Limpar</button>
       </div>
     </div>
-    <div class="config-block">
-      <div class="config-block-title">📋 SQL — Criar Tabelas</div>
-      <p class="text-muted" style="margin-bottom:12px">Cole no SQL Editor do seu projeto Supabase.</p>
-      <div class="sql-block" id="sql-block"></div>
-      <button class="btn btn-secondary btn-sm mt-12" onclick="copiarSQL()">📋 Copiar SQL</button>
-    </div>
+
     <div class="config-block">
       <div class="config-block-title">🎂 Sobre</div>
       <p class="text-muted">Doceria Gestão — Feito com ❤️ para a mamãe confeiteira.</p>
@@ -1783,7 +1778,7 @@ async function carregarCategorias() {
   } else {
     DB.categorias.ing = data.filter(c => c.tipo === 'ing').map(c => c.nome);
     DB.categorias.ins = data.filter(c => c.tipo === 'ins').map(c => c.nome);
-    DB.categorias.rec = data.filter(c => c.tipo === 'rec').map(c => c.nome);
+    DB.categorias.rec = data.filter(c => c.tipo === 'rec').map(c => c.nome).sort((a, b) => a.localeCompare(b));
     // Se rec ainda não tem entradas (banco antigo), popula
     // Insere categorias de rec que ainda não existem (ex: novas adicionadas no código)
     const recExistentes = DB.categorias.rec;
