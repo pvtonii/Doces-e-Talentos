@@ -1679,7 +1679,7 @@ async function carregarReceitas() {
 async function carregarPedidos() {
   if (!supabase) return;
   let data;
-  try { data = await sbSelect('pedidos').order('created_at', { ascending: false }); } catch(e) { toast('Erro ao carregar pedidos: ' + e.message, 'error'); return; }
+  try { data = await sbSelect('pedidos', 'order=created_at.desc'); } catch(e) { toast('Erro ao carregar pedidos: ' + e.message, 'error'); return; }
   DB.pedidos = data || [];
   renderPedidos();
 }
