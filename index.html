@@ -84,13 +84,31 @@ body {
   letter-spacing: 0.01em;
 }
 .app-logo em { color: var(--accent2); font-style: italic; }
-.conn-dot {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: #555;
+.conn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.7);
   flex-shrink: 0;
+  transition: background 0.3s, color 0.3s;
 }
-.conn-dot.online { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.conn-badge .cb-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #aaa;
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.conn-badge.reading { background: rgba(255,200,50,0.2); color: #ffe07a; }
+.conn-badge.reading .cb-dot { background: #ffd740; box-shadow: 0 0 5px #ffd740; }
+.conn-badge.online  { background: rgba(74,222,128,0.2); color: #86efac; }
+.conn-badge.online  .cb-dot { background: #4ade80; box-shadow: 0 0 5px #4ade80; }
 
 /* ══════════════════════════════════════════
    SCROLL AREA
@@ -731,7 +749,7 @@ body {
         <em style="color:#fbf0e1;font-style:normal;font-weight:700">Doces & Talentos</em>
       </div>
   <div id="header-date" style="font-size:0.72rem;color:#f5ddd0;font-style:italic;"></div>
-  <div id="conn-dot" class="conn-dot"></div>
+  <div id="conn-badge" class="conn-badge"><span class="cb-dot"></span><span id="conn-label">Desconectado</span></div>
 </header>
 
 <!-- ════════════════ SCROLL ════════════════ -->
@@ -1116,7 +1134,7 @@ body {
             <option value="">Selecionar...</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="10 porções"></div>
+        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="Ex: 10" min="1" oninput="recalcularCusto()"></div>
       </div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
       <div class="divider"></div>
@@ -1535,6 +1553,7 @@ async function initSupabase() {
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     supabase = createClient(url, key);
+    setSupabaseStatus(false, true); // lendo...
     await carregarTudo();
     setSupabaseStatus(true);
     iniciarRealtime();
@@ -1571,15 +1590,22 @@ function iniciarRealtime() {
   });
 }
 
-function setSupabaseStatus(ok) {
-  const dot = document.getElementById('conn-dot');
-  const cfg = document.getElementById('cfg-status');
-  if (ok) {
-    if (dot) dot.className = 'conn-dot online';
-    if (cfg) { cfg.className = 'supabase-status connected'; cfg.innerHTML = '<span class="status-dot"></span> Conectado'; }
+function setSupabaseStatus(ok, reading) {
+  const badge = document.getElementById('conn-badge');
+  const label = document.getElementById('conn-label');
+  const cfg   = document.getElementById('cfg-status');
+  if (reading) {
+    if (badge) badge.className = 'conn-badge reading';
+    if (label) label.textContent = 'Lendo…';
+    if (cfg)   { cfg.className = 'supabase-status connected'; cfg.innerHTML = '<span class="status-dot"></span> Lendo…'; }
+  } else if (ok) {
+    if (badge) badge.className = 'conn-badge online';
+    if (label) label.textContent = 'Sincronizado';
+    if (cfg)   { cfg.className = 'supabase-status connected'; cfg.innerHTML = '<span class="status-dot"></span> Conectado'; }
   } else {
-    if (dot) dot.className = 'conn-dot';
-    if (cfg) { cfg.className = 'supabase-status disconnected'; cfg.innerHTML = '<span class="status-dot"></span> Desconectado'; }
+    if (badge) badge.className = 'conn-badge';
+    if (label) label.textContent = 'Desconectado';
+    if (cfg)   { cfg.className = 'supabase-status disconnected'; cfg.innerHTML = '<span class="status-dot"></span> Desconectado'; }
   }
 }
 
