@@ -3983,7 +3983,8 @@ exception when duplicate_object then null;
 end $$;`;
 
 
-document.getElementById('sql-block').textContent = SQL_CRIAR_TABELAS;
+const _sqlEl = document.getElementById('sql-block');
+if (_sqlEl) _sqlEl.textContent = SQL_CRIAR_TABELAS;
 
 function copiarSQL() {
   navigator.clipboard.writeText(SQL_CRIAR_TABELAS);
