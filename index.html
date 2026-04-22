@@ -1141,6 +1141,11 @@ body {
           <span style="font-size:0.8rem;color:var(--accent)">Custo por porção:</span>
           <span style="font-size:0.8rem;font-weight:700;color:var(--accent)" id="rec-custo-porcao">—</span>
         </div>
+        <!-- Resumo de ingredientes -->
+        <div id="rec-resumo-lista" style="display:none;margin-bottom:10px;border-top:1px solid var(--accent);padding-top:8px">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Detalhamento</div>
+          <div id="rec-resumo-itens" style="font-size:0.78rem;color:var(--accent)"></div>
+        </div>
         <div class="form-group" style="margin:0">
           <label class="form-label">Preço de Venda por Porção (R$)</label>
           <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="calcularMargem()">
@@ -1552,12 +1557,17 @@ function iniciarRealtime() {
   };
 
   Object.entries(reloaders).forEach(([tabela, fn]) => {
-    supabase
+    const canal = supabase
       .channel('realtime:' + tabela)
       .on('postgres_changes', { event: '*', schema: 'public', table: tabela }, () => {
         fn();
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          // Tenta reconectar após 3s
+          setTimeout(() => { try { canal.subscribe(); } catch(e) {} }, 3000);
+        }
+      });
   });
 }
 
@@ -2390,19 +2400,52 @@ function addLinhaInsReceira() {
 
 function recalcularCusto() {
   let total = 0;
+  const itensResumo = [];
+
   document.querySelectorAll('#rec-ing-lista .recipe-row').forEach(row => {
     const id  = row.dataset.ingId;
     const qtd = parseFloat(row.querySelector('input[type="number"]').value) || 0;
     const ing = DB.ingredientes.find(x => String(x.id) === String(id));
-    if (ing && ing.qtd_embalagem > 0) total += (ing.preco / ing.qtd_embalagem) * qtd;
+    if (ing && ing.qtd_embalagem > 0) {
+      const valorUnit = ing.preco / ing.qtd_embalagem;
+      const custo = valorUnit * qtd;
+      total += custo;
+      if (qtd > 0) itensResumo.push({ nome: ing.nome, qtd, unidade: ing.unidade || '', valorUnit, custo });
+    }
   });
   document.querySelectorAll('#rec-ins-lista .recipe-row').forEach(row => {
     const id  = row.querySelector('select').value;
     const qtd = parseFloat(row.querySelector('input').value) || 0;
     const ins = DB.insumos.find(x => String(x.id) === id);
-    if (ins && ins.qtd_embalagem > 0) total += (ins.preco / ins.qtd_embalagem) * qtd;
+    if (ins && ins.qtd_embalagem > 0) {
+      const valorUnit = ins.preco / ins.qtd_embalagem;
+      const custo = valorUnit * qtd;
+      total += custo;
+      if (qtd > 0) itensResumo.push({ nome: ins.nome, qtd, unidade: ins.unidade || 'un', valorUnit, custo });
+    }
   });
-  document.getElementById('rec-custo-total').textContent = 'R$ ' + total.toFixed(2);
+
+  const elCustoTotal = document.getElementById('rec-custo-total');
+  if (elCustoTotal) elCustoTotal.textContent = 'R$ ' + total.toFixed(2);
+
+  const resumoDiv   = document.getElementById('rec-resumo-lista');
+  const resumoItens = document.getElementById('rec-resumo-itens');
+  if (resumoDiv && resumoItens) {
+    if (itensResumo.length > 0) {
+      resumoDiv.style.display = 'block';
+      resumoItens.innerHTML = itensResumo.map(item =>
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid rgba(144,71,70,0.12)">' +
+        '<span style="flex:1">' + item.nome + ' <span style="opacity:0.7">×' + item.qtd + (item.unidade ? ' ' + item.unidade : '') + '</span></span>' +
+        '<span style="margin-left:8px;white-space:nowrap">' +
+        '<span style="opacity:0.6;font-size:0.72rem">R$' + item.valorUnit.toFixed(3) + '/un</span>' +
+        '<span style="font-weight:700;margin-left:6px">R$ ' + item.custo.toFixed(2) + '</span>' +
+        '</span></div>'
+      ).join('');
+    } else {
+      resumoDiv.style.display = 'none';
+    }
+  }
+
   calcularMargem(total);
 }
 
