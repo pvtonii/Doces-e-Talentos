@@ -1503,7 +1503,7 @@ const INSUMOS_INICIAIS = [
 // ──────────────────────────────────────────
 //  STATE
 // ──────────────────────────────────────────
-// ── Supabase REST (sem SDK — sem deslogar no reload) ──────────────────
+// ── REST puro — sem SDK, sem sessão que expira ────────────────────────
 let SUPA_URL = '';
 let SUPA_KEY = '';
 function sbHeaders(extra) {
@@ -1521,12 +1521,10 @@ async function sbFetch(path, opts) {
   if (!res.ok) throw new Error((json && (json.message || json.hint || JSON.stringify(json))) || res.statusText);
   return json;
 }
-// helpers de crud
 async function sbSelect(table, qs)       { return sbFetch(table + '?' + (qs||''), { method: 'GET' }); }
 async function sbInsert(table, body)     { return sbFetch(table, { method: 'POST', body: JSON.stringify(body) }); }
 async function sbUpdate(table, qs, body) { return sbFetch(table + '?' + qs, { method: 'PATCH', body: JSON.stringify(body) }); }
-async function sbDelete(table, qs)       { return sbFetch(table + '?' + qs, { method: 'DELETE', headers: sbHeaders({'Prefer': 'return=minimal'}) }); }
-// compatibilidade: mantém "supabase" como truthy quando conectado
+async function sbDelete(table, qs)       { return sbFetch(table + '?' + qs, { method: 'DELETE', headers: sbHeaders({'Prefer':'return=minimal'}) }); }
 let supabase = null; // null = desconectado, 'ok' = conectado
 let DB = {
   ingredientes: [],
@@ -1558,23 +1556,25 @@ async function initSupabase() {
   if (!url || !key) { setSupabaseStatus(false); return; }
   SUPA_URL = url.replace(/\/+$/, '');
   SUPA_KEY = key;
-  supabase = 'ok';
+  setSupabaseStatus(false, true);
+  // Testa conexão antes de marcar como conectado
   try {
-    setSupabaseStatus(false, true);
-    await carregarTudo();
-    setSupabaseStatus(true);
+    const res = await fetch(SUPA_URL + '/rest/v1/ingredientes?select=count&limit=1', { headers: sbHeaders() });
+    if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
   } catch(e) {
-    supabase = null;
-    SUPA_URL = '';
-    SUPA_KEY = '';
+    supabase = null; SUPA_URL = ''; SUPA_KEY = '';
     setSupabaseStatus(false);
     toast('Erro ao conectar: ' + e.message, 'error');
+    return;
   }
+  // Conexão OK!
+  supabase = 'ok';
+  setSupabaseStatus(true);
+  carregarTudo(); // sem await — erro em tabela individual não derruba o app
 }
 
 function iniciarRealtime() {
   // Realtime desativado — app usa REST puro sem SDK
-  // Para habilitar realtime no futuro, usar Supabase Broadcast via WebSocket manual
 }
 
 function setSupabaseStatus(ok) {
@@ -1603,7 +1603,8 @@ function localSave(key, data) {
 //  CARREGAR TUDO
 // ──────────────────────────────────────────
 async function carregarTudo() {
-  await Promise.all([
+  // Cada função já tem seu próprio try/catch — erros individuais não quebram o app
+  await Promise.allSettled([
     carregarCategorias(),
     carregarIngredientes(),
     carregarInsumos(),
@@ -1640,7 +1641,7 @@ async function popularIngredientesDefault() {
     const payload = lote.map(({ id, ...rest }) => rest); // remove id local, deixa Supabase gerar uuid
     try { await sbInsert('ingredientes', payload); } catch(e) { toast('Erro ao importar ingredientes: ' + e.message, 'error'); return; }
   }
-  const data = await sbSelect('ingredientes', 'order=nome.asc').catch(() => null);
+  const data = await sbSelect('ingredientes', 'order=nome.asc').catch(()=>null);
   DB.ingredientes = data || [];
   toast(`${DB.ingredientes.length} ingredientes importados!`, 'success');
 }
@@ -1662,7 +1663,7 @@ async function carregarInsumos() {
 async function popularInsumosDefault() {
   const payload = INSUMOS_INICIAIS.map(({ id, ...rest }) => rest);
   try { await sbInsert('insumos', payload); } catch(e) { toast('Erro ao importar insumos: ' + e.message, 'error'); return; }
-  const data = await sbSelect('insumos', 'order=nome.asc').catch(() => null);
+  const data = await sbSelect('insumos', 'order=nome.asc').catch(()=>null);
   DB.insumos = data || [];
   toast(`${DB.insumos.length} insumos importados!`, 'success');
 }
@@ -1678,7 +1679,7 @@ async function carregarReceitas() {
 async function carregarPedidos() {
   if (!supabase) return;
   let data;
-  try { data = await sbSelect('pedidos', 'order=created_at.desc'); } catch(e) { toast('Erro ao carregar pedidos: ' + e.message, 'error'); return; }
+  try { data = await sbSelect('pedidos').order('created_at', { ascending: false }); } catch(e) { toast('Erro ao carregar pedidos: ' + e.message, 'error'); return; }
   DB.pedidos = data || [];
   renderPedidos();
 }
@@ -1853,7 +1854,7 @@ async function adicionarCategoria(tipo) {
 async function removerCategoria(tipo, cat) {
   if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
   if (!confirm(`Remover categoria "${cat}"?\n\nOs itens com esta categoria não serão deletados, apenas ficarão sem categoria.`)) return;
-  try { await sbDelete('categorias', 'tipo=eq.' + encodeURIComponent(tipo) + '&nome=eq.' + encodeURIComponent(cat)); } catch(e) { toast('Erro ao remover: ' + e.message, 'error'); return; }
+  try { await sbDelete('categorias', 'tipo=eq.'+encodeURIComponent(tipo)+'&nome=eq.'+encodeURIComponent(cat)); } catch(e) { toast('Erro ao remover: ' + e.message, 'error'); return; }
   if (tipo === 'ing') DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
   else if (tipo === 'ins') DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
   else DB.categorias.rec = DB.categorias.rec.filter(c => c !== cat);
@@ -2046,7 +2047,7 @@ async function salvarIngrediente() {
     payload.historico_precos = hist;
 
     if (supabase) {
-      try { await sbUpdate('ingredientes', 'id=eq.' + editId, payload); } catch(e) { toast('Erro ao salvar: ' + e.message, 'error'); return; }
+      try { await sbUpdate('ingredientes', 'id=eq.'+editId, payload); } catch(e) { toast('Erro ao salvar: ' + e.message, 'error'); return; }
     }
     const idx = DB.ingredientes.findIndex(x => String(x.id) === String(editId));
     DB.ingredientes[idx] = { ...DB.ingredientes[idx], ...payload };
@@ -2054,7 +2055,7 @@ async function salvarIngrediente() {
     payload.historico_precos = [];
     if (supabase) {
       try {
-        const _r = await sbInsert('ingredientes', [payload]);
+        const _r = await sbInsert('ingredientes', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro ao salvar: ' + e.message, 'error'); return; }
@@ -2073,7 +2074,7 @@ async function salvarIngrediente() {
 async function deletarIngrediente(id) {
   if (!confirm('Deletar este ingrediente?')) return;
   if (supabase) {
-    try { await sbDelete('ingredientes', 'id=eq.' + id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    try { await sbDelete('ingredientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
   renderIngChips();
@@ -2187,7 +2188,7 @@ async function salvarInsumo() {
     payload.historico_precos = hist;
 
     if (supabase) {
-      try { await sbUpdate('insumos', 'id=eq.' + editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+      try { await sbUpdate('insumos', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.insumos.findIndex(x => String(x.id) === String(editId));
     DB.insumos[idx] = { ...DB.insumos[idx], ...payload };
@@ -2195,7 +2196,7 @@ async function salvarInsumo() {
     payload.historico_precos = [];
     if (supabase) {
       try {
-        const _r = await sbInsert('insumos', [payload]);
+        const _r = await sbInsert('insumos', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
@@ -2214,7 +2215,7 @@ async function salvarInsumo() {
 async function deletarInsumo(id) {
   if (!confirm('Deletar este insumo?')) return;
   if (supabase) {
-    try { await sbDelete('insumos', 'id=eq.' + id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    try { await sbDelete('insumos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.insumos = DB.insumos.filter(x => String(x.id) !== String(id));
   renderInsumos();
@@ -2559,14 +2560,14 @@ async function salvarReceita() {
 
   if (editId) {
     if (supabase) {
-      try { await sbUpdate('receitas', 'id=eq.' + editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+      try { await sbUpdate('receitas', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.receitas.findIndex(x => String(x.id) === String(editId));
     DB.receitas[idx] = { ...DB.receitas[idx], ...payload };
   } else {
     if (supabase) {
       try {
-        const _r = await sbInsert('receitas', [payload]);
+        const _r = await sbInsert('receitas', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
@@ -2584,7 +2585,7 @@ async function salvarReceita() {
 async function deletarReceita(id) {
   if (!confirm('Deletar esta receita?')) return;
   if (supabase) {
-    try { await sbDelete('receitas', 'id=eq.' + id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    try { await sbDelete('receitas', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
   renderReceitas();
@@ -2981,7 +2982,7 @@ async function salvarPedido() {
 
   if (editId) {
     if (supabase) {
-      try { await sbUpdate('pedidos', 'id=eq.' + editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+      try { await sbUpdate('pedidos', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.pedidos.findIndex(x => String(x.id) === String(editId));
     DB.pedidos[idx] = { ...DB.pedidos[idx], ...payload };
@@ -2990,7 +2991,7 @@ async function salvarPedido() {
     payload.numero_pedido = gerarIdPedido();
     if (supabase) {
       try {
-        const _r = await sbInsert('pedidos', [payload]);
+        const _r = await sbInsert('pedidos', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
@@ -3011,7 +3012,7 @@ async function salvarPedido() {
 async function deletarPedido(id) {
   if (!confirm('Deletar este pedido?')) return;
   if (supabase) {
-    try { await sbDelete('pedidos', 'id=eq.' + id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    try { await sbDelete('pedidos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.pedidos = DB.pedidos.filter(x => String(x.id) !== String(id));
   renderPedidos();
@@ -3272,14 +3273,14 @@ async function salvarClienteModal() {
   const payload = { nome, telefone: telefone || null, email: email || null, endereco: endereco || null, aniversario: aniversario || null, preferencias: pref || null, obs: obs || null };
   if (editId) {
     if (supabase) {
-      try { await sbUpdate('clientes', 'id=eq.' + editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+      try { await sbUpdate('clientes', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.clientes.findIndex(x => String(x.id) === String(editId));
     DB.clientes[idx] = { ...DB.clientes[idx], ...payload };
   } else {
     if (supabase) {
       try {
-        const _r = await sbInsert('clientes', [payload]);
+        const _r = await sbInsert('clientes', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
@@ -3295,7 +3296,7 @@ async function salvarClienteModal() {
 async function deletarCliente(id) {
   if (!confirm('Deletar este cliente?')) return;
   if (supabase) {
-    try { await sbDelete('clientes', 'id=eq.' + id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    try { await sbDelete('clientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.clientes = DB.clientes.filter(x => String(x.id) !== String(id));
   renderClientes();
@@ -3311,15 +3312,15 @@ async function salvarCliente(dados) {
   if (ex) {
     if (dados.preferencias) ex.preferencias = dados.preferencias;
     if (supabase) {
-      try { await sbUpdate('clientes', 'id=eq.' + ex.id, { nome: ex.nome, telefone: ex.telefone, preferencias: ex.preferencias }); } catch(e) { console.warn('Erro ao atualizar cliente:', e.message); }
+      try { await sbUpdate('clientes', 'id=eq.'+ex.id, { nome: ex.nome, telefone: ex.telefone, preferencias: ex.preferencias }); } catch(e) { console.warn('Erro ao atualizar cliente:', e.message); }
     }
   } else {
     const nc = { nome: dados.nome, telefone: dados.telefone || null, preferencias: dados.preferencias || null };
     if (supabase) {
       try {
-        const saved = await sbInsert('clientes', [nc]);
-        const row = Array.isArray(saved) ? saved[0] : saved;
-        if (row && row.id) nc.id = row.id;
+        const _r = await sbInsert('clientes', [nc]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) nc.id = _row.id;
       } catch(e) { console.warn('Erro ao salvar cliente:', e.message); return; }
     } else {
       nc.id = Date.now();
@@ -3451,14 +3452,14 @@ async function salvarEstoque() {
       ? DB.estoque.find(e => String(e.id) === String(editId))
       : existing;
     if (supabase) {
-      try { await sbUpdate('estoque', 'id=eq.' + target.id, payload); } catch(e) { toast('Erro ao salvar estoque: ' + e.message, 'error'); return; }
+      try { await sbUpdate('estoque', 'id=eq.'+target.id, payload); } catch(e) { toast('Erro ao salvar estoque: ' + e.message, 'error'); return; }
     }
     Object.assign(target, payload);
     delete document.getElementById('est-item').dataset.editId;
   } else {
     if (supabase) {
       try {
-        const _r = await sbInsert('estoque', [payload]);
+        const _r = await sbInsert('estoque', [payload]).then(r=>Array.isArray(r)?r[0]:r);
         const _row = Array.isArray(_r) ? _r[0] : _r;
         if (_row && _row.id) payload.id = _row.id;
       } catch(e) { toast('Erro ao salvar estoque: ' + e.message, 'error'); return; }
@@ -3475,7 +3476,7 @@ async function salvarEstoque() {
 
 async function deletarEstoque(id) {
   if (!confirm('Remover este item do estoque?')) return;
-  if (supabase) await sbDelete('estoque', 'id=eq.' + id);
+  if (supabase) await sbDelete('estoque', 'id=eq.'+id);
   DB.estoque = DB.estoque.filter(x => String(x.id) !== String(id));
   renderEstoque();
   toast('Removido do estoque.', 'success');
@@ -3815,8 +3816,7 @@ function limparConfig() {
   localStorage.removeItem(SUPA_URL_KEY);
   localStorage.removeItem(SUPA_KEY_KEY);
   supabase = null;
-  SUPA_URL = '';
-  SUPA_KEY = '';
+  SUPA_URL = ''; SUPA_KEY = '';
   setSupabaseStatus(false);
   document.getElementById('cfg-url').value = '';
   document.getElementById('cfg-key').value = '';
@@ -3862,7 +3862,7 @@ create index if not exists idx_insumos_categoria on insumos (categoria);
 -- ─── CATEGORIAS ─────────────────────────────────────────
 create table if not exists categorias (
   id         uuid default gen_random_uuid() primary key,
-  tipo       text not null check (tipo in ('ing', 'ins')),
+  tipo       text not null check (tipo in ('ing', 'ins', 'rec')),
   nome       text not null,
   created_at timestamptz not null default now(),
   constraint categorias_tipo_nome_unique unique (tipo, nome)
