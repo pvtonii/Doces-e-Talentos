@@ -1105,7 +1105,7 @@ body {
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="rec-modal-title">Nova Receita</div>
-      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-receita')">✕</button>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModalReceita()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="rec-edit-id">
@@ -1159,7 +1159,7 @@ body {
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary btn-full"   onclick="salvarReceita()">💾 Salvar Receita</button>
-      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-receita')">Cancelar</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModalReceita()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -2027,40 +2027,27 @@ function atualizarPrecoUnit() {
   el.textContent = (qtd > 0 && preco > 0) ? `→ R$ ${((preco/qtd) < 0.01 ? (preco/qtd).toFixed(4) : (preco/qtd).toFixed(2))} por ${un}` : '';
 }
 
-// Verifica quais receitas foram impactadas pela mudança de preço de um ingrediente/insumo
 function mostrarImpactoReceitas(itemId, tipo, nomeItem, precoAntigo, precoNovo) {
-  const precoPorUnitAntigo = precoAntigo / (tipo === 'ing'
-    ? DB.ingredientes.find(x => String(x.id) === String(itemId))?.qtd_embalagem || 1
-    : DB.insumos.find(x => String(x.id) === String(itemId))?.qtd_embalagem || 1);
-
-  const receitas_afetadas = DB.receitas
-    .map(r => {
-      const lista = tipo === 'ing' ? (r.ingredientes || []) : (r.insumos || []);
-      const item  = lista.find(x => String(x.id) === String(itemId));
-      if (!item) return null;
-
-      const custoAntes  = calcularCustoReceita({ ...r, [tipo === 'ing' ? 'ingredientes' : 'insumos']:
-        (tipo === 'ing' ? r.ingredientes : r.insumos).map(x =>
-          String(x.id) === String(itemId) ? { ...x, _preco_override: precoAntigo } : x
-        )
-      });
-
-      // Recalcula com preço já atualizado no DB (já foi atualizado antes de chamar esta função)
-      const custoDepois = calcularCustoReceita(r);
-      const diff = custoDepois - custoAntes;
-      const pct  = custoAntes > 0 ? ((diff / custoAntes) * 100).toFixed(1) : '—';
-      return { nome: r.nome, custoAntes, custoDepois, diff, pct };
-    })
-    .filter(Boolean);
-
-  if (receitas_afetadas.length === 0) return; // Nenhuma receita usa esse ingrediente
-
-  const subiu   = precoNovo > precoAntigo;
-  const cor     = subiu ? 'var(--red)' : 'var(--green)';
-  const icone   = subiu ? '📈' : '📉';
-  const titulo  = subiu ? 'Receitas ficaram mais caras' : 'Receitas ficaram mais baratas';
-
-  // Cria modal de aviso temporário
+  const receitas_afetadas = DB.receitas.map(r => {
+    const lista = tipo === 'ing' ? (r.ingredientes || []) : (r.insumos || []);
+    if (!lista.find(x => String(x.id) === String(itemId))) return null;
+    const custoDepois = calcularCustoReceita(r);
+    const ing_ant = tipo === 'ing'
+      ? DB.ingredientes.find(x => String(x.id) === String(itemId))
+      : DB.insumos.find(x => String(x.id) === String(itemId));
+    const qtdEmb = ing_ant?.qtd_embalagem || 1;
+    const diffUnit = (precoNovo - precoAntigo) / qtdEmb;
+    const custoAntes = custoDepois - lista.reduce((s, x) => {
+      if (String(x.id) !== String(itemId)) return s;
+      return s + diffUnit * (x.quantidade || 0);
+    }, 0);
+    const diff = custoDepois - custoAntes;
+    const pct = custoAntes > 0 ? ((diff / custoAntes) * 100).toFixed(1) : '—';
+    return { nome: r.nome, custoAntes, custoDepois, diff, pct };
+  }).filter(Boolean);
+  if (receitas_afetadas.length === 0) return;
+  const subiu = precoNovo > precoAntigo;
+  const cor = subiu ? 'var(--red)' : 'var(--green)';
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.zIndex = '9999';
@@ -2068,21 +2055,20 @@ function mostrarImpactoReceitas(itemId, tipo, nomeItem, precoAntigo, precoNovo) 
     <div class="modal" style="max-height:80vh">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <div class="modal-title">${icone} ${titulo}</div>
+        <div class="modal-title">${subiu ? '📈' : '📉'} ${subiu ? 'Receitas ficaram mais caras' : 'Receitas ficaram mais baratas'}</div>
         <button class="btn btn-ghost btn-icon" onclick="this.closest('.modal-overlay').remove()">✕</button>
       </div>
       <div class="modal-body">
         <div style="background:var(--bg2);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:0.85rem">
-          <b>${nomeItem}</b>: R$ ${parseFloat(precoAntigo).toFixed(2)} → 
-          <b style="color:${cor}">R$ ${parseFloat(precoNovo).toFixed(2)}</b>
+          <b>${nomeItem}</b>: R$ ${parseFloat(precoAntigo).toFixed(2)} → <b style="color:${cor}">R$ ${parseFloat(precoNovo).toFixed(2)}</b>
         </div>
         <div class="section-label" style="margin-bottom:10px">${receitas_afetadas.length} receita(s) afetada(s)</div>
         ${receitas_afetadas.map(r => `
           <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px">
             <div style="font-weight:700;margin-bottom:6px">${r.nome}</div>
             <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--text2)">
-              <span>Custo antes: R$ ${r.custoAntes.toFixed(2)}</span>
-              <span>Custo agora: <b style="color:${cor}">R$ ${r.custoDepois.toFixed(2)}</b></span>
+              <span>Antes: R$ ${r.custoAntes.toFixed(2)}</span>
+              <span>Agora: <b style="color:${cor}">R$ ${r.custoDepois.toFixed(2)}</b></span>
             </div>
             <div style="margin-top:4px;font-size:0.78rem;font-weight:700;color:${cor}">
               ${r.diff > 0 ? '+' : ''}R$ ${r.diff.toFixed(2)} (${r.diff > 0 ? '+' : ''}${r.pct}%)
@@ -2109,7 +2095,6 @@ async function salvarIngrediente() {
   const payload = { nome, qtd_embalagem: qtd, unidade, preco, categoria };
 
   if (editId) {
-    // Guarda histórico se preço mudou
     const atual = DB.ingredientes.find(x => String(x.id) === String(editId));
     const hist  = atual?.historico_precos || [];
     const precoAntigoIng = atual?.preco;
@@ -2139,8 +2124,6 @@ async function salvarIngrediente() {
   filtrarIngredientes();
   fecharModal('modal-ingrediente');
   toast(editId ? 'Ingrediente atualizado!' : 'Ingrediente adicionado!', 'success');
-
-  // Avisa sobre receitas impactadas se o preço mudou
   if (editId && precoAntigoIng !== undefined && precoAntigoIng !== preco) {
     setTimeout(() => mostrarImpactoReceitas(editId, 'ing', nome, precoAntigoIng, preco), 300);
   }
@@ -2286,8 +2269,6 @@ async function salvarInsumo() {
   renderInsChips();
   fecharModal('modal-insumo');
   toast(editId ? 'Insumo atualizado!' : 'Insumo adicionado!', 'success');
-
-  // Avisa sobre receitas impactadas se o preço mudou
   if (editId && precoAntigoIns !== undefined && precoAntigoIns !== preco) {
     setTimeout(() => mostrarImpactoReceitas(editId, 'ins', nome, precoAntigoIns, preco), 300);
   }
@@ -2553,6 +2534,20 @@ function calcularMargem(custo) {
 // ──────────────────────────────────────────
 //  RECEITAS — CRUD
 // ──────────────────────────────────────────
+function fecharModalReceita() {
+  document.getElementById('rec-edit-id').value = '';
+  ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rec-rendimento').value  = '';
+  document.getElementById('rec-preco-venda').value = '';
+  document.getElementById('rec-ing-lista').innerHTML = '';
+  document.getElementById('rec-ins-lista').innerHTML = '';
+  const ct = document.getElementById('rec-custo-total');  if (ct) ct.textContent = 'R$ 0,00';
+  const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
+  const rm = document.getElementById('rec-margem');       if (rm) { rm.textContent = '—'; rm.style.color = ''; }
+  const rl = document.getElementById('rec-resumo-lista'); if (rl) rl.style.display = 'none';
+  fecharModal('modal-receita');
+}
+
 function abrirModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   document.getElementById('rec-modal-title').textContent = 'Nova Receita';
@@ -3027,8 +3022,7 @@ function editarPedido(id) {
 //  PEDIDOS — CRUD
 // ──────────────────────────────────────────
 function gerarSnapshotCusto(itens) {
-  let total = 0;
-  const snapshot = [];
+  let total = 0; const snapshot = [];
   (itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
@@ -3050,7 +3044,6 @@ function gerarSnapshotCusto(itens) {
   });
   return { custo_snapshot: snapshot, custo_total_snapshot: parseFloat(total.toFixed(2)) };
 }
-
 function calcularCustoPedido(p) {
   if (p.status === 'efetuado' && p.custo_total_snapshot != null) return p.custo_total_snapshot;
   return (p.itens || []).reduce((acc, i) => {
@@ -3059,7 +3052,6 @@ function calcularCustoPedido(p) {
     return acc + (calcularCustoReceita(r) / (r.rendimento || 1)) * (i.quantidade || 1);
   }, 0);
 }
-
 async function salvarPedido() {
   const nome     = document.getElementById('ped-cliente').value.trim();
   const telefone = document.getElementById('ped-telefone').value.trim();
@@ -3089,17 +3081,15 @@ async function salvarPedido() {
     obs:              document.getElementById('ped-obs').value.trim(),
     itens
   };
-
   const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
   const eraOrcamento   = pedidoAnterior?.status === 'orcamento';
   const virandoEfetuado = status === 'efetuado' && (eraOrcamento || !editId);
-
   if (virandoEfetuado) {
     const snap = gerarSnapshotCusto(itens);
-    payload.custo_snapshot       = snap.custo_snapshot;
+    payload.custo_snapshot = snap.custo_snapshot;
     payload.custo_total_snapshot = snap.custo_total_snapshot;
   } else if (status === 'orcamento') {
-    payload.custo_snapshot       = null;
+    payload.custo_snapshot = null;
     payload.custo_total_snapshot = null;
   }
 
