@@ -731,6 +731,7 @@ body {
         <em style="color:#fbf0e1;font-style:normal;font-weight:700">Doces & Talentos</em>
       </div>
   <div id="header-date" style="font-size:0.72rem;color:#f5ddd0;font-style:italic;"></div>
+  <div id="conn-dot" class="conn-dot"></div>
 </header>
 
 <!-- ════════════════ SCROLL ════════════════ -->
@@ -1104,7 +1105,7 @@ body {
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="rec-modal-title">Nova Receita</div>
-      <button class="btn btn-ghost btn-icon" onclick="fecharModalReceita()">✕</button>
+      <button class="btn btn-ghost btn-icon" onclick="fecharModal('modal-receita')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="rec-edit-id">
@@ -1158,7 +1159,7 @@ body {
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary btn-full"   onclick="salvarReceita()">💾 Salvar Receita</button>
-      <button class="btn btn-secondary btn-full" onclick="fecharModalReceita()">Cancelar</button>
+      <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-receita')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1502,7 +1503,29 @@ const INSUMOS_INICIAIS = [
 // ──────────────────────────────────────────
 //  STATE
 // ──────────────────────────────────────────
-let supabase = null;
+// ── REST puro — sem SDK, sem sessão que expira ────────────────────────
+let SUPA_URL = '';
+let SUPA_KEY = '';
+function sbHeaders(extra) {
+  return Object.assign({
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  }, extra || {});
+}
+async function sbFetch(path, opts) {
+  if (!SUPA_URL) throw new Error('Supabase não configurado');
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, Object.assign({ headers: sbHeaders() }, opts));
+  const json = res.status === 204 ? null : await res.json();
+  if (!res.ok) throw new Error((json && (json.message || json.hint || JSON.stringify(json))) || res.statusText);
+  return json;
+}
+async function sbSelect(table, qs)       { return sbFetch(table + '?' + (qs||''), { method: 'GET' }); }
+async function sbInsert(table, body)     { return sbFetch(table, { method: 'POST', body: JSON.stringify(body) }); }
+async function sbUpdate(table, qs, body) { return sbFetch(table + '?' + qs, { method: 'PATCH', body: JSON.stringify(body) }); }
+async function sbDelete(table, qs)       { return sbFetch(table + '?' + qs, { method: 'DELETE', headers: sbHeaders({'Prefer':'return=minimal'}) }); }
+let supabase = null; // null = desconectado, 'ok' = conectado
 let DB = {
   ingredientes: [],
   insumos: [],
@@ -1531,54 +1554,38 @@ async function initSupabase() {
   const url = localStorage.getItem(SUPA_URL_KEY);
   const key = localStorage.getItem(SUPA_KEY_KEY);
   if (!url || !key) { setSupabaseStatus(false); return; }
+  SUPA_URL = url.replace(/\/+$/, '');
+  SUPA_KEY = key;
+  setSupabaseStatus(false, true);
+  // Testa conexão antes de marcar como conectado
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    supabase = createClient(url, key);
-    await carregarTudo();
-    setSupabaseStatus(true);
-    iniciarRealtime();
+    const res = await fetch(SUPA_URL + '/rest/v1/ingredientes?select=count&limit=1', { headers: sbHeaders() });
+    if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
   } catch(e) {
+    supabase = null; SUPA_URL = ''; SUPA_KEY = '';
     setSupabaseStatus(false);
     toast('Erro ao conectar: ' + e.message, 'error');
+    return;
   }
+  // Conexão OK!
+  supabase = 'ok';
+  setSupabaseStatus(true);
+  carregarTudo(); // sem await — erro em tabela individual não derruba o app
 }
 
 function iniciarRealtime() {
-  // Mapa de tabela → função de reload
-  const reloaders = {
-    ingredientes: carregarIngredientes,
-    insumos:      carregarInsumos,
-    receitas:     carregarReceitas,
-    pedidos:      () => carregarPedidos().then(atualizarDashboard),
-    estoque:      carregarEstoque,
-    clientes:     carregarClientes,
-    categorias:   carregarCategorias,
-  };
-
-  Object.entries(reloaders).forEach(([tabela, fn]) => {
-    const canal = supabase
-      .channel('realtime:' + tabela)
-      .on('postgres_changes', { event: '*', schema: 'public', table: tabela }, () => {
-        fn();
-      })
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Tenta reconectar após 3s
-          setTimeout(() => { try { canal.subscribe(); } catch(e) {} }, 3000);
-        }
-      });
-  });
+  // Realtime desativado — app usa REST puro sem SDK
 }
 
 function setSupabaseStatus(ok) {
+  const dot = document.getElementById('conn-dot');
   const cfg = document.getElementById('cfg-status');
-  if (!cfg) return;
   if (ok) {
-    cfg.className = 'supabase-status connected';
-    cfg.innerHTML = '<span class="status-dot"></span> Conectado';
+    if (dot) dot.className = 'conn-dot online';
+    if (cfg) { cfg.className = 'supabase-status connected'; cfg.innerHTML = '<span class="status-dot"></span> Conectado'; }
   } else {
-    cfg.className = 'supabase-status disconnected';
-    cfg.innerHTML = '<span class="status-dot"></span> Desconectado';
+    if (dot) dot.className = 'conn-dot';
+    if (cfg) { cfg.className = 'supabase-status disconnected'; cfg.innerHTML = '<span class="status-dot"></span> Desconectado'; }
   }
 }
 
@@ -1596,7 +1603,8 @@ function localSave(key, data) {
 //  CARREGAR TUDO
 // ──────────────────────────────────────────
 async function carregarTudo() {
-  await Promise.all([
+  // Cada função já tem seu próprio try/catch — erros individuais não quebram o app
+  await Promise.allSettled([
     carregarCategorias(),
     carregarIngredientes(),
     carregarInsumos(),
@@ -1611,8 +1619,8 @@ async function carregarTudo() {
 
 async function carregarIngredientes() {
   if (!supabase) { toast('Conecte ao Supabase para carregar ingredientes.', 'warning'); return; }
-  const { data, error } = await supabase.from('ingredientes').select('*').order('nome');
-  if (error) { toast('Erro ao carregar ingredientes: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('ingredientes', 'order=nome.asc'); } catch(e) { toast('Erro ao carregar ingredientes: ' + e.message, 'error'); return; }
   if (data.length === 0) {
     toast('Importando ingredientes iniciais...', 'success');
     await popularIngredientesDefault();
@@ -1631,18 +1639,17 @@ async function popularIngredientesDefault() {
   }
   for (const lote of lotes) {
     const payload = lote.map(({ id, ...rest }) => rest); // remove id local, deixa Supabase gerar uuid
-    const { error } = await supabase.from('ingredientes').insert(payload);
-    if (error) { toast('Erro ao importar ingredientes: ' + error.message, 'error'); return; }
+    try { await sbInsert('ingredientes', payload); } catch(e) { toast('Erro ao importar ingredientes: ' + e.message, 'error'); return; }
   }
-  const { data } = await supabase.from('ingredientes').select('*').order('nome');
+  const data = await sbSelect('ingredientes', 'order=nome.asc').catch(()=>null);
   DB.ingredientes = data || [];
   toast(`${DB.ingredientes.length} ingredientes importados!`, 'success');
 }
 
 async function carregarInsumos() {
   if (!supabase) { toast('Conecte ao Supabase para carregar insumos.', 'warning'); return; }
-  const { data, error } = await supabase.from('insumos').select('*').order('nome');
-  if (error) { toast('Erro ao carregar insumos: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('insumos', 'order=nome.asc'); } catch(e) { toast('Erro ao carregar insumos: ' + e.message, 'error'); return; }
   if (data.length === 0) {
     toast('Importando insumos iniciais...', 'success');
     await popularInsumosDefault();
@@ -1655,41 +1662,40 @@ async function carregarInsumos() {
 
 async function popularInsumosDefault() {
   const payload = INSUMOS_INICIAIS.map(({ id, ...rest }) => rest);
-  const { error } = await supabase.from('insumos').insert(payload);
-  if (error) { toast('Erro ao importar insumos: ' + error.message, 'error'); return; }
-  const { data } = await supabase.from('insumos').select('*').order('nome');
+  try { await sbInsert('insumos', payload); } catch(e) { toast('Erro ao importar insumos: ' + e.message, 'error'); return; }
+  const data = await sbSelect('insumos', 'order=nome.asc').catch(()=>null);
   DB.insumos = data || [];
   toast(`${DB.insumos.length} insumos importados!`, 'success');
 }
 
 async function carregarReceitas() {
   if (!supabase) return;
-  const { data, error } = await supabase.from('receitas').select('*').order('nome');
-  if (error) { toast('Erro ao carregar receitas: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('receitas', 'order=nome.asc'); } catch(e) { toast('Erro ao carregar receitas: ' + e.message, 'error'); return; }
   DB.receitas = data;
   renderReceitas();
 }
 
 async function carregarPedidos() {
   if (!supabase) return;
-  const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
-  if (error) { toast('Erro ao carregar pedidos: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('pedidos', 'order=created_at.desc'); } catch(e) { toast('Erro ao carregar pedidos: ' + e.message, 'error'); return; }
   DB.pedidos = data || [];
   renderPedidos();
 }
 
 async function carregarEstoque() {
   if (!supabase) return;
-  const { data, error } = await supabase.from('estoque').select('*');
-  if (error) { toast('Erro ao carregar estoque: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('estoque'); } catch(e) { toast('Erro ao carregar estoque: ' + e.message, 'error'); return; }
   DB.estoque = data;
   renderEstoque();
 }
 
 async function carregarClientes() {
   if (!supabase) return;
-  const { data, error } = await supabase.from('clientes').select('*').order('nome');
-  if (error) { toast('Erro ao carregar clientes: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('clientes', 'order=nome.asc'); } catch(e) { toast('Erro ao carregar clientes: ' + e.message, 'error'); return; }
   DB.clientes = data;
   atualizarDatalistClientes();
   renderClientes();
@@ -1785,8 +1791,8 @@ DB.categorias = { ing: [...CAT_ING_DEFAULT], ins: [...CAT_INS_DEFAULT], rec: [..
 
 async function carregarCategorias() {
   if (!supabase) { toast('Conecte ao Supabase para gerenciar categorias.', 'warning'); return; }
-  const { data, error } = await supabase.from('categorias').select('tipo, nome').order('nome');
-  if (error) { toast('Erro ao carregar categorias: ' + error.message, 'error'); return; }
+  let data;
+  try { data = await sbSelect('categorias', 'select=tipo,nome&order=nome.asc'); } catch(e) { toast('Erro ao carregar categorias: ' + e.message, 'error'); return; }
   if (data.length === 0) {
     await popularCategoriesDefault();
   } else {
@@ -1799,7 +1805,7 @@ async function carregarCategorias() {
     const recFaltando = CAT_REC_DEFAULT.filter(nome => !recExistentes.includes(nome));
     if (recFaltando.length > 0) {
       const rows = recFaltando.map(nome => ({ tipo: 'rec', nome }));
-      await supabase.from('categorias').insert(rows);
+      await sbInsert('categorias', rows);
       DB.categorias.rec = [...recExistentes, ...recFaltando].sort();
     }
   }
@@ -1815,8 +1821,7 @@ async function popularCategoriesDefault() {
     ...CAT_INS_DEFAULT.map(nome => ({ tipo: 'ins', nome })),
     ...CAT_REC_DEFAULT.map(nome => ({ tipo: 'rec', nome }))
   ];
-  const { error } = await supabase.from('categorias').insert(rows);
-  if (error) { toast('Erro ao popular categorias: ' + error.message, 'error'); return; }
+  try { await sbInsert('categorias', rows); } catch(e) { toast('Erro ao popular categorias: ' + e.message, 'error'); return; }
   DB.categorias.ing = [...CAT_ING_DEFAULT];
   DB.categorias.ins = [...CAT_INS_DEFAULT];
   DB.categorias.rec = [...CAT_REC_DEFAULT];
@@ -1835,8 +1840,7 @@ async function adicionarCategoria(tipo) {
   if (!nova) return;
   const cats = getCats(tipo);
   if (cats.includes(nova)) { toast('Categoria já existe!', 'warning'); return; }
-  const { error } = await supabase.from('categorias').insert([{ tipo, nome: nova }]);
-  if (error) { toast('Erro ao adicionar: ' + error.message, 'error'); return; }
+  try { await sbInsert('categorias', [{ tipo, nome: nova }]); } catch(e) { toast('Erro ao adicionar: ' + e.message, 'error'); return; }
   cats.push(nova);
   cats.sort();
   document.getElementById(inputId).value = '';
@@ -1850,8 +1854,7 @@ async function adicionarCategoria(tipo) {
 async function removerCategoria(tipo, cat) {
   if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
   if (!confirm(`Remover categoria "${cat}"?\n\nOs itens com esta categoria não serão deletados, apenas ficarão sem categoria.`)) return;
-  const { error } = await supabase.from('categorias').delete().eq('tipo', tipo).eq('nome', cat);
-  if (error) { toast('Erro ao remover: ' + error.message, 'error'); return; }
+  try { await sbDelete('categorias', 'tipo=eq.'+encodeURIComponent(tipo)+'&nome=eq.'+encodeURIComponent(cat)); } catch(e) { toast('Erro ao remover: ' + e.message, 'error'); return; }
   if (tipo === 'ing') DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
   else if (tipo === 'ins') DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
   else DB.categorias.rec = DB.categorias.rec.filter(c => c !== cat);
@@ -2044,17 +2047,18 @@ async function salvarIngrediente() {
     payload.historico_precos = hist;
 
     if (supabase) {
-      const { error } = await supabase.from('ingredientes').update(payload).eq('id', editId);
-      if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+      try { await sbUpdate('ingredientes', 'id=eq.'+editId, payload); } catch(e) { toast('Erro ao salvar: ' + e.message, 'error'); return; }
     }
     const idx = DB.ingredientes.findIndex(x => String(x.id) === String(editId));
     DB.ingredientes[idx] = { ...DB.ingredientes[idx], ...payload };
   } else {
     payload.historico_precos = [];
     if (supabase) {
-      const { data, error } = await supabase.from('ingredientes').insert([payload]).select().single();
-      if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-      payload.id = data.id;
+      try {
+        const _r = await sbInsert('ingredientes', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro ao salvar: ' + e.message, 'error'); return; }
     } else {
       payload.id = Date.now();
     }
@@ -2070,8 +2074,7 @@ async function salvarIngrediente() {
 async function deletarIngrediente(id) {
   if (!confirm('Deletar este ingrediente?')) return;
   if (supabase) {
-    const { error } = await supabase.from('ingredientes').delete().eq('id', id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    try { await sbDelete('ingredientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
   renderIngChips();
@@ -2185,17 +2188,18 @@ async function salvarInsumo() {
     payload.historico_precos = hist;
 
     if (supabase) {
-      const { error } = await supabase.from('insumos').update(payload).eq('id', editId);
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      try { await sbUpdate('insumos', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.insumos.findIndex(x => String(x.id) === String(editId));
     DB.insumos[idx] = { ...DB.insumos[idx], ...payload };
   } else {
     payload.historico_precos = [];
     if (supabase) {
-      const { data, error } = await supabase.from('insumos').insert([payload]).select().single();
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
-      payload.id = data.id;
+      try {
+        const _r = await sbInsert('insumos', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     } else {
       payload.id = Date.now();
     }
@@ -2211,8 +2215,7 @@ async function salvarInsumo() {
 async function deletarInsumo(id) {
   if (!confirm('Deletar este insumo?')) return;
   if (supabase) {
-    const { error } = await supabase.from('insumos').delete().eq('id', id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    try { await sbDelete('insumos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.insumos = DB.insumos.filter(x => String(x.id) !== String(id));
   renderInsumos();
@@ -2469,21 +2472,6 @@ function calcularMargem(custo) {
 // ──────────────────────────────────────────
 //  RECEITAS — CRUD
 // ──────────────────────────────────────────
-function fecharModalReceita() {
-  // Limpa tudo antes de fechar para não contaminar a próxima abertura
-  document.getElementById('rec-edit-id').value = '';
-  ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('rec-rendimento').value  = '';
-  document.getElementById('rec-preco-venda').value = '';
-  document.getElementById('rec-ing-lista').innerHTML = '';
-  document.getElementById('rec-ins-lista').innerHTML = '';
-  const ct = document.getElementById('rec-custo-total'); if (ct) ct.textContent = 'R$ 0,00';
-  const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
-  const rm = document.getElementById('rec-margem'); if (rm) { rm.textContent = '—'; rm.style.color = ''; }
-  const rl = document.getElementById('rec-resumo-lista'); if (rl) rl.style.display = 'none';
-  fecharModal('modal-receita');
-}
-
 function abrirModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   document.getElementById('rec-modal-title').textContent = 'Nova Receita';
@@ -2572,16 +2560,17 @@ async function salvarReceita() {
 
   if (editId) {
     if (supabase) {
-      const { error } = await supabase.from('receitas').update(payload).eq('id', editId);
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      try { await sbUpdate('receitas', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.receitas.findIndex(x => String(x.id) === String(editId));
     DB.receitas[idx] = { ...DB.receitas[idx], ...payload };
   } else {
     if (supabase) {
-      const { data, error } = await supabase.from('receitas').insert([payload]).select().single();
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
-      payload.id = data.id;
+      try {
+        const _r = await sbInsert('receitas', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     } else {
       payload.id = Date.now();
     }
@@ -2596,8 +2585,7 @@ async function salvarReceita() {
 async function deletarReceita(id) {
   if (!confirm('Deletar esta receita?')) return;
   if (supabase) {
-    const { error } = await supabase.from('receitas').delete().eq('id', id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    try { await sbDelete('receitas', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
   renderReceitas();
@@ -2994,8 +2982,7 @@ async function salvarPedido() {
 
   if (editId) {
     if (supabase) {
-      const { error } = await supabase.from('pedidos').update(payload).eq('id', editId);
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      try { await sbUpdate('pedidos', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.pedidos.findIndex(x => String(x.id) === String(editId));
     DB.pedidos[idx] = { ...DB.pedidos[idx], ...payload };
@@ -3003,9 +2990,11 @@ async function salvarPedido() {
   } else {
     payload.numero_pedido = gerarIdPedido();
     if (supabase) {
-      const { data, error } = await supabase.from('pedidos').insert([payload]).select().single();
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
-      payload.id = data.id;
+      try {
+        const _r = await sbInsert('pedidos', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     } else {
       payload.id = Date.now();
     }
@@ -3023,8 +3012,7 @@ async function salvarPedido() {
 async function deletarPedido(id) {
   if (!confirm('Deletar este pedido?')) return;
   if (supabase) {
-    const { error } = await supabase.from('pedidos').delete().eq('id', id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    try { await sbDelete('pedidos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.pedidos = DB.pedidos.filter(x => String(x.id) !== String(id));
   renderPedidos();
@@ -3285,16 +3273,17 @@ async function salvarClienteModal() {
   const payload = { nome, telefone: telefone || null, email: email || null, endereco: endereco || null, aniversario: aniversario || null, preferencias: pref || null, obs: obs || null };
   if (editId) {
     if (supabase) {
-      const { error } = await supabase.from('clientes').update(payload).eq('id', editId);
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
+      try { await sbUpdate('clientes', 'id=eq.'+editId, payload); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     }
     const idx = DB.clientes.findIndex(x => String(x.id) === String(editId));
     DB.clientes[idx] = { ...DB.clientes[idx], ...payload };
   } else {
     if (supabase) {
-      const { data, error } = await supabase.from('clientes').insert([payload]).select().single();
-      if (error) { toast('Erro: ' + error.message, 'error'); return; }
-      if (data) payload.id = data.id;
+      try {
+        const _r = await sbInsert('clientes', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
     } else { payload.id = Date.now(); }
     DB.clientes.push(payload);
   }
@@ -3307,8 +3296,7 @@ async function salvarClienteModal() {
 async function deletarCliente(id) {
   if (!confirm('Deletar este cliente?')) return;
   if (supabase) {
-    const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    try { await sbDelete('clientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.clientes = DB.clientes.filter(x => String(x.id) !== String(id));
   renderClientes();
@@ -3324,17 +3312,16 @@ async function salvarCliente(dados) {
   if (ex) {
     if (dados.preferencias) ex.preferencias = dados.preferencias;
     if (supabase) {
-      const { error } = await supabase.from('clientes').update({
-        nome: ex.nome, telefone: ex.telefone, preferencias: ex.preferencias
-      }).eq('id', ex.id);
-      if (error) console.warn('Erro ao atualizar cliente:', error.message);
+      try { await sbUpdate('clientes', 'id=eq.'+ex.id, { nome: ex.nome, telefone: ex.telefone, preferencias: ex.preferencias }); } catch(e) { console.warn('Erro ao atualizar cliente:', e.message); }
     }
   } else {
     const nc = { nome: dados.nome, telefone: dados.telefone || null, preferencias: dados.preferencias || null };
     if (supabase) {
-      const { data, error } = await supabase.from('clientes').insert([nc]).select().single();
-      if (error) { console.warn('Erro ao salvar cliente:', error.message); return; }
-      if (data) nc.id = data.id;
+      try {
+        const _r = await sbInsert('clientes', [nc]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) nc.id = _row.id;
+      } catch(e) { console.warn('Erro ao salvar cliente:', e.message); return; }
     } else {
       nc.id = Date.now();
     }
@@ -3465,16 +3452,17 @@ async function salvarEstoque() {
       ? DB.estoque.find(e => String(e.id) === String(editId))
       : existing;
     if (supabase) {
-      const { error } = await supabase.from('estoque').update(payload).eq('id', target.id);
-      if (error) { toast('Erro ao salvar estoque: ' + error.message, 'error'); return; }
+      try { await sbUpdate('estoque', 'id=eq.'+target.id, payload); } catch(e) { toast('Erro ao salvar estoque: ' + e.message, 'error'); return; }
     }
     Object.assign(target, payload);
     delete document.getElementById('est-item').dataset.editId;
   } else {
     if (supabase) {
-      const { data, error } = await supabase.from('estoque').insert([payload]).select().single();
-      if (error) { toast('Erro ao salvar estoque: ' + error.message, 'error'); return; }
-      if (data) payload.id = data.id;
+      try {
+        const _r = await sbInsert('estoque', [payload]).then(r=>Array.isArray(r)?r[0]:r);
+        const _row = Array.isArray(_r) ? _r[0] : _r;
+        if (_row && _row.id) payload.id = _row.id;
+      } catch(e) { toast('Erro ao salvar estoque: ' + e.message, 'error'); return; }
     } else {
       payload.id = Date.now();
     }
@@ -3488,7 +3476,7 @@ async function salvarEstoque() {
 
 async function deletarEstoque(id) {
   if (!confirm('Remover este item do estoque?')) return;
-  if (supabase) await supabase.from('estoque').delete().eq('id', id);
+  if (supabase) await sbDelete('estoque', 'id=eq.'+id);
   DB.estoque = DB.estoque.filter(x => String(x.id) !== String(id));
   renderEstoque();
   toast('Removido do estoque.', 'success');
@@ -3813,10 +3801,10 @@ async function testarConexao() {
   const key = document.getElementById('cfg-key').value.trim();
   if (!url || !key) { toast('Preencha a URL e a Anon Key!', 'error'); return; }
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const client = createClient(url, key);
-    const { error } = await client.from('ingredientes').select('count').limit(1);
-    if (error && error.code !== 'PGRST116') throw error;
+    const res = await fetch(url.replace(/\/+$/,'') + '/rest/v1/ingredientes?select=count&limit=1', {
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+    });
+    if (!res.ok && res.status !== 406) throw new Error('HTTP ' + res.status);
     toast('✅ Conexão OK!', 'success');
   } catch(e) {
     toast('❌ Falha na conexão: ' + e.message, 'error');
@@ -3828,6 +3816,7 @@ function limparConfig() {
   localStorage.removeItem(SUPA_URL_KEY);
   localStorage.removeItem(SUPA_KEY_KEY);
   supabase = null;
+  SUPA_URL = ''; SUPA_KEY = '';
   setSupabaseStatus(false);
   document.getElementById('cfg-url').value = '';
   document.getElementById('cfg-key').value = '';
@@ -3873,7 +3862,7 @@ create index if not exists idx_insumos_categoria on insumos (categoria);
 -- ─── CATEGORIAS ─────────────────────────────────────────
 create table if not exists categorias (
   id         uuid default gen_random_uuid() primary key,
-  tipo       text not null check (tipo in ('ing', 'ins')),
+  tipo       text not null check (tipo in ('ing', 'ins', 'rec')),
   nome       text not null,
   created_at timestamptz not null default now(),
   constraint categorias_tipo_nome_unique unique (tipo, nome)
@@ -3994,7 +3983,8 @@ exception when duplicate_object then null;
 end $$;`;
 
 
-document.getElementById('sql-block').textContent = SQL_CRIAR_TABELAS;
+const _sqlEl = document.getElementById('sql-block');
+if (_sqlEl) _sqlEl.textContent = SQL_CRIAR_TABELAS;
 
 function copiarSQL() {
   navigator.clipboard.writeText(SQL_CRIAR_TABELAS);
