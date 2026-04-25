@@ -4163,7 +4163,8 @@ function atualizarDashboard() {
   if (elCrit) elCrit.textContent = criticos.length;
 
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setEl('dash-entradas',       'R$ ' + entradas.toFixed(2));
+  // Card topo "Entradas / pedidos pagos" mostra só o RECEBIDO (efetuados+pagos)
+  setEl('dash-entradas',       'R$ ' + recebido.toFixed(2));
   setEl('dash-pedidos-count',  pedidosPeriodo.length);
   setEl('dash-orcamentos',     orcamentos.length);
 
