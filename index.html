@@ -778,7 +778,7 @@ body {
     <div class="card" style="margin-bottom:14px">
       <div class="section-label" style="margin-bottom:12px">Resultado do período</div>
       <div class="mercado-item">
-        <span style="color:var(--text2)">Entradas</span>
+        <span style="color:var(--text2)">Vendas (efetuadas)</span>
         <span style="font-weight:600" id="dash-cmv-entradas">R$ 0,00</span>
       </div>
       <div class="mercado-item">
@@ -793,6 +793,20 @@ body {
         <span style="font-size:12px;font-weight:700;color:var(--green)">Margem Bruta</span>
         <span style="font-size:1.1rem;font-weight:700;color:var(--green)" id="dash-margem">0%</span>
       </div>
+    </div>
+
+    <!-- Fluxo de caixa -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="section-label" style="margin-bottom:12px">Fluxo de caixa</div>
+      <div class="mercado-item">
+        <span style="color:var(--green)">✅ Recebido</span>
+        <span style="font-weight:700;color:var(--green)" id="dash-recebido">R$ 0,00</span>
+      </div>
+      <div class="mercado-item" style="border-bottom:none">
+        <span style="color:var(--red)">⏳ A receber</span>
+        <span style="font-weight:700;color:var(--red)" id="dash-a-receber">R$ 0,00</span>
+      </div>
+      <div id="dash-areceber-detalhe" style="display:none;margin-top:8px;font-size:0.78rem;color:var(--text3);font-style:italic"></div>
     </div>
 
     <!-- Vencimentos próximos -->
@@ -2978,8 +2992,8 @@ function renderPedidos(lista) {
       ? '<span class="badge badge-green">✅ Efetuado</span>'
       : '<span class="badge badge-yellow">📋 Orçamento</span>';
     const pagoBadge   = p.pago
-      ? '<span class="badge badge-green">Pago</span>'
-      : '<span class="badge badge-red">Pendente</span>';
+      ? '<span class="badge badge-green">$ Recebido</span>'
+      : '<span class="badge badge-red">$ Pendente</span>';
 
     return `<div class="ped-row">
       <div class="ped-row-top">
@@ -3388,7 +3402,7 @@ function verPedido(id) {
       <div><div class="section-label">Telefone</div><div>${p.cliente_telefone || '—'}</div></div>
       <div><div class="section-label">Entrega</div><div style="font-weight:700">${p.data_entrega ? formatarData(p.data_entrega) : '—'}</div></div>
       <div><div class="section-label">Status</div>${p.status === 'efetuado' ? '<span class="badge badge-green">✅ Efetuado</span>' : '<span class="badge badge-yellow">📋 Orçamento</span>'}</div>
-      <div><div class="section-label">Pagamento</div>${p.pago ? '<span class="badge badge-green">✅ Pago</span>' : '<span class="badge badge-red">❌ Pendente</span>'}</div>
+      <div><div class="section-label">Pagamento</div>${p.pago ? '<span class="badge badge-green">$ Recebido</span>' : '<span class="badge badge-red">$ Pendente</span>'}</div>
       ${p.forma_pagamento ? `<div><div class="section-label">Forma</div><div>${p.forma_pagamento}</div></div>` : ''}
       ${p.preferencias ? `<div style="grid-column:1/-1"><div class="section-label">Preferências</div><div class="text-muted">${p.preferencias}</div></div>` : ''}
       ${p.endereco ? `<div style="grid-column:1/-1"><div class="section-label">📍 Endereço</div><div class="text-muted">${p.endereco}</div></div>` : ''}
@@ -3597,7 +3611,7 @@ function verCliente(id) {
         <div class="text-muted">${p.data_entrega ? formatarData(p.data_entrega) : '—'}</div></div>
         <div style="text-align:right">
           <div style="font-weight:700;color:var(--accent)">R$ ${calcularTotalPedido(p).toFixed(2)}</div>
-          ${p.pago ? '<span class="badge badge-green" style="font-size:0.65rem">Pago</span>' : '<span class="badge badge-red" style="font-size:0.65rem">Pendente</span>'}
+          ${p.pago ? '<span class="badge badge-green" style="font-size:0.65rem">$ Recebido</span>' : '<span class="badge badge-red" style="font-size:0.65rem">$ Pendente</span>'}
         </div>
       </div>`).join('')}` : ''}
   `;
@@ -3982,7 +3996,7 @@ function verificarEstoqueCritico() {
     const item = e.tipo === 'ingrediente'
       ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
       : DB.insumos.find(x => String(x.id) === String(e.item_id));
-    if (item) toast(`⚠️ Estoque crítico: ${item.nome}`, 'warning');
+    if (item) toast(`Estoque crítico: ${item.nome}`, 'warning');
   });
 }
 
@@ -4131,12 +4145,16 @@ function atualizarDashboard() {
 
   const efetuados  = pedidosPeriodo.filter(p => p.status === 'efetuado');
   const orcamentos = DB.pedidos.filter(p => p.status === 'orcamento');
-  // Receita e CMV: todos os efetuados do período (a produção já foi feita).
-  // O status de pagamento é fluxo de caixa, não margem do negócio.
+  // VENDAS / CMV: todos os efetuados (a produção já aconteceu).
   const entradas   = efetuados.reduce((a, p) => a + calcularTotalPedido(p), 0);
   const cmv        = calcularCMVPedidos(efetuados);
   const lucro      = entradas - cmv;
   const margem     = entradas > 0 ? ((lucro / entradas) * 100).toFixed(1) : null;
+  // FLUXO DE CAIXA: separa pago vs pendente.
+  const efetuadosPagos     = efetuados.filter(p => p.pago);
+  const efetuadosPendentes = efetuados.filter(p => !p.pago);
+  const recebido           = efetuadosPagos.reduce((a, p) => a + calcularTotalPedido(p), 0);
+  const aReceber           = efetuadosPendentes.reduce((a, p) => a + calcularTotalPedido(p), 0);
 
   // Stats
   // Atualiza estoque crítico sempre que dashboard atualiza
@@ -4153,6 +4171,24 @@ function atualizarDashboard() {
   setEl('dash-cmv-entradas', 'R$ ' + entradas.toFixed(2));
   setEl('dash-cmv-valor',    '− R$ ' + cmv.toFixed(2));
   setEl('dash-lucro',        'R$ ' + lucro.toFixed(2));
+
+  // Fluxo de caixa
+  setEl('dash-recebido',  'R$ ' + recebido.toFixed(2));
+  setEl('dash-a-receber', 'R$ ' + aReceber.toFixed(2));
+
+  // Detalhe de "A receber" — lista clientes pendentes
+  const detalhe = document.getElementById('dash-areceber-detalhe');
+  if (detalhe) {
+    if (efetuadosPendentes.length > 0) {
+      const nomes = efetuadosPendentes
+        .map(p => `${p.cliente_nome} (R$ ${calcularTotalPedido(p).toFixed(2)})`)
+        .join(' · ');
+      detalhe.style.display = 'block';
+      detalhe.textContent   = `Pendente: ${nomes}`;
+    } else {
+      detalhe.style.display = 'none';
+    }
+  }
 
   const margemBox = document.getElementById('dash-margem-box');
   const margemEl  = document.getElementById('dash-margem');
