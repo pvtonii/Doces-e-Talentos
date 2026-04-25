@@ -896,6 +896,12 @@ body {
   <div id="page-estoque" class="section-page">
     <div class="page-header">
       <div><div class="page-title">Estoque</div><div class="page-subtitle">Quantidades em estoque</div></div>
+      <select class="form-select" id="est-sort" onchange="renderEstoque()" style="width:auto;font-size:0.78rem;padding:6px 10px">
+        <option value="alfa">A–Z</option>
+        <option value="venc">⏰ Validade</option>
+        <option value="qtd-asc">↑ Menor qtd</option>
+        <option value="qtd-desc">↓ Maior qtd</option>
+      </select>
     </div>
     <div id="est-alertas"></div>
     <div class="chip-row">
@@ -3834,6 +3840,26 @@ function renderEstoque() {
     return;
   }
 
+  // Ordenação
+  const sortMode = document.getElementById('est-sort')?.value || 'alfa';
+  const nomeDe = (e) => {
+    const item = currentEstoqueTab === 'ingrediente'
+      ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
+      : DB.insumos.find(x => String(x.id) === String(e.item_id));
+    return (item?.nome || '').toLowerCase();
+  };
+  dados.sort((a, b) => {
+    if (sortMode === 'qtd-asc')  return (a.quantidade || 0) - (b.quantidade || 0);
+    if (sortMode === 'qtd-desc') return (b.quantidade || 0) - (a.quantidade || 0);
+    if (sortMode === 'venc') {
+      // Itens com validade vêm primeiro, mais próximos no topo. Sem validade vão pro fim.
+      const da = a.data_validade ? new Date(a.data_validade + 'T00:00:00').getTime() : Infinity;
+      const db = b.data_validade ? new Date(b.data_validade + 'T00:00:00').getTime() : Infinity;
+      return da - db;
+    }
+    return nomeDe(a).localeCompare(nomeDe(b));
+  });
+
   el.innerHTML = dados.map(e => {
     const item = currentEstoqueTab === 'ingrediente'
       ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
@@ -3846,10 +3872,22 @@ function renderEstoque() {
         ? '<span class="badge badge-red">❌ Zerado</span>'
         : '<span class="badge badge-green">✅ OK</span>';
 
+    // Cor da validade conforme proximidade
+    let validadeHtml = '';
+    if (e.data_validade) {
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      const dv = new Date(e.data_validade + 'T00:00:00');
+      const dias = Math.round((dv - hoje) / (1000*60*60*24));
+      const cor = dias < 0 ? 'var(--red)' : dias <= 7 ? 'var(--red)' : dias <= 30 ? 'var(--yellow)' : 'var(--text3)';
+      const sufix = dias < 0 ? ' (vencido)' : dias === 0 ? ' (hoje)' : dias <= 30 ? ` (${dias}d)` : '';
+      validadeHtml = `<div class="est-qty" style="color:${cor};font-size:0.72rem;margin-top:2px">val: ${formatarData(e.data_validade)}${sufix}</div>`;
+    }
+
     return `<div class="est-row${critico ? ' critico' : ''}">
       <div class="est-info">
         <div class="est-name">${item?.nome || e.item_id}</div>
-        <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}${e.data_validade ? ` · val: ${formatarData(e.data_validade)}` : ''}</div>
+        <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}</div>
+        ${validadeHtml}
       </div>
       ${badge}
       <div style="display:flex;gap:6px">
