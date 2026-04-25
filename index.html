@@ -887,6 +887,7 @@ body {
     <div class="chip-row">
       <div class="chip active" onclick="filtrarEstoque('ingrediente')" id="est-chip-ing">🧂 Ingredientes</div>
       <div class="chip"        onclick="filtrarEstoque('insumo')"      id="est-chip-ins">📦 Insumos</div>
+      <div class="chip"        onclick="filtrarEstoque('receita')"     id="est-chip-rec">🍰 Receitas</div>
     </div>
     <div id="est-lista"></div>
   </div>
@@ -2842,6 +2843,22 @@ function verReceita(id) {
     </div>
 
     ${r.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${r.obs}</p>` : ''}
+
+    ${(() => {
+      const calc = calcularEstoqueReceita(r.id);
+      if (!calc || calc.totalVendido === 0) return '';
+      const cor = calc.emEstoque > 0 ? 'var(--green)' : 'var(--text3)';
+      return `<div class="section-label" style="margin-top:14px">📦 Estoque (calculado de pedidos)</div>
+      <div class="card" style="padding:12px;margin-bottom:12px">
+        <div class="mercado-item"><span>Total produzido</span><span style="font-weight:700">${calc.totalProduzido} un (${calc.lotes} lote${calc.lotes !== 1 ? 's' : ''})</span></div>
+        <div class="mercado-item"><span>Total vendido</span><span style="font-weight:700">${calc.totalVendido} un</span></div>
+        <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
+          <span style="font-weight:700">Em estoque</span>
+          <span style="font-weight:800;color:${cor};font-size:1.1rem">${calc.emEstoque} un</span>
+        </div>
+      </div>`;
+    })()}
+
     <p class="text-muted" style="margin-top:16px;font-size:0.78rem">⏳ Tabela Nutricional — pendente (TACO)</p>
   `;
   document.getElementById('modal-detalhe-receita').classList.remove('hidden');
@@ -3309,6 +3326,7 @@ async function salvarPedido() {
   await salvarCliente({ nome, telefone, preferencias: payload.preferencias });
   renderPedidos();
   atualizarDashboard();
+  if (currentEstoqueTab === 'receita') renderEstoque();
   fecharModal('modal-pedido');
   toast(editId ? 'Pedido atualizado!' : `Pedido #${payload.numero_pedido} criado!`, 'success');
 }
@@ -3321,6 +3339,7 @@ async function deletarPedido(id) {
   DB.pedidos = DB.pedidos.filter(x => String(x.id) !== String(id));
   renderPedidos();
   atualizarDashboard();
+  if (currentEstoqueTab === 'receita') renderEstoque();
   toast('Pedido removido.', 'success');
 }
 
@@ -3684,11 +3703,45 @@ function filtrarEstoque(tipo) {
   currentEstoqueTab = tipo;
   document.getElementById('est-chip-ing').classList.toggle('active', tipo === 'ingrediente');
   document.getElementById('est-chip-ins').classList.toggle('active', tipo === 'insumo');
+  document.getElementById('est-chip-rec').classList.toggle('active', tipo === 'receita');
   renderEstoque();
 }
 
+// ──────────────────────────────────────────
+//  ESTOQUE DE RECEITAS — calculado a partir de pedidos efetuados
+//  Regra: cada pedido efetuado é tratado como uma produção.
+//  Se rende 10 e pediu 3 → produz 1 lote (10 un), vende 3, sobra 7.
+//  Se pedidos seguintes pedem mais, usam a sobra. Quando acaba, novo lote.
+//  Fórmula simplificada (acumulada):
+//    total_vendido = soma das qtds em pedidos efetuados
+//    lotes_produzidos = ceil(total_vendido / rendimento)
+//    total_produzido  = lotes_produzidos * rendimento
+//    em_estoque       = total_produzido - total_vendido
+// ──────────────────────────────────────────
+function calcularEstoqueReceita(receitaId) {
+  const r = DB.receitas.find(x => String(x.id) === String(receitaId));
+  if (!r) return null;
+  const rendimento = r.rendimento || 1;
+
+  let totalVendido = 0;
+  (DB.pedidos || []).forEach(p => {
+    if (p.status !== 'efetuado') return;
+    (p.itens || []).forEach(i => {
+      if (String(i.receita_id) === String(receitaId)) {
+        totalVendido += (i.quantidade || 0);
+      }
+    });
+  });
+
+  const lotes          = totalVendido > 0 ? Math.ceil(totalVendido / rendimento) : 0;
+  const totalProduzido = lotes * rendimento;
+  const emEstoque      = totalProduzido - totalVendido;
+
+  return { totalVendido, lotes, totalProduzido, emEstoque, rendimento };
+}
+
 function renderEstoque() {
-  // Alerta de estoque crítico
+  // Alerta de estoque crítico (sempre — só de ingredientes/insumos)
   const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
   const alertEl  = document.getElementById('est-alertas');
   if (alertEl) {
@@ -3700,6 +3753,60 @@ function renderEstoque() {
   const el = document.getElementById('est-lista');
   if (!el) return;
 
+  // ─── Aba Receitas: calcula a partir de pedidos efetuados ───
+  if (currentEstoqueTab === 'receita') {
+    // Só mostra receitas que já apareceram em algum pedido efetuado
+    const idsComPedido = new Set();
+    (DB.pedidos || []).forEach(p => {
+      if (p.status === 'efetuado') {
+        (p.itens || []).forEach(i => idsComPedido.add(String(i.receita_id)));
+      }
+    });
+
+    const receitasComEstoque = DB.receitas.filter(r => idsComPedido.has(String(r.id)));
+
+    if (receitasComEstoque.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+        <div class="empty-state-title">Sem produção</div>
+        <div class="empty-state-text">Receitas aparecem aqui ao efetuar um pedido</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = receitasComEstoque.map(r => {
+      const calc          = calcularEstoqueReceita(r.id);
+      const custoTotal    = calcularCustoReceita(r);
+      const custoUnitario = custoTotal / (r.rendimento || 1);
+      const precoVenda    = parseFloat(r.preco_venda) || 0;
+      const margem        = calcularMargem(precoVenda, custoUnitario);
+      const selo          = selomargem(margem);
+
+      // Cor do "em estoque": verde se sobra, cinza se zerado, vermelho se vendeu mais que produziu (não acontece, só por segurança)
+      const cor = calc.emEstoque > 0 ? 'var(--green)' : calc.emEstoque === 0 ? 'var(--text3)' : 'var(--red)';
+
+      return `<div class="est-row" onclick="verReceita('${r.id}')" style="cursor:pointer">
+        <div class="est-info">
+          <div class="est-name">${CAT_ICONS[r.categoria] || '🍰'} ${r.nome}</div>
+          <div class="est-qty" style="font-size:0.75rem">
+            Produzido: ${calc.totalProduzido} (${calc.lotes} lote${calc.lotes !== 1 ? 's' : ''} de ${calc.rendimento}) ·
+            Vendido: ${calc.totalVendido}
+          </div>
+          <div class="est-qty" style="font-size:0.72rem;color:var(--text3);margin-top:2px">
+            Custo/un: R$ ${custoUnitario.toFixed(2)}${precoVenda > 0 ? ` · Venda: R$ ${precoVenda.toFixed(2)}` : ''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800;font-size:1.1rem;color:${cor}">${calc.emEstoque}</div>
+          <div style="font-size:0.7rem;color:var(--text3);margin-top:-2px">em estoque</div>
+          ${margem !== null ? `<span class="badge" style="background:${selo.bg};color:${selo.cor};margin-top:4px;font-size:0.65rem">${selo.icon} ${(margem*100).toFixed(0)}%</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // ─── Abas Ingredientes / Insumos ───
   const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
 
   if (dados.length === 0) {
