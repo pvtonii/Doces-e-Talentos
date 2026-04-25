@@ -887,7 +887,6 @@ body {
     <div class="chip-row">
       <div class="chip active" onclick="filtrarEstoque('ingrediente')" id="est-chip-ing">🧂 Ingredientes</div>
       <div class="chip"        onclick="filtrarEstoque('insumo')"      id="est-chip-ins">📦 Insumos</div>
-      <div class="chip"        onclick="filtrarEstoque('receita')"     id="est-chip-rec">🍰 Receitas</div>
     </div>
     <div id="est-lista"></div>
   </div>
@@ -1620,16 +1619,28 @@ function localSave(key, data) {
 //  CARREGAR TUDO
 // ──────────────────────────────────────────
 async function carregarTudo() {
-  // Cada função já tem seu próprio try/catch — erros individuais não quebram o app
+  // ETAPA 1 — Carregar primeiro o que é DEPENDÊNCIA (categorias, ingredientes, insumos).
+  // Receitas/pedidos/estoque PRECISAM desses dados pra renderizar custos corretamente.
+  // Se rodasse tudo em paralelo, podia haver race condition: receitas renderizar antes
+  // dos ingredientes carregarem → custo zero / variando aleatoriamente.
   await Promise.allSettled([
     carregarCategorias(),
     carregarIngredientes(),
     carregarInsumos(),
+  ]);
+
+  // ETAPA 2 — Agora carrega o que depende dos anteriores
+  await Promise.allSettled([
     carregarReceitas(),
     carregarPedidos(),
     carregarEstoque(),
     carregarClientes()
   ]);
+
+  // ETAPA 3 — Re-renderiza receitas e pedidos para garantir que pegam
+  // valores atualizados de ingredientes/insumos (defesa em profundidade)
+  renderReceitas();
+  renderPedidos();
   atualizarDashboard();
   verificarEstoqueCritico();
 }
@@ -1774,11 +1785,7 @@ function updateFab(page) {
     receitas:     () => abrirModalReceita(),
     ingredientes: () => abrirModalIngrediente(),
     insumos:      () => abrirModalInsumo(),
-    estoque:      () => {
-      // Se estiver na aba Receitas, o + abre o modal de Nova Receita
-      if (currentEstoqueTab === 'receita') return abrirModalReceita();
-      return abrirModalEstoque();
-    },
+    estoque:      () => abrirModalEstoque(),
     clientes:     () => {
       document.getElementById('cli-edit-id').value  = '';
       document.getElementById('cli-modal-title').textContent = 'Novo Cliente';
@@ -2728,7 +2735,6 @@ async function salvarReceita() {
     DB.receitas.sort((a, b) => a.nome.localeCompare(b.nome));
   }
   renderReceitas();
-  if (currentEstoqueTab === 'receita') renderEstoque();
   fecharModal('modal-receita');
   toast(editId ? 'Receita atualizada!' : 'Receita salva!', 'success');
 }
@@ -2740,7 +2746,6 @@ async function deletarReceita(id) {
   }
   DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
   renderReceitas();
-  if (currentEstoqueTab === 'receita') renderEstoque();
   toast('Receita removida.', 'success');
 }
 
@@ -3679,12 +3684,11 @@ function filtrarEstoque(tipo) {
   currentEstoqueTab = tipo;
   document.getElementById('est-chip-ing').classList.toggle('active', tipo === 'ingrediente');
   document.getElementById('est-chip-ins').classList.toggle('active', tipo === 'insumo');
-  document.getElementById('est-chip-rec').classList.toggle('active', tipo === 'receita');
   renderEstoque();
 }
 
 function renderEstoque() {
-  // Alerta de estoque crítico (sempre)
+  // Alerta de estoque crítico
   const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
   const alertEl  = document.getElementById('est-alertas');
   if (alertEl) {
@@ -3696,39 +3700,6 @@ function renderEstoque() {
   const el = document.getElementById('est-lista');
   if (!el) return;
 
-  // ─── Aba Receitas: mostra info de cada receita (custo, preço, margem) ───
-  if (currentEstoqueTab === 'receita') {
-    if (DB.receitas.length === 0) {
-      el.innerHTML = `<div class="empty-state">
-        <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
-        <div class="empty-state-title">Nenhuma receita</div>
-        <div class="empty-state-text">Cadastre receitas para ver aqui</div>
-      </div>`;
-      return;
-    }
-
-    el.innerHTML = DB.receitas.map(r => {
-      const custoTotal    = calcularCustoReceita(r);
-      const rendimento    = r.rendimento || 1;
-      const custoUnitario = custoTotal / rendimento;
-      const precoVenda    = parseFloat(r.preco_venda) || 0;
-      const margem        = calcularMargem(precoVenda, custoUnitario);
-      const selo          = selomargem(margem);
-      const lucroUnit     = precoVenda - custoUnitario;
-      return `<div class="est-row" onclick="verReceita('${r.id}')" style="cursor:pointer">
-        <div class="est-info">
-          <div class="est-name">${CAT_ICONS[r.categoria] || '🍰'} ${r.nome}</div>
-          <div class="est-qty">Custo/un: R$ ${custoUnitario.toFixed(2)} · Venda: ${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}${precoVenda > 0 ? ` · Lucro: R$ ${lucroUnit.toFixed(2)}` : ''}</div>
-        </div>
-        ${margem !== null
-          ? `<span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${(margem*100).toFixed(0)}%</span>`
-          : '<span class="badge badge-gray">Sem preço</span>'}
-      </div>`;
-    }).join('');
-    return;
-  }
-
-  // ─── Abas Ingredientes / Insumos (comportamento original) ───
   const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
 
   if (dados.length === 0) {
