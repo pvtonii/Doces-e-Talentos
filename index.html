@@ -887,6 +887,7 @@ body {
     <div class="chip-row">
       <div class="chip active" onclick="filtrarEstoque('ingrediente')" id="est-chip-ing">🧂 Ingredientes</div>
       <div class="chip"        onclick="filtrarEstoque('insumo')"      id="est-chip-ins">📦 Insumos</div>
+      <div class="chip"        onclick="filtrarEstoque('receita')"     id="est-chip-rec">🍰 Receitas</div>
     </div>
     <div id="est-lista"></div>
   </div>
@@ -1116,7 +1117,7 @@ body {
             <option value="">Selecionar...</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="10 porções"></div>
+        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
       </div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
       <div class="divider"></div>
@@ -1138,7 +1139,7 @@ body {
           <span style="font-weight:700;color:var(--accent)" id="rec-custo-total">R$ 0,00</span>
         </div>
         <div class="flex-between" style="margin-bottom:10px">
-          <span style="font-size:0.8rem;color:var(--accent)">Custo por porção:</span>
+          <span style="font-size:0.8rem;color:var(--accent)">Custo por unidade:</span>
           <span style="font-size:0.8rem;font-weight:700;color:var(--accent)" id="rec-custo-porcao">—</span>
         </div>
         <!-- Resumo de ingredientes -->
@@ -1147,11 +1148,11 @@ body {
           <div id="rec-resumo-itens" style="font-size:0.78rem;color:var(--accent)"></div>
         </div>
         <div class="form-group" style="margin:0">
-          <label class="form-label">Preço de Venda por Porção (R$)</label>
-          <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="calcularMargem()">
+          <label class="form-label">Preço de Venda por Unidade (R$)</label>
+          <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="atualizarMargemUI()">
         </div>
         <div class="flex-between mt-12">
-          <span class="text-muted">Margem por porção:</span>
+          <span class="text-muted">Margem por unidade:</span>
           <span id="rec-margem" style="font-weight:700">—</span>
         </div>
       </div>
@@ -1340,8 +1341,24 @@ body {
     </div>
     <div class="modal-body" id="det-rec-body"></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary btn-sm"   onclick="imprimirReceita()">🖨️ Imprimir</button>
+      <button class="btn btn-secondary btn-full" onclick="imprimirReceita()">🖨️ Imprimir</button>
       <button class="btn btn-secondary btn-full" onclick="fecharModal('modal-detalhe-receita')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO (substitui o confirm() do navegador) -->
+<div id="modal-confirm" class="modal-overlay hidden">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <div class="modal-title" id="confirm-title">Confirmar</div>
+    </div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="margin:0;line-height:1.45"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-full"    id="confirm-ok"     onclick="_confirmResolve(true)">Sim, continuar</button>
+      <button class="btn btn-secondary btn-full" id="confirm-cancel" onclick="_confirmResolve(false)">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1757,7 +1774,11 @@ function updateFab(page) {
     receitas:     () => abrirModalReceita(),
     ingredientes: () => abrirModalIngrediente(),
     insumos:      () => abrirModalInsumo(),
-    estoque:      () => abrirModalEstoque(),
+    estoque:      () => {
+      // Se estiver na aba Receitas, o + abre o modal de Nova Receita
+      if (currentEstoqueTab === 'receita') return abrirModalReceita();
+      return abrirModalEstoque();
+    },
     clientes:     () => {
       document.getElementById('cli-edit-id').value  = '';
       document.getElementById('cli-modal-title').textContent = 'Novo Cliente';
@@ -1853,7 +1874,7 @@ async function adicionarCategoria(tipo) {
 
 async function removerCategoria(tipo, cat) {
   if (!supabase) { toast('Conecte ao Supabase primeiro!', 'warning'); return; }
-  if (!confirm(`Remover categoria "${cat}"?\n\nOs itens com esta categoria não serão deletados, apenas ficarão sem categoria.`)) return;
+  if (!(await confirmDialog(`Remover categoria <b>"${cat}"</b>?<br><br>Os itens com esta categoria não serão deletados, apenas ficarão sem categoria.`, 'Remover categoria'))) return;
   try { await sbDelete('categorias', 'tipo=eq.'+encodeURIComponent(tipo)+'&nome=eq.'+encodeURIComponent(cat)); } catch(e) { toast('Erro ao remover: ' + e.message, 'error'); return; }
   if (tipo === 'ing') DB.categorias.ing = DB.categorias.ing.filter(c => c !== cat);
   else if (tipo === 'ins') DB.categorias.ins = DB.categorias.ins.filter(c => c !== cat);
@@ -2130,7 +2151,7 @@ async function salvarIngrediente() {
 }
 
 async function deletarIngrediente(id) {
-  if (!confirm('Deletar este ingrediente?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja deletar este ingrediente?<br><br>Esta ação não pode ser desfeita.', 'Deletar ingrediente'))) return;
   if (supabase) {
     try { await sbDelete('ingredientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
@@ -2275,7 +2296,7 @@ async function salvarInsumo() {
 }
 
 async function deletarInsumo(id) {
-  if (!confirm('Deletar este insumo?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja deletar este insumo?<br><br>Esta ação não pode ser desfeita.', 'Deletar insumo'))) return;
   if (supabase) {
     try { await sbDelete('insumos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
@@ -2306,9 +2327,58 @@ function formatarData(s) {
   return d.toLocaleDateString('pt-BR');
 }
 
+// ──────────────────────────────────────────
+//  CONFIRMAÇÃO CUSTOM (substitui o confirm() do navegador)
+// ──────────────────────────────────────────
+let _confirmResolve = null;
+function confirmDialog(msg, titulo = 'Confirmar') {
+  return new Promise(resolve => {
+    document.getElementById('confirm-title').textContent = titulo;
+    document.getElementById('confirm-msg').innerHTML     = msg;
+    document.getElementById('modal-confirm').classList.remove('hidden');
+    _confirmResolve = (val) => {
+      document.getElementById('modal-confirm').classList.add('hidden');
+      _confirmResolve = null;
+      resolve(val);
+    };
+  });
+}
+
+// ──────────────────────────────────────────
+//  HELPERS DE CUSTO/MARGEM (lógica unificada)
+//  Regra: tudo gira em torno de custo_unitario.
+//  custo_unitario = custo_total_receita / rendimento
+//  receita_venda  = preco_unitario * quantidade
+//  custo_venda    = custo_unitario  * quantidade
+//  lucro          = receita - custo
+//  margem         = lucro / receita
+// ──────────────────────────────────────────
+function calcularCustoUnitario(r) {
+  if (!r) return 0;
+  const total      = calcularCustoReceita(r);
+  const rendimento = r.rendimento || 1;
+  return total / rendimento;
+}
+
+function calcularMargem(precoUnitario, custoUnitario) {
+  if (!precoUnitario || precoUnitario <= 0) return null;
+  return (precoUnitario - custoUnitario) / precoUnitario;
+}
+
+function selomargem(margem) {
+  if (margem === null || margem === undefined) return { label: '—', cor: 'var(--text3)', bg: 'transparent', icon: '' };
+  if (margem < 0.60)  return { label: 'Lucro baixo',    cor: 'var(--red)',    bg: 'var(--red-light)',    icon: '⚠️' };
+  if (margem < 0.75)  return { label: 'Margem OK',      cor: 'var(--green)',  bg: 'var(--green-light)',  icon: '✅' };
+                      return { label: 'Margem Premium', cor: 'var(--accent)', bg: 'var(--accent-light)', icon: '💎' };
+}
+
 // Fecha modal ao clicar no overlay
 document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id);
+  if (e.target.classList.contains('modal-overlay')) {
+    // Se for o modal-confirm, conta como "Cancelar"
+    if (e.target.id === 'modal-confirm' && _confirmResolve) { _confirmResolve(false); return; }
+    fecharModal(e.target.id);
+  }
 });
 
 // Data no header
@@ -2363,10 +2433,12 @@ function renderReceitas() {
   }
 
   el.innerHTML = dados.map(r => {
-    const custo  = calcularCustoReceita(r);
-    const margem = r.preco_venda > 0
-      ? (((r.preco_venda - custo) / r.preco_venda) * 100).toFixed(0)
-      : null;
+    const custoTotal    = calcularCustoReceita(r);
+    const rendimento    = r.rendimento || 1;
+    const custoUnitario = custoTotal / rendimento;
+    const precoVenda    = parseFloat(r.preco_venda) || 0;
+    const margem        = calcularMargem(precoVenda, custoUnitario);
+    const selo          = selomargem(margem);
     return `<div class="rec-card" onclick="verReceita('${r.id}')">
       <div class="rec-card-top">
         <span class="rec-card-emoji">${CAT_ICONS[r.categoria] || '🍰'}</span>
@@ -2375,11 +2447,11 @@ function renderReceitas() {
       <div class="rec-card-name">${r.nome}</div>
       <div class="rec-card-desc">${r.descricao || '—'}</div>
       <div class="rec-card-footer">
-        <span>Custo${r.rendimento > 1 ? '/porção' : ''}: <b style="color:var(--accent)">R$ ${(custo / (r.rendimento || 1)).toFixed(2)}</b></span>
-        <span>Venda/porção: <b>${r.preco_venda ? 'R$ ' + parseFloat(r.preco_venda).toFixed(2) : '—'}</b></span>
+        <span>Custo/un: <b style="color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</b></span>
+        <span>Venda: <b>${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}</b></span>
       </div>
-      ${r.rendimento > 1 ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Custo total: R$ ${custo.toFixed(2)} · ${r.rendimento} porções</div>` : ''}
-      ${margem ? `<div style="margin-top:8px"><span class="badge badge-green">Margem: ${margem}%</span></div>` : ''}
+      ${rendimento > 1 ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Total: R$ ${custoTotal.toFixed(2)} · rende ${rendimento}</div>` : ''}
+      ${margem !== null ? `<div style="margin-top:8px"><span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${selo.label} · ${(margem*100).toFixed(0)}%</span></div>` : ''}
       <div class="rec-card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-sm btn-icon" onclick="deletarReceita('${r.id}')">🗑️</button>
@@ -2510,21 +2582,23 @@ function recalcularCusto() {
     }
   }
 
-  calcularMargem(total);
+  atualizarMargemUI(total);
 }
 
-function calcularMargem(custo) {
-  const c          = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
-  const rendimento = parseInt(document.getElementById('rec-rendimento').value) || 1;
-  const custoPorcao = c / rendimento;
-  const venda      = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
-  const el         = document.getElementById('rec-margem');
-  const elPorcao   = document.getElementById('rec-custo-porcao');
-  if (elPorcao) elPorcao.textContent = rendimento > 1 ? `R$ ${custoPorcao.toFixed(2)} (${rendimento} porções)` : '—';
-  if (venda > 0 && custoPorcao > 0) {
-    const m = ((venda - custoPorcao) / venda * 100).toFixed(1);
-    el.textContent = m + '%';
-    el.style.color = parseFloat(m) >= 30 ? 'var(--green)' : parseFloat(m) >= 0 ? 'var(--yellow)' : 'var(--red)';
+// Atualiza os campos de custo/unidade e margem dentro do modal de Nova/Editar Receita.
+// Usa o helper calcularMargem(preco, custo) e o selomargem para padrão visual unificado.
+function atualizarMargemUI(custo) {
+  const c           = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
+  const rendimento  = parseInt(document.getElementById('rec-rendimento').value) || 1;
+  const custoUnit   = c / rendimento;
+  const venda       = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const el          = document.getElementById('rec-margem');
+  const elUnit      = document.getElementById('rec-custo-porcao');
+  if (elUnit) elUnit.textContent = rendimento > 1 ? `R$ ${custoUnit.toFixed(2)} (rende ${rendimento})` : '—';
+  const m = calcularMargem(venda, custoUnit);
+  if (m !== null && custoUnit > 0) {
+    const selo = selomargem(m);
+    el.innerHTML = `<span style="color:${selo.cor}">${selo.icon} ${(m*100).toFixed(1)}% · ${selo.label}</span>`;
   } else {
     el.textContent = '—';
     el.style.color = '';
@@ -2654,49 +2728,116 @@ async function salvarReceita() {
     DB.receitas.sort((a, b) => a.nome.localeCompare(b.nome));
   }
   renderReceitas();
+  if (currentEstoqueTab === 'receita') renderEstoque();
   fecharModal('modal-receita');
   toast(editId ? 'Receita atualizada!' : 'Receita salva!', 'success');
 }
 
 async function deletarReceita(id) {
-  if (!confirm('Deletar esta receita?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja deletar esta receita?<br><br>Esta ação não pode ser desfeita.', 'Deletar receita'))) return;
   if (supabase) {
     try { await sbDelete('receitas', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
   DB.receitas = DB.receitas.filter(x => String(x.id) !== String(id));
   renderReceitas();
+  if (currentEstoqueTab === 'receita') renderEstoque();
   toast('Receita removida.', 'success');
 }
 
 function verReceita(id) {
   const r = DB.receitas.find(x => String(x.id) === String(id));
   if (!r) return;
-  const custo = calcularCustoReceita(r);
+  const custoTotal    = calcularCustoReceita(r);
+  const rendimento    = r.rendimento || 1;
+  const custoUnitario = custoTotal / rendimento;
+  const precoVenda    = parseFloat(r.preco_venda) || 0;
+  const margem        = calcularMargem(precoVenda, custoUnitario);
+  const selo          = selomargem(margem);
+  const lucroUnit     = precoVenda - custoUnitario;
 
+  // Linhas com custo individual de cada item
   const ingRows = (r.ingredientes || []).map(item => {
     const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
-    return `<div class="mercado-item"><span>${ing?.nome || '?'}</span><span>${item.quantidade} ${ing?.unidade || ''}</span></div>`;
+    const custo = (ing && ing.qtd_embalagem)
+      ? (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0)
+      : 0;
+    return `<div class="mercado-item">
+      <span style="min-width:0;flex:1">${ing?.nome || '?'}</span>
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
+        <div style="font-size:0.85rem">${item.quantidade} ${ing?.unidade || ''}</div>
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:600">R$ ${custo.toFixed(2)}</div>
+      </div>
+    </div>`;
   }).join('');
 
   const insRows = (r.insumos || []).map(item => {
     const ins = DB.insumos.find(x => String(x.id) === String(item.id));
-    return `<div class="mercado-item"><span>${ins?.nome || '?'}</span><span>${item.quantidade} ${ins?.unidade || ''}</span></div>`;
+    const custo = (ins && ins.qtd_embalagem)
+      ? (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0)
+      : 0;
+    return `<div class="mercado-item">
+      <span style="min-width:0;flex:1">${ins?.nome || '?'}</span>
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
+        <div style="font-size:0.85rem">${item.quantidade} ${ins?.unidade || ''}</div>
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:600">R$ ${custo.toFixed(2)}</div>
+      </div>
+    </div>`;
   }).join('');
 
   document.getElementById('det-rec-title').textContent = r.nome;
   document.getElementById('det-rec-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <span class="badge badge-accent">${r.categoria}</span>
-      ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} porções</span>` : ''}
-      <span class="badge badge-green">Custo${r.rendimento > 1 ? '/porção' : ''}: R$ ${(custo/(r.rendimento||1)).toFixed(2)}</span>
-      ${r.rendimento > 1 ? `<span class="badge badge-gray">Total: R$ ${custo.toFixed(2)} · ${r.rendimento}p</span>` : ''}
-      ${r.preco_venda ? `<span class="badge badge-yellow">Venda/porção: R$ ${parseFloat(r.preco_venda).toFixed(2)}</span>` : ''}
+      ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} ${r.rendimento === 1 ? 'unidade' : 'unidades'}</span>` : ''}
     </div>
     ${r.descricao ? `<p class="text-muted" style="margin-bottom:14px">${r.descricao}</p>` : ''}
-    ${ingRows ? `<div class="section-label">🧂 Ingredientes</div><div class="card" style="padding:12px;margin-bottom:12px">${ingRows}</div>` : ''}
-    ${insRows ? `<div class="section-label">📦 Insumos</div><div class="card" style="padding:12px;margin-bottom:12px">${insRows}</div>` : ''}
+
+    ${ingRows ? `<div class="section-label">🧂 Ingredientes</div><div class="card" style="padding:12px;margin-bottom:12px">${ingRows}
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:8px">
+        <span style="font-weight:700">Subtotal ingredientes</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${(r.ingredientes||[]).reduce((s,it)=>{const ing=DB.ingredientes.find(x=>String(x.id)===String(it.id));return s+((ing&&ing.qtd_embalagem)?(ing.preco/ing.qtd_embalagem)*(it.quantidade||0):0);},0).toFixed(2)}</span>
+      </div>
+    </div>` : ''}
+
+    ${insRows ? `<div class="section-label">📦 Insumos</div><div class="card" style="padding:12px;margin-bottom:12px">${insRows}
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:8px">
+        <span style="font-weight:700">Subtotal insumos</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${(r.insumos||[]).reduce((s,it)=>{const ins=DB.insumos.find(x=>String(x.id)===String(it.id));return s+((ins&&ins.qtd_embalagem)?(ins.preco/ins.qtd_embalagem)*(it.quantidade||0):0);},0).toFixed(2)}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="section-label">💰 Custos & Precificação</div>
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div class="mercado-item">
+        <span>Custo total da receita</span>
+        <span style="font-weight:700">R$ ${custoTotal.toFixed(2)}</span>
+      </div>
+      <div class="mercado-item">
+        <span>Rendimento</span>
+        <span style="font-weight:700">${rendimento} ${rendimento === 1 ? 'unidade' : 'unidades'}</span>
+      </div>
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
+        <span style="font-weight:700">Custo por unidade</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</span>
+      </div>
+      ${precoVenda > 0 ? `
+        <div class="mercado-item" style="margin-top:8px">
+          <span>Preço de venda (unidade)</span>
+          <span style="font-weight:700">R$ ${precoVenda.toFixed(2)}</span>
+        </div>
+        <div class="mercado-item">
+          <span>Lucro por unidade</span>
+          <span style="font-weight:700;color:${lucroUnit >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroUnit.toFixed(2)}</span>
+        </div>
+        <div class="mercado-item" style="background:${selo.bg};border-radius:8px;padding:8px;margin-top:4px">
+          <span style="font-weight:700;color:${selo.cor}">${selo.icon} ${selo.label}</span>
+          <span style="font-weight:700;color:${selo.cor}">${margem !== null ? (margem*100).toFixed(1) + '%' : '—'}</span>
+        </div>
+      ` : `<p class="text-muted" style="margin-top:8px;font-size:0.82rem">⚠️ Defina o preço de venda para ver lucro e margem.</p>`}
+    </div>
+
     ${r.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${r.obs}</p>` : ''}
-    <p class="text-muted" style="margin-top:16px">⏳ Tabela Nutricional — pendente (TACO)</p>
+    <p class="text-muted" style="margin-top:16px;font-size:0.78rem">⏳ Tabela Nutricional — pendente (TACO)</p>
   `;
   document.getElementById('modal-detalhe-receita').classList.remove('hidden');
 }
@@ -2731,9 +2872,11 @@ function formatarItensPedido(p) {
 
 function calcularTotalPedido(p) {
   return (p.itens || []).reduce((acc, i) => {
+    // Se efetuado, usa snapshot do preço (preço congelado no momento do efetuado)
+    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
+    if (snap) return acc + (snap.preco_unitario || 0) * (i.quantidade || 1);
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
-    // preco_venda é por porção; quantidade = número de porções pedidas
-    return acc + (r?.preco_venda || 0) * (i.quantidade || 1);
+    return acc + (parseFloat(r?.preco_venda) || 0) * (i.quantidade || 1);
   }, 0);
 }
 
@@ -2937,10 +3080,10 @@ function addLinhaPedido() {
   div.innerHTML = `
     <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
       <option value="">Receita...</option>
-      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' ('+r.rendimento+'p)' : ''}</option>`).join('')}
+      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
     </select>
     <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1"
-      placeholder="Porções" oninput="calcularTotalPedidoForm()">
+      placeholder="Qtd" oninput="calcularTotalPedidoForm()">
     <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
   `;
   document.getElementById('ped-itens-lista').appendChild(div);
@@ -2950,12 +3093,13 @@ function onChangePedidoReceita(sel) {
   const r   = DB.receitas.find(x => String(x.id) === sel.value);
   const row = sel.closest('.pedido-item-row');
   const inp = row.querySelector('input[type="number"]');
-  // Sugere 1 porção por padrão
-  if (r && r.rendimento > 1) {
-    inp.max = r.rendimento;
-    inp.title = `Rendimento total: ${r.rendimento} porções`;
+  // Quantidade do pedido é independente do rendimento
+  // (a receita pode ser produzida várias vezes para atender o pedido)
+  if (r) {
+    inp.title = r.rendimento > 1
+      ? `Receita rende ${r.rendimento} unidades por lote`
+      : `Receita rende 1 unidade`;
   } else {
-    inp.removeAttribute('max');
     inp.removeAttribute('title');
   }
   calcularTotalPedidoForm();
@@ -2964,10 +3108,10 @@ function onChangePedidoReceita(sel) {
 function calcularTotalPedidoForm() {
   let total = 0;
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id     = row.querySelector('select').value;
-    const porcoes = parseInt(row.querySelector('input[type="number"]').value) || 1;
-    const r      = DB.receitas.find(x => String(x.id) === id);
-    if (r?.preco_venda) total += r.preco_venda * porcoes; // preco_venda já é por porção
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input[type="number"]').value) || 1;
+    const r   = DB.receitas.find(x => String(x.id) === id);
+    if (r?.preco_venda) total += parseFloat(r.preco_venda) * qtd;
   });
   document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
 }
@@ -3021,35 +3165,75 @@ function editarPedido(id) {
 // ──────────────────────────────────────────
 //  PEDIDOS — CRUD
 // ──────────────────────────────────────────
+// Gera snapshot completo do pedido no momento em que vira "efetuado":
+//  - itens_snapshot: por item, congela custo_unitario, preco_unitario,
+//    receita, custo, lucro, margem
+//  - custo_snapshot: detalhamento dos ingredientes/insumos consumidos
+//  - custo_total_snapshot: total CMV do pedido
 function gerarSnapshotCusto(itens) {
-  let total = 0; const snapshot = [];
+  let custoTotal = 0;
+  const ingSnapshot = [];
+  const itensSnapshot = [];
+
   (itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
-    const porcoes = item.quantidade || 1;
+    const qtdVendida    = item.quantidade || 1;
+    const rendimento    = r.rendimento || 1;
+    const custoUnitario = calcularCustoUnitario(r);
+    const precoUnitario = parseFloat(r.preco_venda) || 0;
+    const receita       = precoUnitario * qtdVendida;
+    const custo         = custoUnitario * qtdVendida;
+    const lucro         = receita - custo;
+    const margem        = receita > 0 ? lucro / receita : null;
+
+    itensSnapshot.push({
+      receita_id:      r.id,
+      nome:            r.nome,
+      quantidade:      qtdVendida,
+      custo_unitario:  parseFloat(custoUnitario.toFixed(4)),
+      preco_unitario:  precoUnitario,
+      receita:         parseFloat(receita.toFixed(2)),
+      custo:           parseFloat(custo.toFixed(2)),
+      lucro:           parseFloat(lucro.toFixed(2)),
+      margem:          margem !== null ? parseFloat(margem.toFixed(4)) : null,
+    });
+
+    // Detalhamento de ingredientes/insumos consumidos:
+    // qtd da receita está pra rendimento — proporção: qtd_receita / rendimento * qtdVendida
     (r.ingredientes || []).forEach(ri => {
       const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
       if (!ing || !ing.qtd_embalagem) return;
-      const custo = (ing.preco / ing.qtd_embalagem) * (ri.quantidade || 0) * porcoes;
-      snapshot.push({ nome: ing.nome, qtd: (ri.quantidade||0)*porcoes, unidade: ing.unidade, custo: parseFloat(custo.toFixed(4)) });
-      total += custo;
+      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
+      const c = (ing.preco / ing.qtd_embalagem) * qtdConsumida;
+      ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
+      custoTotal += c;
     });
     (r.insumos || []).forEach(ri => {
       const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
       if (!ins || !ins.qtd_embalagem) return;
-      const custo = (ins.preco / ins.qtd_embalagem) * (ri.quantidade || 0) * porcoes;
-      snapshot.push({ nome: ins.nome, qtd: (ri.quantidade||0)*porcoes, unidade: ins.unidade, custo: parseFloat(custo.toFixed(4)) });
-      total += custo;
+      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
+      const c = (ins.preco / ins.qtd_embalagem) * qtdConsumida;
+      ingSnapshot.push({ nome: ins.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ins.unidade, custo: parseFloat(c.toFixed(4)) });
+      custoTotal += c;
     });
   });
-  return { custo_snapshot: snapshot, custo_total_snapshot: parseFloat(total.toFixed(2)) };
+
+  return {
+    itens_snapshot:        itensSnapshot,
+    custo_snapshot:        ingSnapshot,
+    custo_total_snapshot:  parseFloat(custoTotal.toFixed(2)),
+  };
 }
 function calcularCustoPedido(p) {
+  // Se já tem snapshot (pedido efetuado), usa o custo congelado
   if (p.status === 'efetuado' && p.custo_total_snapshot != null) return p.custo_total_snapshot;
+  // Senão, calcula dinamicamente: custo_unitario × quantidade
   return (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
-    return acc + (calcularCustoReceita(r) / (r.rendimento || 1)) * (i.quantidade || 1);
+    const custoUnit = calcularCustoUnitario(r);
+    return acc + custoUnit * (i.quantidade || 1);
   }, 0);
 }
 async function salvarPedido() {
@@ -3086,10 +3270,12 @@ async function salvarPedido() {
   const virandoEfetuado = status === 'efetuado' && (eraOrcamento || !editId);
   if (virandoEfetuado) {
     const snap = gerarSnapshotCusto(itens);
-    payload.custo_snapshot = snap.custo_snapshot;
+    payload.itens_snapshot       = snap.itens_snapshot;
+    payload.custo_snapshot       = snap.custo_snapshot;
     payload.custo_total_snapshot = snap.custo_total_snapshot;
   } else if (status === 'orcamento') {
-    payload.custo_snapshot = null;
+    payload.itens_snapshot       = null;
+    payload.custo_snapshot       = null;
     payload.custo_total_snapshot = null;
   }
 
@@ -3123,7 +3309,7 @@ async function salvarPedido() {
 }
 
 async function deletarPedido(id) {
-  if (!confirm('Deletar este pedido?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja deletar este pedido?<br><br>Esta ação não pode ser desfeita.', 'Deletar pedido'))) return;
   if (supabase) {
     try { await sbDelete('pedidos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
@@ -3137,6 +3323,37 @@ function verPedido(id) {
   const p = DB.pedidos.find(x => String(x.id) === String(id));
   if (!p) return;
   const total = calcularTotalPedido(p);
+  const custo = calcularCustoPedido(p);
+  const lucro = total - custo;
+  const margem = total > 0 ? lucro / total : null;
+  const selo = selomargem(margem);
+
+  // Pra cada item: receita, custo unitário, lucro, margem
+  const linhasItens = (p.itens || []).map(i => {
+    const r   = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    if (!r) return `<div class="mercado-item"><span>? ×${i.quantidade}</span><span>—</span></div>`;
+    // Se tem snapshot, usa congelado; senão calcula dinâmico
+    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
+    const precoUnit  = snap ? snap.preco_unitario  : (parseFloat(r.preco_venda) || 0);
+    const custoUnit  = snap ? snap.custo_unitario  : calcularCustoUnitario(r);
+    const qtd        = i.quantidade;
+    const recItem    = precoUnit * qtd;
+    const custoItem  = custoUnit * qtd;
+    const lucroItem  = recItem - custoItem;
+    const margemItem = recItem > 0 ? lucroItem / recItem : null;
+    const seloItem   = selomargem(margemItem);
+    return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
+      <div class="mercado-item" style="border:none;padding:0">
+        <span style="font-weight:700">${r.nome} ×${qtd}</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${recItem.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;gap:8px;font-size:0.75rem;color:var(--text3);margin-top:4px;flex-wrap:wrap">
+        <span>Custo: R$ ${custoItem.toFixed(2)}</span>
+        <span>Lucro: <b style="color:${lucroItem >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroItem.toFixed(2)}</b></span>
+        ${margemItem !== null ? `<span style="color:${seloItem.cor};font-weight:600">${seloItem.icon} ${(margemItem*100).toFixed(0)}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 
   document.getElementById('det-ped-title').textContent = `Pedido #${p.numero_pedido}`;
   document.getElementById('det-ped-body').innerHTML = `
@@ -3150,21 +3367,28 @@ function verPedido(id) {
       ${p.preferencias ? `<div style="grid-column:1/-1"><div class="section-label">Preferências</div><div class="text-muted">${p.preferencias}</div></div>` : ''}
       ${p.endereco ? `<div style="grid-column:1/-1"><div class="section-label">📍 Endereço</div><div class="text-muted">${p.endereco}</div></div>` : ''}
     </div>
+
     <div class="section-label">🍰 Itens</div>
     <div class="card" style="padding:12px;margin-bottom:12px">
-      ${(p.itens || []).map(i => {
-        const r   = DB.receitas.find(x => String(x.id) === String(i.receita_id));
-        const val = r?.preco_venda || 0;
-        return `<div class="mercado-item">
-          <span>${r?.nome || '?'} ×${i.quantidade}</span>
-          <span style="font-weight:700">R$ ${(val * i.quantidade).toFixed(2)}</span>
-        </div>`;
-      }).join('')}
-      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
-        <span style="font-weight:700">Total</span>
-        <span style="font-weight:700;color:var(--accent)">R$ ${total.toFixed(2)}</span>
-      </div>
+      ${linhasItens}
     </div>
+
+    <div class="section-label">💰 Resumo financeiro</div>
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div class="mercado-item"><span>Receita total</span><span style="font-weight:700">R$ ${total.toFixed(2)}</span></div>
+      <div class="mercado-item"><span>Custo total (CMV)</span><span style="font-weight:700;color:var(--red)">− R$ ${custo.toFixed(2)}</span></div>
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
+        <span style="font-weight:700">Lucro</span>
+        <span style="font-weight:700;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucro.toFixed(2)}</span>
+      </div>
+      ${margem !== null ? `
+        <div class="mercado-item" style="background:${selo.bg};border-radius:8px;padding:8px;margin-top:4px">
+          <span style="font-weight:700;color:${selo.cor}">${selo.icon} ${selo.label}</span>
+          <span style="font-weight:700;color:${selo.cor}">${(margem*100).toFixed(1)}%</span>
+        </div>
+      ` : ''}
+    </div>
+
     ${p.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${p.obs}</p>` : ''}
   `;
   document.getElementById('modal-detalhe-pedido').classList.remove('hidden');
@@ -3407,7 +3631,7 @@ async function salvarClienteModal() {
 }
 
 async function deletarCliente(id) {
-  if (!confirm('Deletar este cliente?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja deletar este cliente?<br><br>Os pedidos do cliente não serão removidos.', 'Deletar cliente'))) return;
   if (supabase) {
     try { await sbDelete('clientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
   }
@@ -3455,13 +3679,12 @@ function filtrarEstoque(tipo) {
   currentEstoqueTab = tipo;
   document.getElementById('est-chip-ing').classList.toggle('active', tipo === 'ingrediente');
   document.getElementById('est-chip-ins').classList.toggle('active', tipo === 'insumo');
+  document.getElementById('est-chip-rec').classList.toggle('active', tipo === 'receita');
   renderEstoque();
 }
 
 function renderEstoque() {
-  const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
-
-  // Alerta de estoque crítico
+  // Alerta de estoque crítico (sempre)
   const criticos = DB.estoque.filter(e => e.minimo && e.quantidade <= e.minimo);
   const alertEl  = document.getElementById('est-alertas');
   if (alertEl) {
@@ -3472,6 +3695,41 @@ function renderEstoque() {
 
   const el = document.getElementById('est-lista');
   if (!el) return;
+
+  // ─── Aba Receitas: mostra info de cada receita (custo, preço, margem) ───
+  if (currentEstoqueTab === 'receita') {
+    if (DB.receitas.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+        <div class="empty-state-title">Nenhuma receita</div>
+        <div class="empty-state-text">Cadastre receitas para ver aqui</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = DB.receitas.map(r => {
+      const custoTotal    = calcularCustoReceita(r);
+      const rendimento    = r.rendimento || 1;
+      const custoUnitario = custoTotal / rendimento;
+      const precoVenda    = parseFloat(r.preco_venda) || 0;
+      const margem        = calcularMargem(precoVenda, custoUnitario);
+      const selo          = selomargem(margem);
+      const lucroUnit     = precoVenda - custoUnitario;
+      return `<div class="est-row" onclick="verReceita('${r.id}')" style="cursor:pointer">
+        <div class="est-info">
+          <div class="est-name">${CAT_ICONS[r.categoria] || '🍰'} ${r.nome}</div>
+          <div class="est-qty">Custo/un: R$ ${custoUnitario.toFixed(2)} · Venda: ${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}${precoVenda > 0 ? ` · Lucro: R$ ${lucroUnit.toFixed(2)}` : ''}</div>
+        </div>
+        ${margem !== null
+          ? `<span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${(margem*100).toFixed(0)}%</span>`
+          : '<span class="badge badge-gray">Sem preço</span>'}
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // ─── Abas Ingredientes / Insumos (comportamento original) ───
+  const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
@@ -3588,7 +3846,7 @@ async function salvarEstoque() {
 }
 
 async function deletarEstoque(id) {
-  if (!confirm('Remover este item do estoque?')) return;
+  if (!(await confirmDialog('Tem certeza que deseja remover este item do estoque?', 'Remover do estoque'))) return;
   if (supabase) await sbDelete('estoque', 'id=eq.'+id);
   DB.estoque = DB.estoque.filter(x => String(x.id) !== String(id));
   renderEstoque();
@@ -3597,24 +3855,34 @@ async function deletarEstoque(id) {
 
 // ──────────────────────────────────────────
 //  ESTOQUE — DESCONTAR AO CONFIRMAR PEDIDO
+//  Regra: ingredientes da receita são pelo lote inteiro (rendimento).
+//  Consumo por unidade vendida = qtd_receita / rendimento
 // ──────────────────────────────────────────
 function descontarEstoquePedido(pedido) {
   (pedido.itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
+    const qtdVendida = item.quantidade || 1;
+    const rendimento = r.rendimento || 1;
 
     (r.ingredientes || []).forEach(ing => {
       const est = DB.estoque.find(e =>
         String(e.item_id) === String(ing.id) && e.tipo === 'ingrediente'
       );
-      if (est) est.quantidade = Math.max(0, est.quantidade - (ing.quantidade * item.quantidade));
+      if (est) {
+        const consumo = (ing.quantidade || 0) / rendimento * qtdVendida;
+        est.quantidade = Math.max(0, est.quantidade - consumo);
+      }
     });
 
     (r.insumos || []).forEach(ins => {
       const est = DB.estoque.find(e =>
         String(e.item_id) === String(ins.id) && e.tipo === 'insumo'
       );
-      if (est) est.quantidade = Math.max(0, est.quantidade - (ins.quantidade * item.quantidade));
+      if (est) {
+        const consumo = (ins.quantidade || 0) / rendimento * qtdVendida;
+        est.quantidade = Math.max(0, est.quantidade - consumo);
+      }
     });
   });
   renderEstoque();
@@ -3651,13 +3919,15 @@ function gerarListaMercado() {
       (pedido.itens || []).forEach(item => {
         const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
         if (!r) return;
+        const qtdVendida = item.quantidade || 1;
+        const rendimento = r.rendimento || 1;
         (r.ingredientes || []).forEach(ing => {
           const k = 'ing_' + ing.id;
-          nec[k] = (nec[k] || 0) + ing.quantidade * item.quantidade;
+          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) / rendimento * qtdVendida;
         });
         (r.insumos || []).forEach(ins => {
           const k = 'ins_' + ins.id;
-          nec[k] = (nec[k] || 0) + ins.quantidade * item.quantidade;
+          nec[k] = (nec[k] || 0) + (ins.quantidade || 0) / rendimento * qtdVendida;
         });
       });
     });
@@ -3678,7 +3948,8 @@ function gerarListaMercado() {
       const emEstoque = est?.quantidade || 0;
       const comprar   = Math.max(0, qtdNecessaria - emEstoque);
       if (comprar <= 0) return null;
-      return { nome: item?.nome || itemId, unidade: item?.unidade || '', qtdNecessaria, emEstoque, comprar };
+      const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
+      return { nome: item?.nome || itemId, unidade: item?.unidade || '', qtdNecessaria: fmt(qtdNecessaria), emEstoque: fmt(emEstoque), comprar: fmt(comprar) };
     }).filter(Boolean);
 
     if (itens.length === 0) {
@@ -3916,8 +4187,8 @@ async function testarConexao() {
   }
 }
 
-function limparConfig() {
-  if (!confirm('Remover configuração do Supabase?')) return;
+async function limparConfig() {
+  if (!(await confirmDialog('Tem certeza que deseja remover a configuração do Supabase?<br><br>O app voltará a usar dados locais.', 'Remover configuração'))) return;
   localStorage.removeItem(SUPA_URL_KEY);
   localStorage.removeItem(SUPA_KEY_KEY);
   supabase = null;
@@ -4007,6 +4278,9 @@ create table if not exists pedidos (
   preferencias     text,
   obs              text,
   itens            jsonb not null default '[]',
+  itens_snapshot   jsonb,
+  custo_snapshot   jsonb,
+  custo_total_snapshot numeric,
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );
