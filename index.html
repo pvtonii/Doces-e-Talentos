@@ -669,16 +669,20 @@ body {
 }
 .tamanho-row {
   display: grid;
-  grid-template-columns: 1fr 110px 110px auto;
-  gap: 7px;
+  grid-template-columns: 80px 1fr 1fr;
+  gap: 8px;
   align-items: center;
   margin-bottom: 8px;
 }
-.tamanho-row .form-input,
-.tamanho-row .form-select {
+.tamanho-row .form-input {
   font-size: 0.85rem;
   padding: 8px 10px;
   width: 100%;
+}
+.tamanho-row .tam-aro-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--accent);
 }
 .pedido-item-row {
   display: grid;
@@ -1181,19 +1185,15 @@ body {
       <!-- TAMANHOS (só pra receitas prontas) -->
       <div id="rec-tamanhos-section" style="display:none">
         <div class="divider"></div>
-        <div class="flex-between mb-12">
-          <div class="section-label">📏 Tamanhos & Preços</div>
-          <button class="btn btn-secondary btn-sm" onclick="addLinhaTamanho()">+ Tamanho</button>
-        </div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Adicione os tamanhos que esta receita produz, com seus preços. O cliente pode escolher formato retangular no pedido (+R$ 10).</div>
+        <div class="section-label">📏 Tamanhos & Valores de Venda</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Preencha o valor apenas dos aros que esta receita atende. Deixe em branco os que não fizer.</div>
         <div class="tamanho-row" style="margin-bottom:6px;font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;font-weight:600">
           <span>Aro</span>
-          <span>Preço normal</span>
-          <span>Preço chocolate</span>
-          <span></span>
+          <span>Baunilha (R$)</span>
+          <span>Chocolate (R$)</span>
         </div>
         <div id="rec-tamanhos-lista"></div>
-        <div id="rec-tamanhos-hint" style="display:none;font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
       </div>
 
       <div class="divider"></div>
@@ -1210,11 +1210,6 @@ body {
         <div id="rec-resumo-lista" style="display:none;margin-bottom:10px;border-top:1px solid var(--accent);padding-top:8px">
           <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Detalhamento</div>
           <div id="rec-resumo-itens" style="font-size:0.78rem;color:var(--accent)"></div>
-        </div>
-        <!-- Margem por aro (só receita pronta) -->
-        <div id="rec-margens-aros" style="display:none;margin-top:10px;border-top:1px solid var(--accent);padding-top:10px">
-          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Margem por tamanho</div>
-          <div id="rec-margens-aros-lista" style="font-size:0.78rem;color:var(--accent)"></div>
         </div>
         <div class="form-group" id="rec-preco-group" style="margin:0">
           <label class="form-label">Preço de Venda por Unidade (R$)</label>
@@ -2743,57 +2738,6 @@ function atualizarMargemUI(custo) {
     el.textContent = '—';
     el.style.color = '';
   }
-  // Atualiza margens por aro (só se for receita pronta)
-  atualizarMargensAros(c);
-  // Atualiza visibilidade da hint de "ingredientes acima são pra fazer 1 bolo"
-  atualizarHintTamanhos();
-}
-
-// Calcula e mostra a margem de cada aro (preço normal e chocolate vs custo total da receita)
-function atualizarMargensAros(custoTotal) {
-  const tipo = document.getElementById('rec-tipo')?.value || 'custom';
-  const bloco = document.getElementById('rec-margens-aros');
-  const lista = document.getElementById('rec-margens-aros-lista');
-  if (!bloco || !lista) return;
-  if (tipo !== 'pronta') { bloco.style.display = 'none'; return; }
-
-  const linhas = document.querySelectorAll('#rec-tamanhos-lista .tamanho-row');
-  if (linhas.length === 0) { bloco.style.display = 'none'; return; }
-
-  const c = custoTotal !== undefined ? custoTotal : (parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0);
-
-  const html = Array.from(linhas).map(row => {
-    const aro       = row.querySelector('.tam-nome')?.value || '—';
-    const precoN    = parseFloat(row.querySelector('.tam-preco')?.value) || 0;
-    const precoC    = parseFloat(row.querySelector('.tam-preco-choc')?.value) || 0;
-    if (!aro) return '';
-    const fmtMargem = (preco) => {
-      if (preco <= 0 || c <= 0) return '<span style="color:var(--text3)">—</span>';
-      const m = calcularMargem(preco, c);
-      if (m === null) return '<span style="color:var(--text3)">—</span>';
-      const selo = selomargem(m);
-      const lucro = preco - c;
-      return `<span style="color:${selo.cor};font-weight:600">${selo.icon} ${(m*100).toFixed(0)}%</span> <span style="color:var(--text3);font-size:0.72rem">(R$ ${lucro.toFixed(2)})</span>`;
-    };
-    return `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:4px 0;border-bottom:1px dashed rgba(144,71,70,0.2)">
-        <span style="font-weight:600">${aro}</span>
-        <span>Normal: ${fmtMargem(precoN)}</span>
-        <span>Choc: ${fmtMargem(precoC)}</span>
-      </div>`;
-  }).filter(Boolean).join('');
-
-  if (!html) { bloco.style.display = 'none'; return; }
-  bloco.style.display = 'block';
-  lista.innerHTML = html;
-}
-
-// Mostra a hint de tamanhos só quando tem pelo menos uma linha
-function atualizarHintTamanhos() {
-  const hint  = document.getElementById('rec-tamanhos-hint');
-  const lista = document.getElementById('rec-tamanhos-lista');
-  if (!hint || !lista) return;
-  hint.style.display = lista.children.length > 0 ? 'block' : 'none';
 }
 
 // ──────────────────────────────────────────
@@ -2818,28 +2762,34 @@ function setRecTipo(tipo) {
   if (margem)  margem.style.display  = isPronta ? 'none' : '';
   if (tamSec)  tamSec.style.display  = isPronta ? '' : 'none';
   if (ingHint) ingHint.style.display = isPronta ? '' : 'none';
-  atualizarMargemUI();
+
+  // Quando vira Pronta, monta a tabela fixa com os 5 aros (se ainda não tiver montada)
+  if (isPronta) {
+    const lista = document.getElementById('rec-tamanhos-lista');
+    if (lista && lista.children.length === 0) {
+      montarTamanhosFixos();
+    }
+  }
 }
 
-// Aros pré-definidos pra escolher no dropdown
+// Aros fixos disponíveis
 const AROS_DISPONIVEIS = ['Aro 12', 'Aro 15', 'Aro 17', 'Aro 20', 'Aro 25'];
 
-// Linha de tamanho: dropdown de aro | preço normal | preço chocolate | botão remover
-// Layout em uma única linha grid (4 colunas)
-function addLinhaTamanho(dados = {}) {
-  const div = document.createElement('div');
-  div.className = 'tamanho-row';
-  div.innerHTML = `
-    <select class="form-select tam-nome" onchange="atualizarMargemUI()">
-      <option value="">Aro...</option>
-      ${AROS_DISPONIVEIS.map(a => `<option value="${a}" ${dados.nome === a ? 'selected' : ''}>${a}</option>`).join('')}
-    </select>
-    <input type="number" class="form-input tam-preco" placeholder="R$ normal" step="0.01" value="${dados.preco || ''}" oninput="atualizarMargemUI()">
-    <input type="number" class="form-input tam-preco-choc" placeholder="R$ choc." step="0.01" value="${dados.preco_chocolate || ''}" oninput="atualizarMargemUI()">
-    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.tamanho-row').remove(); atualizarMargemUI()">✕</button>
-  `;
-  document.getElementById('rec-tamanhos-lista').appendChild(div);
-  atualizarMargemUI();
+// Renderiza as 5 linhas fixas de aros. Se receber `dados` (array de tamanhos salvos),
+// preenche os valores. Aros não preenchidos = receita não atende esse tamanho.
+function montarTamanhosFixos(tamanhosSalvos = []) {
+  const lista = document.getElementById('rec-tamanhos-lista');
+  if (!lista) return;
+  lista.innerHTML = AROS_DISPONIVEIS.map(aro => {
+    const salvo = tamanhosSalvos.find(t => t.nome === aro) || {};
+    return `
+      <div class="tamanho-row" data-aro="${aro}">
+        <span class="tam-aro-label">${aro}</span>
+        <input type="number" class="form-input tam-preco" placeholder="—" step="0.01" value="${salvo.preco ?? ''}">
+        <input type="number" class="form-input tam-preco-choc" placeholder="—" step="0.01" value="${salvo.preco_chocolate ?? ''}">
+      </div>
+    `;
+  }).join('');
 }
 
 function fecharModalReceita() {
@@ -2915,9 +2865,9 @@ function editarReceita(id) {
     if (ins) linha.querySelector('.un-label').textContent = ins.unidade;
   });
 
-  // Tamanhos (só receita pronta)
+  // Tamanhos (só receita pronta) — sempre monta as 5 linhas fixas, preenchendo as salvas
   if ((r.tipo || 'custom') === 'pronta') {
-    (r.tamanhos || []).forEach(t => addLinhaTamanho(t));
+    montarTamanhosFixos(r.tamanhos || []);
   }
 
   recalcularCusto();
@@ -2944,20 +2894,19 @@ async function salvarReceita() {
     if (id && qtd > 0) insumos.push({ id, quantidade: qtd });
   });
 
-  // Tamanhos (só receita pronta)
+  // Tamanhos (só receita pronta) — coleta dos 5 aros, salva só os com pelo menos um valor
   const tamanhos = [];
   if (tipo === 'pronta') {
-    document.querySelectorAll('#rec-tamanhos-lista .recipe-row').forEach(row => {
-      const tNome    = row.querySelector('.tam-nome').value.trim();
-      const preco    = parseFloat(row.querySelector('.tam-preco').value) || 0;
-      const precoChoc= parseFloat(row.querySelector('.tam-preco-choc').value) || 0;
-      if (tNome) tamanhos.push({
-        nome: tNome,
-        preco,
-        preco_chocolate: precoChoc
-      });
+    document.querySelectorAll('#rec-tamanhos-lista .tamanho-row').forEach(row => {
+      const aro       = row.dataset.aro;
+      const preco     = parseFloat(row.querySelector('.tam-preco').value) || 0;
+      const precoChoc = parseFloat(row.querySelector('.tam-preco-choc').value) || 0;
+      // Só salva o aro se tiver pelo menos um dos preços preenchido
+      if (aro && (preco > 0 || precoChoc > 0)) {
+        tamanhos.push({ nome: aro, preco, preco_chocolate: precoChoc });
+      }
     });
-    if (tamanhos.length === 0) { toast('Adicione ao menos um tamanho!', 'error'); return; }
+    if (tamanhos.length === 0) { toast('Preencha o valor de pelo menos um aro!', 'error'); return; }
   }
 
   const payload = {
@@ -3150,7 +3099,7 @@ function formatarItensPedido(p) {
     if (!r) return '?';
     const tipoR = r.tipo || 'custom';
     if (tipoR === 'pronta' && i.tamanho_nome) {
-      const sabor = i.sabor === 'chocolate' ? ' chocolate' : '';
+      const sabor = i.sabor === 'chocolate' ? ' chocolate' : ' baunilha';
       const fmt   = i.formato === 'retangular' ? ' (retangular)' : '';
       return `${r.nome}${sabor} ${i.tamanho_nome}${fmt} ×${i.quantidade}`;
     }
@@ -3417,7 +3366,7 @@ function addLinhaPedido() {
       <div style="display:flex;gap:6px;align-items:center">
         <span style="font-size:0.72rem;color:var(--text3);min-width:60px">Sabor:</span>
         <select class="form-select ped-sabor-sel" style="flex:1;font-size:0.82rem;padding:7px" onchange="calcularTotalPedidoForm()">
-          <option value="normal">Normal</option>
+          <option value="normal">Baunilha</option>
           <option value="chocolate">Chocolate</option>
         </select>
         <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text2)">
@@ -3824,7 +3773,7 @@ function verPedido(id) {
     const detPronta = (tipoR === 'pronta' && i.tamanho_nome)
       ? `<div style="font-size:0.78rem;color:var(--text2);margin-top:2px">
            ${i.tamanho_nome}
-           ${i.sabor === 'chocolate' ? ' · Chocolate' : ''}
+           · ${i.sabor === 'chocolate' ? 'Chocolate' : 'Baunilha'}
            ${i.formato === 'retangular' ? ' · Retangular' : ''}
          </div>`
       : '';
@@ -3907,7 +3856,7 @@ function gerarOrcamento() {
       const ret   = !!row.querySelector('.ped-retangular')?.checked;
       preco = parseFloat(row.querySelector('.ped-preco-edit')?.value) || 0;
       if (tam) {
-        descItem = `${r.nome}${sabor === 'chocolate' ? ' chocolate' : ''} ${tam.nome}${ret ? ' retangular' : ''}`;
+        descItem = `${r.nome} ${sabor === 'chocolate' ? 'chocolate' : 'baunilha'} ${tam.nome}${ret ? ' retangular' : ''}`;
       }
     } else {
       preco = parseFloat(r.preco_venda) || 0;
