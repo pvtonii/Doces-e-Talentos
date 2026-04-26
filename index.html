@@ -667,23 +667,6 @@ body {
   align-items: center;
   margin-bottom: 8px;
 }
-.tamanho-row {
-  display: grid;
-  grid-template-columns: 80px 1fr 1fr;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.tamanho-row .form-input {
-  font-size: 0.85rem;
-  padding: 8px 10px;
-  width: 100%;
-}
-.tamanho-row .tam-aro-label {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--accent);
-}
 .pedido-item-row {
   display: grid;
   grid-template-columns: 1fr 58px auto;
@@ -882,10 +865,6 @@ body {
       <div><div class="page-title">Receitas</div><div class="page-subtitle" id="rec-count-label">—</div></div>
     </div>
     <div class="search-wrap"><input type="text" id="rec-search" placeholder="Buscar receita..." oninput="filtrarReceitas(recCatFilter)"></div>
-    <div class="chip-row" id="rec-tipo-chips">
-      <div class="chip active" onclick="filtrarReceitasTipo('custom')" data-tipo="custom">📋 Receitas Custom</div>
-      <div class="chip"        onclick="filtrarReceitasTipo('pronta')" data-tipo="pronta">🎂 Receitas Prontas</div>
-    </div>
     <div class="chip-row" id="rec-chips">
       <div class="chip active" onclick="filtrarReceitas('')" data-cat="">Todas</div>
     </div>
@@ -1151,14 +1130,6 @@ body {
     </div>
     <div class="modal-body">
       <input type="hidden" id="rec-edit-id">
-      <input type="hidden" id="rec-tipo" value="custom">
-      <div class="form-group">
-        <label class="form-label">Tipo de receita</label>
-        <div class="chip-row" id="rec-tipo-toggle" style="margin:0 0 4px 0">
-          <div class="chip active" onclick="setRecTipo('custom')" data-rec-tipo="custom">📋 Custom</div>
-          <div class="chip"        onclick="setRecTipo('pronta')" data-rec-tipo="pronta">🎂 Pronta (com tamanhos)</div>
-        </div>
-      </div>
       <div class="form-group"><label class="form-label">Nome da Receita *</label><input type="text" class="form-input" id="rec-nome" placeholder="Ex: Bolo de Chocolate"></div>
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Categoria *</label>
@@ -1166,12 +1137,12 @@ body {
             <option value="">Selecionar...</option>
           </select>
         </div>
-        <div class="form-group" id="rec-rendimento-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
+        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
       </div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
       <div class="divider"></div>
       <div class="flex-between mb-12">
-        <div class="section-label">🧂 Ingredientes <span id="rec-ing-hint" style="font-weight:400;font-size:0.72rem;color:var(--text3);display:none">(receita base)</span></div>
+        <div class="section-label">🧂 Ingredientes</div>
         <button class="btn btn-secondary btn-sm" onclick="addLinhaIngReceira()">+ Adicionar</button>
       </div>
       <div id="rec-ing-lista"></div>
@@ -1181,21 +1152,6 @@ body {
         <button class="btn btn-secondary btn-sm" onclick="addLinhaInsReceira()">+ Adicionar</button>
       </div>
       <div id="rec-ins-lista"></div>
-
-      <!-- TAMANHOS (só pra receitas prontas) -->
-      <div id="rec-tamanhos-section" style="display:none">
-        <div class="divider"></div>
-        <div class="section-label">📏 Tamanhos & Valores de Venda</div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Preencha o valor apenas dos aros que esta receita atende. Deixe em branco os que não fizer.</div>
-        <div class="tamanho-row" style="margin-bottom:6px;font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;font-weight:600">
-          <span>Aro</span>
-          <span>Baunilha (R$)</span>
-          <span>Chocolate (R$)</span>
-        </div>
-        <div id="rec-tamanhos-lista"></div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
-      </div>
-
       <div class="divider"></div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
         <div class="flex-between" style="margin-bottom:6px">
@@ -1211,11 +1167,11 @@ body {
           <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Detalhamento</div>
           <div id="rec-resumo-itens" style="font-size:0.78rem;color:var(--accent)"></div>
         </div>
-        <div class="form-group" id="rec-preco-group" style="margin:0">
+        <div class="form-group" style="margin:0">
           <label class="form-label">Preço de Venda por Unidade (R$)</label>
           <input type="number" class="form-input" id="rec-preco-venda" placeholder="0,00" step="0.01" oninput="atualizarMargemUI()">
         </div>
-        <div class="flex-between mt-12" id="rec-margem-row">
+        <div class="flex-between mt-12">
           <span class="text-muted">Margem por unidade:</span>
           <span id="rec-margem" style="font-weight:700">—</span>
         </div>
@@ -1287,21 +1243,7 @@ body {
       </div>
       <div id="ped-itens-lista"></div>
       <div class="form-group mt-12"><label class="form-label">Observações</label><textarea class="form-textarea" id="ped-obs" placeholder="Tema, cores, mensagem no bolo..."></textarea></div>
-      <div class="divider"></div>
-      <div class="section-label">💸 Desconto</div>
-      <div class="form-row-2">
-        <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" class="form-input" id="ped-desconto" placeholder="0,00" step="0.01" min="0" oninput="calcularTotalPedidoForm()"></div>
-        <div class="form-group"><label class="form-label">Motivo</label><input type="text" class="form-input" id="ped-desconto-motivo" placeholder="ex: Cliente fidelidade"></div>
-      </div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px;margin-top:8px">
-        <div class="flex-between" id="ped-subtotal-row" style="display:none;margin-bottom:6px">
-          <span style="font-size:0.85rem;color:var(--accent)">Subtotal:</span>
-          <span style="font-size:0.85rem;color:var(--accent)" id="ped-subtotal-display">R$ 0,00</span>
-        </div>
-        <div class="flex-between" id="ped-desconto-row" style="display:none;margin-bottom:6px">
-          <span style="font-size:0.85rem;color:var(--accent)">Desconto:</span>
-          <span style="font-size:0.85rem;color:var(--accent)" id="ped-desconto-display">− R$ 0,00</span>
-        </div>
         <div class="flex-between">
           <span style="font-weight:700;color:var(--accent)">Total:</span>
           <span style="font-weight:700;color:var(--accent);font-size:1.1rem" id="ped-total-display">R$ 0,00</span>
@@ -1637,7 +1579,6 @@ let DB = {
 let currentPage      = 'dashboard';
 let currentEstoqueTab = 'ingrediente';
 let recCatFilter     = '';
-let recTipoFilter    = 'custom'; // 'custom' | 'pronta'
 let pedStatusFilter  = '';
 let ingCatFilter     = '';
 let insCatFilter     = '';
@@ -2494,17 +2435,6 @@ const CAT_ICONS = {
 // ──────────────────────────────────────────
 //  RECEITAS — RENDER
 // ──────────────────────────────────────────
-function filtrarReceitasTipo(tipo) {
-  recTipoFilter = tipo;
-  document.querySelectorAll('#rec-tipo-chips .chip').forEach(c =>
-    c.classList.toggle('active', c.dataset.tipo === tipo)
-  );
-  // Reset categoria ao mudar tipo
-  recCatFilter = '';
-  renderRecChips();
-  renderReceitas();
-}
-
 function filtrarReceitas(cat) {
   recCatFilter = cat;
   document.querySelectorAll('#rec-chips .chip').forEach(c =>
@@ -2515,19 +2445,13 @@ function filtrarReceitas(cat) {
 
 function renderReceitas() {
   const q     = (document.getElementById('rec-search')?.value || '').toLowerCase();
-  // Receitas legadas sem tipo são tratadas como 'custom'
-  const dados = DB.receitas.filter(r => {
-    const tipoR = r.tipo || 'custom';
-    return tipoR === recTipoFilter &&
-      (!recCatFilter || r.categoria === recCatFilter) &&
-      (!q || r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q));
-  });
+  const dados = DB.receitas.filter(r =>
+    (!recCatFilter || r.categoria === recCatFilter) &&
+    (!q || r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q))
+  );
 
   const label = document.getElementById('rec-count-label');
-  if (label) {
-    const totalTipo = DB.receitas.filter(r => (r.tipo || 'custom') === recTipoFilter).length;
-    label.textContent = totalTipo + (totalTipo === 1 ? ' receita' : ' receitas');
-  }
+  if (label) label.textContent = DB.receitas.length + (DB.receitas.length === 1 ? ' receita' : ' receitas');
 
   const el = document.getElementById('rec-lista');
   if (!el) return;
@@ -2542,32 +2466,6 @@ function renderReceitas() {
   }
 
   el.innerHTML = dados.map(r => {
-    const tipoR = r.tipo || 'custom';
-    if (tipoR === 'pronta') {
-      // Card de receita pronta — mostra menor e maior preço dos tamanhos
-      const tamanhos = r.tamanhos || [];
-      const precos   = tamanhos.flatMap(t => [parseFloat(t.preco)||0, parseFloat(t.preco_chocolate)||0]).filter(p => p > 0);
-      const min = precos.length ? Math.min(...precos) : 0;
-      const max = precos.length ? Math.max(...precos) : 0;
-      return `<div class="rec-card" onclick="verReceita('${r.id}')">
-        <div class="rec-card-top">
-          <span class="rec-card-emoji">${CAT_ICONS[r.categoria] || '🎂'}</span>
-          <span class="badge badge-accent">${r.categoria}</span>
-          <span class="badge badge-gray" style="margin-left:auto">🎂 Pronta</span>
-        </div>
-        <div class="rec-card-name">${r.nome}</div>
-        <div class="rec-card-desc">${r.descricao || '—'}</div>
-        <div class="rec-card-footer">
-          <span>${tamanhos.length} ${tamanhos.length === 1 ? 'tamanho' : 'tamanhos'}</span>
-          <span>Preço: <b>${precos.length ? (min === max ? 'R$ '+min.toFixed(2) : 'R$ '+min.toFixed(2)+' – R$ '+max.toFixed(2)) : '—'}</b></span>
-        </div>
-        <div class="rec-card-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="deletarReceita('${r.id}')">🗑️</button>
-        </div>
-      </div>`;
-    }
-    // Card padrão (custom)
     const custoTotal    = calcularCustoReceita(r);
     const rendimento    = r.rendimento || 1;
     const custoUnitario = custoTotal / rendimento;
@@ -2743,55 +2641,6 @@ function atualizarMargemUI(custo) {
 // ──────────────────────────────────────────
 //  RECEITAS — CRUD
 // ──────────────────────────────────────────
-// Alterna entre Custom (receita normal) e Pronta (com tabela de tamanhos)
-function setRecTipo(tipo) {
-  document.getElementById('rec-tipo').value = tipo;
-  document.querySelectorAll('#rec-tipo-toggle .chip').forEach(c =>
-    c.classList.toggle('active', c.dataset.recTipo === tipo)
-  );
-  const isPronta = tipo === 'pronta';
-  // Em receita pronta, "rendimento" e "preço de venda por unidade" não fazem sentido —
-  // o preço vem da tabela de tamanhos
-  const rendG  = document.getElementById('rec-rendimento-group');
-  const precoG = document.getElementById('rec-preco-group');
-  const margem = document.getElementById('rec-margem-row');
-  const tamSec = document.getElementById('rec-tamanhos-section');
-  const ingHint = document.getElementById('rec-ing-hint');
-  if (rendG)   rendG.style.display   = isPronta ? 'none' : '';
-  if (precoG)  precoG.style.display  = isPronta ? 'none' : '';
-  if (margem)  margem.style.display  = isPronta ? 'none' : '';
-  if (tamSec)  tamSec.style.display  = isPronta ? '' : 'none';
-  if (ingHint) ingHint.style.display = isPronta ? '' : 'none';
-
-  // Quando vira Pronta, monta a tabela fixa com os 5 aros (se ainda não tiver montada)
-  if (isPronta) {
-    const lista = document.getElementById('rec-tamanhos-lista');
-    if (lista && lista.children.length === 0) {
-      montarTamanhosFixos();
-    }
-  }
-}
-
-// Aros fixos disponíveis
-const AROS_DISPONIVEIS = ['Aro 12', 'Aro 15', 'Aro 17', 'Aro 20', 'Aro 25'];
-
-// Renderiza as 5 linhas fixas de aros. Se receber `dados` (array de tamanhos salvos),
-// preenche os valores. Aros não preenchidos = receita não atende esse tamanho.
-function montarTamanhosFixos(tamanhosSalvos = []) {
-  const lista = document.getElementById('rec-tamanhos-lista');
-  if (!lista) return;
-  lista.innerHTML = AROS_DISPONIVEIS.map(aro => {
-    const salvo = tamanhosSalvos.find(t => t.nome === aro) || {};
-    return `
-      <div class="tamanho-row" data-aro="${aro}">
-        <span class="tam-aro-label">${aro}</span>
-        <input type="number" class="form-input tam-preco" placeholder="—" step="0.01" value="${salvo.preco ?? ''}">
-        <input type="number" class="form-input tam-preco-choc" placeholder="—" step="0.01" value="${salvo.preco_chocolate ?? ''}">
-      </div>
-    `;
-  }).join('');
-}
-
 function fecharModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
@@ -2799,12 +2648,10 @@ function fecharModalReceita() {
   document.getElementById('rec-preco-venda').value = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   document.getElementById('rec-ins-lista').innerHTML = '';
-  const tl = document.getElementById('rec-tamanhos-lista'); if (tl) tl.innerHTML = '';
   const ct = document.getElementById('rec-custo-total');  if (ct) ct.textContent = 'R$ 0,00';
   const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
   const rm = document.getElementById('rec-margem');       if (rm) { rm.textContent = '—'; rm.style.color = ''; }
   const rl = document.getElementById('rec-resumo-lista'); if (rl) rl.style.display = 'none';
-  setRecTipo('custom');
   fecharModal('modal-receita');
 }
 
@@ -2816,11 +2663,8 @@ function abrirModalReceita() {
   document.getElementById('rec-preco-venda').value  = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   document.getElementById('rec-ins-lista').innerHTML = '';
-  const tl = document.getElementById('rec-tamanhos-lista'); if (tl) tl.innerHTML = '';
   document.getElementById('rec-custo-total').textContent = 'R$ 0,00';
   document.getElementById('rec-margem').textContent = '—';
-  // Ao abrir nova receita, usa o tipo do filtro atual da página
-  setRecTipo(recTipoFilter || 'custom');
   renderRecChips();
   document.getElementById('modal-receita').classList.remove('hidden');
 }
@@ -2838,9 +2682,6 @@ function editarReceita(id) {
   document.getElementById('rec-obs').value              = r.obs || '';
   document.getElementById('rec-ing-lista').innerHTML    = '';
   document.getElementById('rec-ins-lista').innerHTML    = '';
-  const tl = document.getElementById('rec-tamanhos-lista'); if (tl) tl.innerHTML = '';
-
-  setRecTipo(r.tipo || 'custom');
 
   (r.ingredientes || []).forEach(item => {
     addLinhaIngReceira();
@@ -2865,11 +2706,6 @@ function editarReceita(id) {
     if (ins) linha.querySelector('.un-label').textContent = ins.unidade;
   });
 
-  // Tamanhos (só receita pronta) — sempre monta as 5 linhas fixas, preenchendo as salvas
-  if ((r.tipo || 'custom') === 'pronta') {
-    montarTamanhosFixos(r.tamanhos || []);
-  }
-
   recalcularCusto();
   document.getElementById('modal-receita').classList.remove('hidden');
 }
@@ -2877,8 +2713,6 @@ function editarReceita(id) {
 async function salvarReceita() {
   const nome = document.getElementById('rec-nome').value.trim();
   if (!nome) { toast('Informe o nome da receita!', 'error'); return; }
-
-  const tipo = document.getElementById('rec-tipo').value || 'custom';
 
   const ingredientes = [];
   document.querySelectorAll('#rec-ing-lista .recipe-row').forEach(row => {
@@ -2894,32 +2728,15 @@ async function salvarReceita() {
     if (id && qtd > 0) insumos.push({ id, quantidade: qtd });
   });
 
-  // Tamanhos (só receita pronta) — coleta dos 5 aros, salva só os com pelo menos um valor
-  const tamanhos = [];
-  if (tipo === 'pronta') {
-    document.querySelectorAll('#rec-tamanhos-lista .tamanho-row').forEach(row => {
-      const aro       = row.dataset.aro;
-      const preco     = parseFloat(row.querySelector('.tam-preco').value) || 0;
-      const precoChoc = parseFloat(row.querySelector('.tam-preco-choc').value) || 0;
-      // Só salva o aro se tiver pelo menos um dos preços preenchido
-      if (aro && (preco > 0 || precoChoc > 0)) {
-        tamanhos.push({ nome: aro, preco, preco_chocolate: precoChoc });
-      }
-    });
-    if (tamanhos.length === 0) { toast('Preencha o valor de pelo menos um aro!', 'error'); return; }
-  }
-
   const payload = {
     nome,
-    tipo,
     categoria:   document.getElementById('rec-categoria').value,
     descricao:   document.getElementById('rec-descricao').value.trim(),
-    rendimento:  tipo === 'pronta' ? null : (parseInt(document.getElementById('rec-rendimento').value) || null),
-    preco_venda: tipo === 'pronta' ? null : (parseFloat(document.getElementById('rec-preco-venda').value) || null),
+    rendimento:  parseInt(document.getElementById('rec-rendimento').value) || null,
+    preco_venda: parseFloat(document.getElementById('rec-preco-venda').value) || null,
     obs:         document.getElementById('rec-obs').value.trim(),
     ingredientes,
-    insumos,
-    tamanhos:    tipo === 'pronta' ? tamanhos : null
+    insumos
   };
 
   const editId = document.getElementById('rec-edit-id').value;
@@ -3096,56 +2913,18 @@ function gerarIdPedido() {
 function formatarItensPedido(p) {
   return (p.itens || []).map(i => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
-    if (!r) return '?';
-    const tipoR = r.tipo || 'custom';
-    if (tipoR === 'pronta' && i.tamanho_nome) {
-      const sabor = i.sabor === 'chocolate' ? ' chocolate' : ' baunilha';
-      const fmt   = i.formato === 'retangular' ? ' (retangular)' : '';
-      return `${r.nome}${sabor} ${i.tamanho_nome}${fmt} ×${i.quantidade}`;
-    }
-    return `${r.nome} ×${i.quantidade}`;
+    return r ? `${r.nome} ×${i.quantidade}` : '?';
   }).join(', ') || '—';
 }
 
-// Preço unitário do item de pedido (já considerando receita pronta com tamanho/sabor/formato).
-// Se houver snapshot, usa o congelado; senão, usa o preço salvo no item ou recalcula da receita.
-function precoUnitarioItem(p, i) {
-  // Snapshot por receita (comportamento legado)
-  const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
-  if (snap && snap.preco_unitario != null) return snap.preco_unitario;
-  // Receita pronta: o preço foi salvo no item (preco_unitario)
-  if (i.preco_unitario != null) return parseFloat(i.preco_unitario) || 0;
-  // Receita custom: usa preco_venda da receita
-  const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
-  return parseFloat(r?.preco_venda) || 0;
-}
-
-// Custo unitário do item de pedido
-// - Custom: calcularCustoUnitario (custo da receita / rendimento)
-// - Pronta: custo total da receita base (os ingredientes definidos são pra fazer 1 bolo
-//   independente do tamanho — quem quiser variar por tamanho ajusta os ingredientes)
-function custoUnitarioItem(p, i) {
-  const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
-  if (snap && snap.custo_unitario != null) return snap.custo_unitario;
-  const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
-  if (!r) return 0;
-  if ((r.tipo || 'custom') === 'pronta') {
-    return calcularCustoReceita(r);
-  }
-  return calcularCustoUnitario(r);
-}
-
 function calcularTotalPedido(p) {
-  const subtotal = (p.itens || []).reduce((acc, i) => {
-    return acc + precoUnitarioItem(p, i) * (i.quantidade || 1);
+  return (p.itens || []).reduce((acc, i) => {
+    // Se efetuado, usa snapshot do preço (preço congelado no momento do efetuado)
+    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
+    if (snap) return acc + (snap.preco_unitario || 0) * (i.quantidade || 1);
+    const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    return acc + (parseFloat(r?.preco_venda) || 0) * (i.quantidade || 1);
   }, 0);
-  const desc = parseFloat(p.desconto) || 0;
-  return Math.max(0, subtotal - desc);
-}
-
-// Subtotal sem desconto (útil pra mostrar "de R$ X por R$ Y")
-function calcularSubtotalPedido(p) {
-  return (p.itens || []).reduce((acc, i) => acc + precoUnitarioItem(p, i) * (i.quantidade || 1), 0);
 }
 
 // ──────────────────────────────────────────
@@ -3345,130 +3124,42 @@ function filtrarCalDia(dia) {
 function addLinhaPedido() {
   const div = document.createElement('div');
   div.className = 'pedido-item-row';
-  div.style.flexDirection = 'column';
-  div.style.alignItems   = 'stretch';
-  div.style.gap          = '6px';
   div.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center">
-      <select class="form-select ped-receita-sel" style="font-size:0.85rem;padding:9px;flex:1" onchange="onChangePedidoReceita(this)">
-        <option value="">Receita...</option>
-        ${DB.receitas.map(r => `<option value="${r.id}">${(r.tipo||'custom')==='pronta'?'🎂 ':''}${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
-      </select>
-      <input type="number" class="form-input ped-qtd" style="font-size:0.85rem;padding:9px;width:70px" value="1" min="1"
-        placeholder="Qtd" oninput="calcularTotalPedidoForm()">
-      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
-    </div>
-    <div class="ped-pronta-opts" style="display:none;background:var(--bg2);border-radius:8px;padding:8px;gap:6px;flex-direction:column">
-      <div style="display:flex;gap:6px;align-items:center">
-        <span style="font-size:0.72rem;color:var(--text3);min-width:60px">Tamanho:</span>
-        <select class="form-select ped-tamanho-sel" style="flex:1;font-size:0.82rem;padding:7px" onchange="calcularTotalPedidoForm()"></select>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span style="font-size:0.72rem;color:var(--text3);min-width:60px">Sabor:</span>
-        <select class="form-select ped-sabor-sel" style="flex:1;font-size:0.82rem;padding:7px" onchange="calcularTotalPedidoForm()">
-          <option value="normal">Baunilha</option>
-          <option value="chocolate">Chocolate</option>
-        </select>
-        <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--text2)">
-          <input type="checkbox" class="ped-retangular" onchange="calcularTotalPedidoForm()"> Retangular
-        </label>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span style="font-size:0.72rem;color:var(--text3);min-width:60px">Preço:</span>
-        <input type="number" class="form-input ped-preco-edit" placeholder="0,00" step="0.01" style="flex:1;font-size:0.82rem;padding:7px" oninput="this.closest('.pedido-item-row').dataset.precoEditado='1'; calcularTotalPedidoForm()">
-        <span style="font-size:0.7rem;color:var(--text3);font-style:italic">(editável)</span>
-      </div>
-    </div>
+    <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
+      <option value="">Receita...</option>
+      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1"
+      placeholder="Qtd" oninput="calcularTotalPedidoForm()">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
   `;
   document.getElementById('ped-itens-lista').appendChild(div);
 }
 
-// Helper: calcula o preço auto sugerido pra um item de receita pronta
-function calcularPrecoSugerido(row) {
-  const id   = row.querySelector('.ped-receita-sel').value;
-  const r    = DB.receitas.find(x => String(x.id) === id);
-  if (!r || (r.tipo || 'custom') !== 'pronta') return 0;
-  const tamSel = row.querySelector('.ped-tamanho-sel');
-  const tIdx   = parseInt(tamSel?.value);
-  const tam    = (r.tamanhos || [])[tIdx];
-  if (!tam) return 0;
-  const sabor = row.querySelector('.ped-sabor-sel')?.value || 'normal';
-  const ret   = row.querySelector('.ped-retangular')?.checked;
-  let preco   = sabor === 'chocolate' ? (parseFloat(tam.preco_chocolate) || 0) : (parseFloat(tam.preco) || 0);
-  // Fallback: se não tiver preço chocolate, usa preço normal
-  if (sabor === 'chocolate' && preco === 0) preco = parseFloat(tam.preco) || 0;
-  if (ret) preco += 10; // Retangular: acréscimo fixo de R$ 10
-  return preco;
-}
-
 function onChangePedidoReceita(sel) {
-  const row = sel.closest('.pedido-item-row');
   const r   = DB.receitas.find(x => String(x.id) === sel.value);
-  const opts = row.querySelector('.ped-pronta-opts');
-  const inp  = row.querySelector('.ped-qtd');
-
-  if (r && (r.tipo || 'custom') === 'pronta') {
-    // Mostra opções de tamanho/sabor
-    opts.style.display = 'flex';
-    const tamSel = row.querySelector('.ped-tamanho-sel');
-    tamSel.innerHTML = (r.tamanhos || []).map((t, i) =>
-      `<option value="${i}">${t.nome}</option>`
-    ).join('');
-    // Inicializa preço auto
-    const precoInp = row.querySelector('.ped-preco-edit');
-    setTimeout(() => {
-      precoInp.value = calcularPrecoSugerido(row).toFixed(2);
-      calcularTotalPedidoForm();
-    }, 0);
-    inp.removeAttribute('title');
+  const row = sel.closest('.pedido-item-row');
+  const inp = row.querySelector('input[type="number"]');
+  // Quantidade do pedido é independente do rendimento
+  // (a receita pode ser produzida várias vezes para atender o pedido)
+  if (r) {
+    inp.title = r.rendimento > 1
+      ? `Receita rende ${r.rendimento} unidades por lote`
+      : `Receita rende 1 unidade`;
   } else {
-    opts.style.display = 'none';
-    if (r) {
-      inp.title = r.rendimento > 1
-        ? `Receita rende ${r.rendimento} unidades por lote`
-        : `Receita rende 1 unidade`;
-    } else {
-      inp.removeAttribute('title');
-    }
-    calcularTotalPedidoForm();
+    inp.removeAttribute('title');
   }
+  calcularTotalPedidoForm();
 }
 
 function calcularTotalPedidoForm() {
-  let subtotal = 0;
+  let total = 0;
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id  = row.querySelector('.ped-receita-sel').value;
-    const qtd = parseInt(row.querySelector('.ped-qtd').value) || 1;
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input[type="number"]').value) || 1;
     const r   = DB.receitas.find(x => String(x.id) === id);
-    if (!r) return;
-    if ((r.tipo || 'custom') === 'pronta') {
-      // Atualiza preço sugerido na UI quando tamanho/sabor/retangular muda
-      const precoInp = row.querySelector('.ped-preco-edit');
-      const sugerido = calcularPrecoSugerido(row);
-      // Se o usuário ainda não editou (campo vazio ou bate com sugerido anterior), atualiza
-      const atual = parseFloat(precoInp.value);
-      if (!row.dataset.precoEditado) {
-        precoInp.value = sugerido.toFixed(2);
-      }
-      const preco = parseFloat(precoInp.value) || sugerido;
-      subtotal += preco * qtd;
-    } else if (r.preco_venda) {
-      subtotal += parseFloat(r.preco_venda) * qtd;
-    }
+    if (r?.preco_venda) total += parseFloat(r.preco_venda) * qtd;
   });
-  const desconto = parseFloat(document.getElementById('ped-desconto')?.value) || 0;
-  const total = Math.max(0, subtotal - desconto);
-
-  // Mostra subtotal/desconto só se houver desconto
-  const subRow = document.getElementById('ped-subtotal-row');
-  const desRow = document.getElementById('ped-desconto-row');
-  if (desconto > 0) {
-    if (subRow) { subRow.style.display = 'flex'; document.getElementById('ped-subtotal-display').textContent = 'R$ ' + subtotal.toFixed(2); }
-    if (desRow) { desRow.style.display = 'flex'; document.getElementById('ped-desconto-display').textContent = '− R$ ' + desconto.toFixed(2); }
-  } else {
-    if (subRow) subRow.style.display = 'none';
-    if (desRow) desRow.style.display = 'none';
-  }
   document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
 }
 
@@ -3486,11 +3177,6 @@ function abrirModalPedido() {
   document.getElementById('ped-itens-lista').innerHTML  = '';
   document.getElementById('ped-total-display').textContent = 'R$ 0,00';
   document.getElementById('ped-orcamento-text').value  = '';
-  // Reset desconto
-  const dEl  = document.getElementById('ped-desconto');         if (dEl)  dEl.value  = '';
-  const dmEl = document.getElementById('ped-desconto-motivo');  if (dmEl) dmEl.value = '';
-  const sRow = document.getElementById('ped-subtotal-row');     if (sRow) sRow.style.display = 'none';
-  const dRow = document.getElementById('ped-desconto-row');     if (dRow) dRow.style.display = 'none';
   document.getElementById('modal-pedido').classList.remove('hidden');
 }
 
@@ -3510,36 +3196,13 @@ function editarPedido(id) {
   document.getElementById('ped-preferencias').value     = p.preferencias || '';
   document.getElementById('ped-obs').value              = p.obs || '';
   document.getElementById('ped-itens-lista').innerHTML  = '';
-  // Desconto
-  const dEl  = document.getElementById('ped-desconto');
-  const dmEl = document.getElementById('ped-desconto-motivo');
-  if (dEl)  dEl.value  = p.desconto || '';
-  if (dmEl) dmEl.value = p.desconto_motivo || '';
 
   (p.itens || []).forEach(item => {
     addLinhaPedido();
     const linhas = document.querySelectorAll('#ped-itens-lista .pedido-item-row');
     const linha  = linhas[linhas.length - 1];
-    linha.querySelector('.ped-receita-sel').value = item.receita_id;
-    linha.querySelector('.ped-qtd').value         = item.quantidade;
-    // Dispara onChange para preencher tamanhos se for pronta
-    onChangePedidoReceita(linha.querySelector('.ped-receita-sel'));
-    // Restaura tamanho/sabor/retangular/preço se for receita pronta
-    const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
-    if (r && (r.tipo || 'custom') === 'pronta') {
-      const tamSel = linha.querySelector('.ped-tamanho-sel');
-      const idx = (r.tamanhos || []).findIndex(t => t.nome === item.tamanho_nome);
-      if (idx >= 0 && tamSel) tamSel.value = idx;
-      const sSel = linha.querySelector('.ped-sabor-sel');
-      if (sSel && item.sabor) sSel.value = item.sabor;
-      const ret = linha.querySelector('.ped-retangular');
-      if (ret && item.formato === 'retangular') ret.checked = true;
-      const precoInp = linha.querySelector('.ped-preco-edit');
-      if (precoInp && item.preco_unitario != null) {
-        precoInp.value = parseFloat(item.preco_unitario).toFixed(2);
-        linha.dataset.precoEditado = '1';
-      }
-    }
+    linha.querySelector('select').value = item.receita_id;
+    linha.querySelector('input').value  = item.quantidade;
   });
 
   calcularTotalPedidoForm();
@@ -3562,34 +3225,18 @@ function gerarSnapshotCusto(itens) {
   (itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
-    const tipoR      = r.tipo || 'custom';
-    const qtdVendida = item.quantidade || 1;
-    const rendimento = r.rendimento || 1;
-
-    // Preço: receita pronta usa preco_unitario salvo no item; custom usa preco_venda da receita
-    const precoUnitario = tipoR === 'pronta'
-      ? (parseFloat(item.preco_unitario) || 0)
-      : (parseFloat(r.preco_venda) || 0);
-
-    // Custo:
-    // - Custom: custo / rendimento (calcularCustoUnitario)
-    // - Pronta: custo total da receita base (1 receita = 1 bolo)
-    const custoUnitario = tipoR === 'pronta'
-      ? calcularCustoReceita(r)
-      : calcularCustoUnitario(r);
-
-    const receita = precoUnitario * qtdVendida;
-    const custo   = custoUnitario * qtdVendida;
-    const lucro   = receita - custo;
-    const margem  = receita > 0 ? lucro / receita : null;
+    const qtdVendida    = item.quantidade || 1;
+    const rendimento    = r.rendimento || 1;
+    const custoUnitario = calcularCustoUnitario(r);
+    const precoUnitario = parseFloat(r.preco_venda) || 0;
+    const receita       = precoUnitario * qtdVendida;
+    const custo         = custoUnitario * qtdVendida;
+    const lucro         = receita - custo;
+    const margem        = receita > 0 ? lucro / receita : null;
 
     itensSnapshot.push({
       receita_id:      r.id,
       nome:            r.nome,
-      tipo:            tipoR,
-      tamanho_nome:    item.tamanho_nome || null,
-      sabor:           item.sabor || null,
-      formato:         item.formato || null,
       quantidade:      qtdVendida,
       custo_unitario:  parseFloat(custoUnitario.toFixed(4)),
       preco_unitario:  precoUnitario,
@@ -3600,14 +3247,11 @@ function gerarSnapshotCusto(itens) {
     });
 
     // Detalhamento de ingredientes/insumos consumidos:
-    // - Custom: qtd da receita / rendimento × qtdVendida
-    // - Pronta: qtd da receita base × qtdVendida (1 receita = 1 bolo)
+    // qtd da receita está pra rendimento — proporção: qtd_receita / rendimento * qtdVendida
     (r.ingredientes || []).forEach(ri => {
       const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
       if (!ing || !ing.qtd_embalagem) return;
-      const qtdConsumida = tipoR === 'pronta'
-        ? (ri.quantidade || 0) * qtdVendida
-        : (ri.quantidade || 0) / rendimento * qtdVendida;
+      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
       const c = (ing.preco / ing.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
       custoTotal += c;
@@ -3615,9 +3259,7 @@ function gerarSnapshotCusto(itens) {
     (r.insumos || []).forEach(ri => {
       const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
       if (!ins || !ins.qtd_embalagem) return;
-      const qtdConsumida = tipoR === 'pronta'
-        ? (ri.quantidade || 0) * qtdVendida
-        : (ri.quantidade || 0) / rendimento * qtdVendida;
+      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
       const c = (ins.preco / ins.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ins.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ins.unidade, custo: parseFloat(c.toFixed(4)) });
       custoTotal += c;
@@ -3635,9 +3277,12 @@ function calcularCustoPedido(p) {
   if (p.status === 'efetuado' && typeof p.custo_total_snapshot === 'number' && p.custo_total_snapshot > 0) {
     return p.custo_total_snapshot;
   }
-  // Senão, calcula dinamicamente usando o helper que já considera receitas prontas
+  // Senão, calcula dinamicamente: custo_unitario × quantidade
   return (p.itens || []).reduce((acc, i) => {
-    return acc + custoUnitarioItem(p, i) * (i.quantidade || 1);
+    const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
+    if (!r) return acc;
+    const custoUnit = calcularCustoUnitario(r);
+    return acc + custoUnit * (i.quantidade || 1);
   }, 0);
 }
 async function salvarPedido() {
@@ -3647,32 +3292,14 @@ async function salvarPedido() {
 
   const itens = [];
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id      = row.querySelector('.ped-receita-sel').value;
-    const porcoes = parseInt(row.querySelector('.ped-qtd').value) || 1;
-    if (!id) return;
-    const r = DB.receitas.find(x => String(x.id) === id);
-    const item = { receita_id: id, quantidade: porcoes, tipo: 'receita' };
-    if (r && (r.tipo || 'custom') === 'pronta') {
-      const tIdx     = parseInt(row.querySelector('.ped-tamanho-sel')?.value);
-      const tam      = (r.tamanhos || [])[tIdx];
-      const sabor    = row.querySelector('.ped-sabor-sel')?.value || 'normal';
-      const ret      = !!row.querySelector('.ped-retangular')?.checked;
-      const precoEd  = parseFloat(row.querySelector('.ped-preco-edit')?.value) || 0;
-      item.tamanho_idx     = isNaN(tIdx) ? null : tIdx;
-      item.tamanho_nome    = tam ? tam.nome : null;
-      item.sabor           = sabor;
-      item.formato         = ret ? 'retangular' : 'redondo';
-      item.preco_unitario  = precoEd;
-    }
-    itens.push(item);
+    const id     = row.querySelector('select').value;
+    const porcoes = parseInt(row.querySelector('input[type="number"]').value) || 1;
+    if (id) itens.push({ receita_id: id, quantidade: porcoes, tipo: 'receita' });
   });
 
   const editId = document.getElementById('ped-edit-id').value;
   const status = document.getElementById('ped-status').value;
   const pago   = document.getElementById('ped-pago').value === 'true';
-
-  const desconto       = parseFloat(document.getElementById('ped-desconto')?.value) || 0;
-  const descontoMotivo = document.getElementById('ped-desconto-motivo')?.value.trim() || '';
 
   const payload = {
     cliente_nome:     nome,
@@ -3685,8 +3312,6 @@ async function salvarPedido() {
     forma_pagamento:  document.getElementById('ped-pagamento').value,
     preferencias:     document.getElementById('ped-preferencias').value.trim(),
     obs:              document.getElementById('ped-obs').value.trim(),
-    desconto:         desconto > 0 ? desconto : null,
-    desconto_motivo:  desconto > 0 ? descontoMotivo : null,
     itens
   };
   const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
@@ -3748,41 +3373,31 @@ async function deletarPedido(id) {
 function verPedido(id) {
   const p = DB.pedidos.find(x => String(x.id) === String(id));
   if (!p) return;
-  const subtotal = calcularSubtotalPedido(p);
-  const desc     = parseFloat(p.desconto) || 0;
-  const total    = calcularTotalPedido(p);
-  const custo    = calcularCustoPedido(p);
-  const lucro    = total - custo;
-  const margem   = total > 0 ? lucro / total : null;
-  const selo     = selomargem(margem);
+  const total = calcularTotalPedido(p);
+  const custo = calcularCustoPedido(p);
+  const lucro = total - custo;
+  const margem = total > 0 ? lucro / total : null;
+  const selo = selomargem(margem);
 
-  // Pra cada item: receita, tamanho/sabor (se pronta), custo unitário, lucro, margem
+  // Pra cada item: receita, custo unitário, lucro, margem
   const linhasItens = (p.itens || []).map(i => {
     const r   = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return `<div class="mercado-item"><span>? ×${i.quantidade}</span><span>—</span></div>`;
-    const tipoR     = r.tipo || 'custom';
-    const precoUnit = precoUnitarioItem(p, i);
-    const custoUnit = custoUnitarioItem(p, i);
+    // Se tem snapshot, usa congelado; senão calcula dinâmico
+    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
+    const precoUnit  = snap ? snap.preco_unitario  : (parseFloat(r.preco_venda) || 0);
+    const custoUnit  = snap ? snap.custo_unitario  : calcularCustoUnitario(r);
     const qtd        = i.quantidade;
     const recItem    = precoUnit * qtd;
     const custoItem  = custoUnit * qtd;
     const lucroItem  = recItem - custoItem;
     const margemItem = recItem > 0 ? lucroItem / recItem : null;
     const seloItem   = selomargem(margemItem);
-    // Detalhes da receita pronta (tamanho/sabor/formato)
-    const detPronta = (tipoR === 'pronta' && i.tamanho_nome)
-      ? `<div style="font-size:0.78rem;color:var(--text2);margin-top:2px">
-           ${i.tamanho_nome}
-           · ${i.sabor === 'chocolate' ? 'Chocolate' : 'Baunilha'}
-           ${i.formato === 'retangular' ? ' · Retangular' : ''}
-         </div>`
-      : '';
     return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
       <div class="mercado-item" style="border:none;padding:0">
         <span style="font-weight:700">${r.nome} ×${qtd}</span>
         <span style="font-weight:700;color:var(--accent)">R$ ${recItem.toFixed(2)}</span>
       </div>
-      ${detPronta}
       <div style="display:flex;gap:8px;font-size:0.75rem;color:var(--text3);margin-top:4px;flex-wrap:wrap">
         <span>Custo: R$ ${custoItem.toFixed(2)}</span>
         <span>Lucro: <b style="color:${lucroItem >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroItem.toFixed(2)}</b></span>
@@ -3811,10 +3426,6 @@ function verPedido(id) {
 
     <div class="section-label">💰 Resumo financeiro</div>
     <div class="card" style="padding:12px;margin-bottom:12px">
-      ${desc > 0 ? `
-        <div class="mercado-item"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2)}</span></div>
-        <div class="mercado-item"><span>Desconto${p.desconto_motivo ? ' ('+p.desconto_motivo+')' : ''}</span><span style="color:var(--accent)">− R$ ${desc.toFixed(2)}</span></div>
-      ` : ''}
       <div class="mercado-item"><span>Receita total</span><span style="font-weight:700">R$ ${total.toFixed(2)}</span></div>
       <div class="mercado-item"><span>Custo total (CMV)</span><span style="font-weight:700;color:var(--red)">− R$ ${custo.toFixed(2)}</span></div>
       <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
@@ -3838,47 +3449,37 @@ function verPedido(id) {
 //  ORÇAMENTO
 // ──────────────────────────────────────────
 function gerarOrcamento() {
+  const nome    = document.getElementById('ped-cliente').value    || '—';
+  const entrega = document.getElementById('ped-data-entrega').value;
+  const obs     = document.getElementById('ped-obs').value;
   const itens   = [];
-  let subtotal = 0;
+  let total = 0;
 
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
-    const id  = row.querySelector('.ped-receita-sel').value;
-    const qtd = parseInt(row.querySelector('.ped-qtd').value) || 1;
+    const id  = row.querySelector('select').value;
+    const qtd = parseInt(row.querySelector('input').value) || 1;
     const r   = DB.receitas.find(x => String(x.id) === id);
-    if (!r) return;
-    const tipoR = r.tipo || 'custom';
-    let descItem = `${r.nome}`;
-    let preco    = 0;
-    if (tipoR === 'pronta') {
-      const tIdx  = parseInt(row.querySelector('.ped-tamanho-sel')?.value);
-      const tam   = (r.tamanhos || [])[tIdx];
-      const sabor = row.querySelector('.ped-sabor-sel')?.value || 'normal';
-      const ret   = !!row.querySelector('.ped-retangular')?.checked;
-      preco = parseFloat(row.querySelector('.ped-preco-edit')?.value) || 0;
-      if (tam) {
-        descItem = `${r.nome} ${sabor === 'chocolate' ? 'chocolate' : 'baunilha'} ${tam.nome}${ret ? ' retangular' : ''}`;
-      }
-    } else {
-      preco = parseFloat(r.preco_venda) || 0;
+    if (r) {
+      itens.push(`• ${r.nome} ×${qtd} — R$ ${((r.preco_venda || 0) * qtd).toFixed(2)}`);
+      total += (r.preco_venda || 0) * qtd;
     }
-    itens.push(`• ${descItem} ×${qtd} — R$ ${(preco * qtd).toFixed(2)}`);
-    subtotal += preco * qtd;
   });
 
-  const desconto       = parseFloat(document.getElementById('ped-desconto')?.value) || 0;
-  const descontoMotivo = document.getElementById('ped-desconto-motivo')?.value.trim() || '';
-  const total = Math.max(0, subtotal - desconto);
+  const texto = [
+    `📋 *ORÇAMENTO*`,
+    ``,
+    `Olá ${nome}! 🎂`,
+    ``,
+    itens.join('\n'),
+    ``,
+    `💰 *Total: R$ ${total.toFixed(2)}*`,
+    entrega ? `📅 Entrega: ${formatarData(entrega)}` : '',
+    obs     ? `📝 ${obs}` : '',
+    ``,
+    `Qualquer dúvida estou à disposição! 😊`
+  ].filter(l => l !== null).join('\n');
 
-  const linhas = [];
-  linhas.push(itens.join('\n'));
-  linhas.push('');
-  if (desconto > 0) {
-    linhas.push(`Subtotal: R$ ${subtotal.toFixed(2)}`);
-    linhas.push(`Desconto${descontoMotivo ? ' ('+descontoMotivo+')' : ''}: − R$ ${desconto.toFixed(2)}`);
-  }
-  linhas.push(`💰 *Total: R$ ${total.toFixed(2)}*`);
-
-  document.getElementById('ped-orcamento-text').value = linhas.join('\n');
+  document.getElementById('ped-orcamento-text').value = texto;
 }
 
 function copiarOrcamento() {
@@ -4405,29 +4006,19 @@ async function deletarEstoque(id) {
 //  Regra: ingredientes da receita são pelo lote inteiro (rendimento).
 //  Consumo por unidade vendida = qtd_receita / rendimento
 // ──────────────────────────────────────────
-// Fator de consumo de uma RECEITA por unidade do item de pedido.
-// - Custom: 1 / rendimento (cada "unidade" do pedido consome 1/rendimento da receita)
-// - Pronta: 1 (cada unidade do pedido consome 1 receita base inteira)
-function fatorConsumoReceita(r, item) {
-  if (!r) return 0;
-  if ((r.tipo || 'custom') === 'pronta') return 1;
-  const rendimento = r.rendimento || 1;
-  return 1 / rendimento;
-}
-
 function descontarEstoquePedido(pedido) {
   (pedido.itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
     const qtdVendida = item.quantidade || 1;
-    const fator      = fatorConsumoReceita(r, item);
+    const rendimento = r.rendimento || 1;
 
     (r.ingredientes || []).forEach(ing => {
       const est = DB.estoque.find(e =>
         String(e.item_id) === String(ing.id) && e.tipo === 'ingrediente'
       );
       if (est) {
-        const consumo = (ing.quantidade || 0) * fator * qtdVendida;
+        const consumo = (ing.quantidade || 0) / rendimento * qtdVendida;
         est.quantidade = Math.max(0, est.quantidade - consumo);
       }
     });
@@ -4437,7 +4028,7 @@ function descontarEstoquePedido(pedido) {
         String(e.item_id) === String(ins.id) && e.tipo === 'insumo'
       );
       if (est) {
-        const consumo = (ins.quantidade || 0) * fator * qtdVendida;
+        const consumo = (ins.quantidade || 0) / rendimento * qtdVendida;
         est.quantidade = Math.max(0, est.quantidade - consumo);
       }
     });
@@ -4477,14 +4068,14 @@ function gerarListaMercado() {
         const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
         if (!r) return;
         const qtdVendida = item.quantidade || 1;
-        const fator      = fatorConsumoReceita(r, item);
+        const rendimento = r.rendimento || 1;
         (r.ingredientes || []).forEach(ing => {
           const k = 'ing_' + ing.id;
-          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) * fator * qtdVendida;
+          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) / rendimento * qtdVendida;
         });
         (r.insumos || []).forEach(ins => {
           const k = 'ins_' + ins.id;
-          nec[k] = (nec[k] || 0) + (ins.quantidade || 0) * fator * qtdVendida;
+          nec[k] = (nec[k] || 0) + (ins.quantidade || 0) / rendimento * qtdVendida;
         });
       });
     });
