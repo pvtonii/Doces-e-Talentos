@@ -1167,17 +1167,17 @@ body {
       <div class="form-group"><label class="form-label">Nome da Receita *</label><input type="text" class="form-input" id="rec-nome" placeholder="Ex: Bolo de Chocolate"></div>
       <div class="form-row-2">
         <div class="form-group"><label class="form-label">Categoria *</label>
-          <select class="form-select" id="rec-categoria">
+          <select class="form-select" id="rec-categoria" onchange="aplicarVisibilidadeReceita()">
             <option value="">Selecionar...</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
       </div>
-      <div class="form-group"><label class="form-label">Atende quantas pessoas? <span style="color:var(--text3);font-weight:400">(informativo)</span></label><input type="text" class="form-input" id="rec-atende-pessoas" placeholder="Ex: 8-20 pessoas"></div>
+      <div class="form-group" data-rec-field="atende_pessoas"><label class="form-label">Atende quantas pessoas? <span style="color:var(--text3);font-weight:400">(informativo)</span></label><input type="text" class="form-input" id="rec-atende-pessoas" placeholder="Ex: 8-20 pessoas"></div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
 
       <!-- Toggle: receita-ingrediente -->
-      <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <div data-rec-field="eh_ingrediente" style="background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:0.88rem">É um ingrediente de outras receitas?</div>
           <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Marque para usar esta receita como base (ex: massa, recheio, calda)</div>
@@ -1187,6 +1187,11 @@ body {
           <span class="slider"></span>
         </label>
       </div>
+
+      <!-- Botão: mostrar campos avançados -->
+      <button type="button" id="btn-rec-avancado" onclick="toggleAvancadoReceita()" class="btn btn-secondary btn-full" style="font-size:0.78rem;padding:8px;margin-bottom:14px">
+        <span id="btn-rec-avancado-label">+ Mostrar campos avançados</span>
+      </button>
 
       <div class="divider"></div>
       <div class="flex-between mb-12">
@@ -1203,12 +1208,14 @@ body {
       <div class="divider"></div>
 
       <!-- Sub-receitas (receitas usadas como ingredientes) -->
-      <div class="flex-between mb-12">
-        <div class="section-label">🍰 Sub-receitas <span style="color:var(--text3);font-weight:400;font-size:0.7rem">(opcional)</span></div>
-        <button class="btn btn-secondary btn-sm" onclick="addLinhaSubReceita()">+ Adicionar</button>
+      <div data-rec-field="sub_receitas">
+        <div class="flex-between mb-12">
+          <div class="section-label">🍰 Sub-receitas <span style="color:var(--text3);font-weight:400;font-size:0.7rem">(opcional)</span></div>
+          <button class="btn btn-secondary btn-sm" onclick="addLinhaSubReceita()">+ Adicionar</button>
+        </div>
+        <div id="rec-sub-lista"></div>
+        <div class="divider"></div>
       </div>
-      <div id="rec-sub-lista"></div>
-      <div class="divider"></div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
         <div class="flex-between" style="margin-bottom:6px">
           <span style="font-weight:700;color:var(--accent)">Custo Total:</span>
@@ -1229,7 +1236,7 @@ body {
         </div>
 
         <!-- Cobertura: toggle + 2º preço (só aparece se marcado) -->
-        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--accent)">
+        <div data-rec-field="tem_cobertura" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--accent)">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;color:var(--accent);font-weight:600">
             <input type="checkbox" id="rec-tem-cobertura" onchange="onChangeTemCobertura()">
             <span>Tem opção com cobertura?</span>
@@ -2751,6 +2758,66 @@ function onChangeTemCobertura() {
   }
 }
 
+// ──────────────────────────────────────────
+//  VISIBILIDADE DE CAMPOS DA RECEITA POR CATEGORIA
+//  Regras (campos avançados ficam ocultos por padrão):
+//    - tem_cobertura     → visível só em "Bolo Caseiro"
+//    - eh_ingrediente    → visível só em "Massa" e "Recheio"
+//    - sub_receitas      → segue o eh_ingrediente
+//    - atende_pessoas    → sempre escondido por padrão (só via avançado)
+//  Botão "+ Mostrar avançado" mostra todos os campos ocultos.
+// ──────────────────────────────────────────
+let _recAvancadoVisivel = false;
+
+function aplicarVisibilidadeReceita() {
+  const cat = (document.getElementById('rec-categoria')?.value || '').toLowerCase();
+
+  // Define quais campos são "padrão" pra cada categoria
+  const padrao = {
+    tem_cobertura:  cat === 'bolo caseiro',
+    eh_ingrediente: cat === 'massa' || cat === 'recheio',
+    sub_receitas:   cat === 'massa' || cat === 'recheio',
+    atende_pessoas: false, // nunca padrão
+  };
+
+  document.querySelectorAll('[data-rec-field]').forEach(el => {
+    const campo  = el.dataset.recField;
+    const ehPadrao = padrao[campo] === true;
+    if (ehPadrao || _recAvancadoVisivel) {
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+      // Se estiver escondendo, limpa o valor pra não ficar dado fantasma
+      if (campo === 'tem_cobertura') {
+        const cb = document.getElementById('rec-tem-cobertura');
+        if (cb) cb.checked = false;
+        const pc = document.getElementById('rec-preco-com-cobertura');
+        if (pc) pc.value = '';
+        const box = document.getElementById('rec-cobertura-box');
+        if (box) box.style.display = 'none';
+      }
+      if (campo === 'eh_ingrediente') {
+        const cb = document.getElementById('rec-eh-ingrediente');
+        if (cb) cb.checked = false;
+        if (typeof onChangeEhIngrediente === 'function') onChangeEhIngrediente();
+      }
+      if (campo === 'atende_pessoas') {
+        const inp = document.getElementById('rec-atende-pessoas');
+        if (inp) inp.value = '';
+      }
+    }
+  });
+
+  // Atualiza o label do botão
+  const btnLabel = document.getElementById('btn-rec-avancado-label');
+  if (btnLabel) btnLabel.textContent = _recAvancadoVisivel ? '− Esconder campos avançados' : '+ Mostrar campos avançados';
+}
+
+function toggleAvancadoReceita() {
+  _recAvancadoVisivel = !_recAvancadoVisivel;
+  aplicarVisibilidadeReceita();
+}
+
 function recalcularCusto() {
   let total = 0;
   const itensResumo = [];
@@ -2883,7 +2950,10 @@ function abrirModalReceita() {
   const margemBox = document.getElementById('rec-margem')?.closest('.flex-between');
   if (precoBox) precoBox.style.display = '';
   if (margemBox) margemBox.style.display = '';
+  // Reset do modo avançado e aplica visibilidade
+  _recAvancadoVisivel = false;
   renderRecChips();
+  aplicarVisibilidadeReceita();
   document.getElementById('modal-receita').classList.remove('hidden');
 }
 
@@ -2947,6 +3017,19 @@ function editarReceita(id) {
   if (typeof onChangeEhIngrediente === 'function') onChangeEhIngrediente();
   // Aplica visibilidade do box de cobertura
   if (typeof onChangeTemCobertura  === 'function') onChangeTemCobertura();
+
+  // Decide se modo avançado deve ficar aberto ao editar:
+  // Se a receita tem algum campo "fora do padrão" preenchido, abre avançado
+  // pra a Pv ver os dados que já estão lá (em vez de escondê-los).
+  const cat = (r.categoria || '').toLowerCase();
+  const padraoCobertura     = cat === 'bolo caseiro';
+  const padraoEhIngrediente = cat === 'massa' || cat === 'recheio';
+  const temDadoForaPadrao =
+    (!padraoCobertura     && (r.tem_cobertura || r.preco_com_cobertura)) ||
+    (!padraoEhIngrediente && (r.eh_ingrediente || (r.sub_receitas || []).length > 0)) ||
+    !!r.atende_pessoas;
+  _recAvancadoVisivel = temDadoForaPadrao;
+  aplicarVisibilidadeReceita();
 
   recalcularCusto();
   document.getElementById('modal-receita').classList.remove('hidden');
