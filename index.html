@@ -1193,7 +1193,7 @@ body {
           <span></span>
         </div>
         <div id="rec-tamanhos-lista"></div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
+        <div id="rec-tamanhos-hint" style="display:none;font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
       </div>
 
       <div class="divider"></div>
@@ -1210,6 +1210,11 @@ body {
         <div id="rec-resumo-lista" style="display:none;margin-bottom:10px;border-top:1px solid var(--accent);padding-top:8px">
           <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em">Detalhamento</div>
           <div id="rec-resumo-itens" style="font-size:0.78rem;color:var(--accent)"></div>
+        </div>
+        <!-- Margem por aro (só receita pronta) -->
+        <div id="rec-margens-aros" style="display:none;margin-top:10px;border-top:1px solid var(--accent);padding-top:10px">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Margem por tamanho</div>
+          <div id="rec-margens-aros-lista" style="font-size:0.78rem;color:var(--accent)"></div>
         </div>
         <div class="form-group" id="rec-preco-group" style="margin:0">
           <label class="form-label">Preço de Venda por Unidade (R$)</label>
@@ -2738,6 +2743,57 @@ function atualizarMargemUI(custo) {
     el.textContent = '—';
     el.style.color = '';
   }
+  // Atualiza margens por aro (só se for receita pronta)
+  atualizarMargensAros(c);
+  // Atualiza visibilidade da hint de "ingredientes acima são pra fazer 1 bolo"
+  atualizarHintTamanhos();
+}
+
+// Calcula e mostra a margem de cada aro (preço normal e chocolate vs custo total da receita)
+function atualizarMargensAros(custoTotal) {
+  const tipo = document.getElementById('rec-tipo')?.value || 'custom';
+  const bloco = document.getElementById('rec-margens-aros');
+  const lista = document.getElementById('rec-margens-aros-lista');
+  if (!bloco || !lista) return;
+  if (tipo !== 'pronta') { bloco.style.display = 'none'; return; }
+
+  const linhas = document.querySelectorAll('#rec-tamanhos-lista .tamanho-row');
+  if (linhas.length === 0) { bloco.style.display = 'none'; return; }
+
+  const c = custoTotal !== undefined ? custoTotal : (parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0);
+
+  const html = Array.from(linhas).map(row => {
+    const aro       = row.querySelector('.tam-nome')?.value || '—';
+    const precoN    = parseFloat(row.querySelector('.tam-preco')?.value) || 0;
+    const precoC    = parseFloat(row.querySelector('.tam-preco-choc')?.value) || 0;
+    if (!aro) return '';
+    const fmtMargem = (preco) => {
+      if (preco <= 0 || c <= 0) return '<span style="color:var(--text3)">—</span>';
+      const m = calcularMargem(preco, c);
+      if (m === null) return '<span style="color:var(--text3)">—</span>';
+      const selo = selomargem(m);
+      const lucro = preco - c;
+      return `<span style="color:${selo.cor};font-weight:600">${selo.icon} ${(m*100).toFixed(0)}%</span> <span style="color:var(--text3);font-size:0.72rem">(R$ ${lucro.toFixed(2)})</span>`;
+    };
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:4px 0;border-bottom:1px dashed rgba(144,71,70,0.2)">
+        <span style="font-weight:600">${aro}</span>
+        <span>Normal: ${fmtMargem(precoN)}</span>
+        <span>Choc: ${fmtMargem(precoC)}</span>
+      </div>`;
+  }).filter(Boolean).join('');
+
+  if (!html) { bloco.style.display = 'none'; return; }
+  bloco.style.display = 'block';
+  lista.innerHTML = html;
+}
+
+// Mostra a hint de tamanhos só quando tem pelo menos uma linha
+function atualizarHintTamanhos() {
+  const hint  = document.getElementById('rec-tamanhos-hint');
+  const lista = document.getElementById('rec-tamanhos-lista');
+  if (!hint || !lista) return;
+  hint.style.display = lista.children.length > 0 ? 'block' : 'none';
 }
 
 // ──────────────────────────────────────────
@@ -2762,6 +2818,7 @@ function setRecTipo(tipo) {
   if (margem)  margem.style.display  = isPronta ? 'none' : '';
   if (tamSec)  tamSec.style.display  = isPronta ? '' : 'none';
   if (ingHint) ingHint.style.display = isPronta ? '' : 'none';
+  atualizarMargemUI();
 }
 
 // Aros pré-definidos pra escolher no dropdown
@@ -2773,15 +2830,16 @@ function addLinhaTamanho(dados = {}) {
   const div = document.createElement('div');
   div.className = 'tamanho-row';
   div.innerHTML = `
-    <select class="form-select tam-nome">
+    <select class="form-select tam-nome" onchange="atualizarMargemUI()">
       <option value="">Aro...</option>
       ${AROS_DISPONIVEIS.map(a => `<option value="${a}" ${dados.nome === a ? 'selected' : ''}>${a}</option>`).join('')}
     </select>
-    <input type="number" class="form-input tam-preco" placeholder="R$ normal" step="0.01" value="${dados.preco || ''}">
-    <input type="number" class="form-input tam-preco-choc" placeholder="R$ choc." step="0.01" value="${dados.preco_chocolate || ''}">
-    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.tamanho-row').remove()">✕</button>
+    <input type="number" class="form-input tam-preco" placeholder="R$ normal" step="0.01" value="${dados.preco || ''}" oninput="atualizarMargemUI()">
+    <input type="number" class="form-input tam-preco-choc" placeholder="R$ choc." step="0.01" value="${dados.preco_chocolate || ''}" oninput="atualizarMargemUI()">
+    <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.tamanho-row').remove(); atualizarMargemUI()">✕</button>
   `;
   document.getElementById('rec-tamanhos-lista').appendChild(div);
+  atualizarMargemUI();
 }
 
 function fecharModalReceita() {
