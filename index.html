@@ -1172,9 +1172,9 @@ body {
           <div class="section-label">📏 Tamanhos & Preços</div>
           <button class="btn btn-secondary btn-sm" onclick="addLinhaTamanho()">+ Tamanho</button>
         </div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Defina os tamanhos disponíveis com seus respectivos preços. O cliente pode escolher formato retangular no pedido (+R$ 10).</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Adicione os tamanhos que esta receita produz, com seus preços. O cliente pode escolher formato retangular no pedido (+R$ 10).</div>
         <div id="rec-tamanhos-lista"></div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes da receita acima são para fazer 1 bolo (qualquer tamanho).</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes acima representam a quantidade necessária para fazer 1 bolo desta receita.</div>
       </div>
 
       <div class="divider"></div>
@@ -2743,17 +2743,12 @@ function setRecTipo(tipo) {
   if (margem)  margem.style.display  = isPronta ? 'none' : '';
   if (tamSec)  tamSec.style.display  = isPronta ? '' : 'none';
   if (ingHint) ingHint.style.display = isPronta ? '' : 'none';
-
-  // Se virou Pronta e a lista de tamanhos está vazia, pré-preenche com os 5 aros padrão
-  if (isPronta) {
-    const lista = document.getElementById('rec-tamanhos-lista');
-    if (lista && lista.children.length === 0) {
-      TAMANHOS_PADRAO.forEach(t => addLinhaTamanho(t));
-    }
-  }
 }
 
-// Linha de tamanho: nome (ex: "Aro 15"), preço, preço chocolate
+// Aros pré-definidos pra escolher no dropdown
+const AROS_DISPONIVEIS = ['Aro 12', 'Aro 15', 'Aro 17', 'Aro 20', 'Aro 25'];
+
+// Linha de tamanho: dropdown de aro, preço, preço chocolate
 // Retangular é definido no pedido (checkbox), com acréscimo fixo de R$ 10
 function addLinhaTamanho(dados = {}) {
   const div = document.createElement('div');
@@ -2763,7 +2758,10 @@ function addLinhaTamanho(dados = {}) {
   div.style.gap          = '6px';
   div.innerHTML = `
     <div style="display:flex;gap:6px;align-items:center">
-      <input type="text" class="form-input tam-nome" placeholder="Aro 15" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.nome || ''}">
+      <select class="form-select tam-nome" style="flex:1;font-size:0.85rem;padding:8px">
+        <option value="">Selecionar aro...</option>
+        ${AROS_DISPONIVEIS.map(a => `<option value="${a}" ${dados.nome === a ? 'selected' : ''}>${a}</option>`).join('')}
+      </select>
       <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove()">✕</button>
     </div>
     <div style="display:flex;gap:6px;align-items:center">
@@ -2777,15 +2775,6 @@ function addLinhaTamanho(dados = {}) {
   `;
   document.getElementById('rec-tamanhos-lista').appendChild(div);
 }
-
-// Tamanhos pré-definidos pra novas receitas prontas
-const TAMANHOS_PADRAO = [
-  { nome: 'Aro 12', preco: '', preco_chocolate: '' },
-  { nome: 'Aro 15', preco: '', preco_chocolate: '' },
-  { nome: 'Aro 17', preco: '', preco_chocolate: '' },
-  { nome: 'Aro 20', preco: '', preco_chocolate: '' },
-  { nome: 'Aro 25', preco: '', preco_chocolate: '' },
-];
 
 function fecharModalReceita() {
   document.getElementById('rec-edit-id').value = '';
