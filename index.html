@@ -675,6 +675,35 @@ body {
   margin-bottom: 8px;
 }
 
+/* Toggle switch (iOS style) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute; cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .25s;
+  border-radius: 26px;
+}
+.switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; width: 20px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .25s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.switch input:checked + .slider { background-color: var(--accent); }
+.switch input:checked + .slider:before { transform: translateX(20px); }
+
 /* ══════════════════════════════════════════
    ORÇAMENTO BOX
 ══════════════════════════════════════════ */
@@ -865,8 +894,13 @@ body {
       <div><div class="page-title">Receitas</div><div class="page-subtitle" id="rec-count-label">—</div></div>
     </div>
     <div class="search-wrap"><input type="text" id="rec-search" placeholder="Buscar receita..." oninput="filtrarReceitas(recCatFilter)"></div>
+    <div class="chip-row" style="margin-bottom:8px">
+      <div class="chip active" onclick="filtrarTipoReceita('todas')" id="rec-tipo-todas">Todas</div>
+      <div class="chip"        onclick="filtrarTipoReceita('produtos')" id="rec-tipo-produtos">🍰 Produtos finais</div>
+      <div class="chip"        onclick="filtrarTipoReceita('bases')" id="rec-tipo-bases">🧪 Bases (massas/recheios)</div>
+    </div>
     <div class="chip-row" id="rec-chips">
-      <div class="chip active" onclick="filtrarReceitas('')" data-cat="">Todas</div>
+      <div class="chip active" onclick="filtrarReceitas('')" data-cat="">Todas categorias</div>
     </div>
     <div id="rec-lista"></div>
   </div>
@@ -1139,7 +1173,21 @@ body {
         </div>
         <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
       </div>
+      <div class="form-group"><label class="form-label">Atende quantas pessoas? <span style="color:var(--text3);font-weight:400">(informativo)</span></label><input type="text" class="form-input" id="rec-atende-pessoas" placeholder="Ex: 8-20 pessoas"></div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
+
+      <!-- Toggle: receita-ingrediente -->
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:0.88rem">É um ingrediente de outras receitas?</div>
+          <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Marque para usar esta receita como base (ex: massa, recheio, calda)</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="rec-eh-ingrediente" onchange="onChangeEhIngrediente()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
       <div class="divider"></div>
       <div class="flex-between mb-12">
         <div class="section-label">🧂 Ingredientes</div>
@@ -1152,6 +1200,14 @@ body {
         <button class="btn btn-secondary btn-sm" onclick="addLinhaInsReceira()">+ Adicionar</button>
       </div>
       <div id="rec-ins-lista"></div>
+      <div class="divider"></div>
+
+      <!-- Sub-receitas (receitas usadas como ingredientes) -->
+      <div class="flex-between mb-12">
+        <div class="section-label">🍰 Sub-receitas <span style="color:var(--text3);font-weight:400;font-size:0.7rem">(opcional)</span></div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaSubReceita()">+ Adicionar</button>
+      </div>
+      <div id="rec-sub-lista"></div>
       <div class="divider"></div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
         <div class="flex-between" style="margin-bottom:6px">
@@ -1579,6 +1635,7 @@ let DB = {
 let currentPage      = 'dashboard';
 let currentEstoqueTab = 'ingrediente';
 let recCatFilter     = '';
+let recTipoFilter    = 'todas'; // 'todas' | 'produtos' | 'bases'
 let pedStatusFilter  = '';
 let ingCatFilter     = '';
 let insCatFilter     = '';
@@ -1973,7 +2030,7 @@ function renderRecChips() {
   const row = document.getElementById('rec-chips');
   if (row) {
     row.innerHTML =
-      `<div class="chip ${recCatFilter === '' ? 'active' : ''}" onclick="filtrarReceitas('')" data-cat="">Todas</div>` +
+      `<div class="chip ${recCatFilter === '' ? 'active' : ''}" onclick="filtrarReceitas('')" data-cat="">Todas categorias</div>` +
       cats.map(c => `<div class="chip ${recCatFilter === c ? 'active' : ''}" onclick="filtrarReceitas('${c}')" data-cat="${c}">${c}</div>`).join('');
   }
   // Select no modal de receita
@@ -2443,12 +2500,24 @@ function filtrarReceitas(cat) {
   renderReceitas();
 }
 
+function filtrarTipoReceita(tipo) {
+  recTipoFilter = tipo;
+  ['todas','produtos','bases'].forEach(t => {
+    const el = document.getElementById('rec-tipo-' + t);
+    if (el) el.classList.toggle('active', t === tipo);
+  });
+  renderReceitas();
+}
+
 function renderReceitas() {
   const q     = (document.getElementById('rec-search')?.value || '').toLowerCase();
-  const dados = DB.receitas.filter(r =>
-    (!recCatFilter || r.categoria === recCatFilter) &&
-    (!q || r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q))
-  );
+  const dados = DB.receitas.filter(r => {
+    if (recCatFilter && r.categoria !== recCatFilter) return false;
+    if (recTipoFilter === 'produtos' && r.eh_ingrediente)  return false;
+    if (recTipoFilter === 'bases'    && !r.eh_ingrediente) return false;
+    if (q && !(r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
 
   const label = document.getElementById('rec-count-label');
   if (label) label.textContent = DB.receitas.length + (DB.receitas.length === 1 ? ' receita' : ' receitas');
@@ -2476,15 +2545,19 @@ function renderReceitas() {
       <div class="rec-card-top">
         <span class="rec-card-emoji">${CAT_ICONS[r.categoria] || '🍰'}</span>
         <span class="badge badge-accent">${r.categoria}</span>
+        ${r.eh_ingrediente ? '<span class="badge badge-gray">🧪 Base</span>' : ''}
+        ${r.atende_pessoas ? `<span class="badge badge-gray" style="font-size:0.65rem">👥 ${r.atende_pessoas}</span>` : ''}
       </div>
       <div class="rec-card-name">${r.nome}</div>
       <div class="rec-card-desc">${r.descricao || '—'}</div>
       <div class="rec-card-footer">
         <span>Custo/un: <b style="color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</b></span>
-        <span>Venda: <b>${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}</b></span>
+        ${r.eh_ingrediente
+          ? '<span style="color:var(--text3);font-style:italic;font-size:0.78rem">usado em outras receitas</span>'
+          : `<span>Venda: <b>${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}</b></span>`}
       </div>
       ${rendimento > 1 ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Total: R$ ${custoTotal.toFixed(2)} · rende ${rendimento}</div>` : ''}
-      ${margem !== null ? `<div style="margin-top:8px"><span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${selo.label} · ${(margem*100).toFixed(0)}%</span></div>` : ''}
+      ${(!r.eh_ingrediente && margem !== null) ? `<div style="margin-top:8px"><span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${selo.label} · ${(margem*100).toFixed(0)}%</span></div>` : ''}
       <div class="rec-card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
         <button class="btn btn-danger btn-sm btn-icon" onclick="deletarReceita('${r.id}')">🗑️</button>
@@ -2493,7 +2566,21 @@ function renderReceitas() {
   }).join('');
 }
 
-function calcularCustoReceita(r) {
+// ──────────────────────────────────────────
+//  CUSTO DA RECEITA (com sub-receitas)
+//  Se a receita usa outras receitas como ingrediente, soma o custo unitário delas.
+//  Proteção contra ciclo: usa um Set de IDs já visitados na cadeia.
+// ──────────────────────────────────────────
+function calcularCustoReceita(r, _visitados) {
+  if (!r) return 0;
+  const visitados = _visitados || new Set();
+  // Detecta ciclo: se a receita atual já está sendo calculada na cadeia, retorna 0 e ignora
+  if (visitados.has(String(r.id))) {
+    console.warn('[receitas] ciclo detectado em', r.nome, '— ignorando contribuição cíclica');
+    return 0;
+  }
+  visitados.add(String(r.id));
+
   let total = 0;
   (r.ingredientes || []).forEach(item => {
     const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
@@ -2505,6 +2592,17 @@ function calcularCustoReceita(r) {
     if (ins && ins.qtd_embalagem > 0)
       total += (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0);
   });
+  // Sub-receitas: cada uma contribui com seu custo unitário × quantidade usada
+  (r.sub_receitas || []).forEach(item => {
+    const sub = DB.receitas.find(x => String(x.id) === String(item.id));
+    if (!sub) return;
+    const subRendimento  = sub.rendimento || 1;
+    const subCustoTotal  = calcularCustoReceita(sub, visitados);
+    const subCustoUnit   = subCustoTotal / subRendimento;
+    total += subCustoUnit * (item.quantidade || 0);
+  });
+
+  visitados.delete(String(r.id));
   return total;
 }
 
@@ -2567,6 +2665,47 @@ function addLinhaInsReceira() {
   document.getElementById('rec-ins-lista').appendChild(div);
 }
 
+// ──────────────────────────────────────────
+//  SUB-RECEITAS (receitas usadas como ingredientes)
+// ──────────────────────────────────────────
+function addLinhaSubReceita() {
+  const div = document.createElement('div');
+  div.className = 'recipe-row';
+  // Só lista receitas marcadas como ingrediente, e exclui a própria sendo editada
+  const editId = document.getElementById('rec-edit-id').value;
+  const candidatos = DB.receitas.filter(r => r.eh_ingrediente && String(r.id) !== String(editId));
+  div.innerHTML = `
+    <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="recalcularCusto()">
+      <option value="">Sub-receita...</option>
+      ${candidatos.map(r => `<option value="${r.id}">${r.nome}</option>`).join('')}
+    </select>
+    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" min="0" step="0.01" value="1" oninput="recalcularCusto()">
+    <div style="display:flex;align-items:center;gap:4px">
+      <span class="un-label text-muted" style="font-size:0.72rem;min-width:20px">un</span>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
+    </div>
+  `;
+  document.getElementById('rec-sub-lista').appendChild(div);
+}
+
+function onChangeEhIngrediente() {
+  // Quando uma receita vira "ingrediente", ela não é vendida diretamente,
+  // então ocultamos os campos de preço de venda + selo de margem
+  const eh = document.getElementById('rec-eh-ingrediente').checked;
+  const precoBox = document.getElementById('rec-preco-venda')?.closest('.form-group');
+  const margemBox = document.getElementById('rec-margem')?.closest('.flex-between');
+  if (eh) {
+    if (precoBox) precoBox.style.display = 'none';
+    if (margemBox) margemBox.style.display = 'none';
+    // Limpa preço pra não confundir
+    const pv = document.getElementById('rec-preco-venda'); if (pv) pv.value = '';
+  } else {
+    if (precoBox) precoBox.style.display = '';
+    if (margemBox) margemBox.style.display = '';
+  }
+  atualizarMargemUI();
+}
+
 function recalcularCusto() {
   let total = 0;
   const itensResumo = [];
@@ -2593,6 +2732,22 @@ function recalcularCusto() {
       if (qtd > 0) itensResumo.push({ nome: ins.nome, qtd, unidade: ins.unidade || 'un', valorUnit, custo });
     }
   });
+  // Sub-receitas: contribuem com custo unitário (custo total / rendimento) × quantidade usada
+  const subList = document.getElementById('rec-sub-lista');
+  if (subList) {
+    subList.querySelectorAll('.recipe-row').forEach(row => {
+      const id  = row.querySelector('select').value;
+      const qtd = parseFloat(row.querySelector('input').value) || 0;
+      const sub = DB.receitas.find(x => String(x.id) === id);
+      if (sub && qtd > 0) {
+        const subCustoTotal = calcularCustoReceita(sub);
+        const subCustoUnit  = subCustoTotal / (sub.rendimento || 1);
+        const custo = subCustoUnit * qtd;
+        total += custo;
+        itensResumo.push({ nome: '🍰 ' + sub.nome, qtd, unidade: 'un', valorUnit: subCustoUnit, custo });
+      }
+    });
+  }
 
   const elCustoTotal = document.getElementById('rec-custo-total');
   if (elCustoTotal) elCustoTotal.textContent = 'R$ ' + total.toFixed(2);
@@ -2643,28 +2798,42 @@ function atualizarMargemUI(custo) {
 // ──────────────────────────────────────────
 function fecharModalReceita() {
   document.getElementById('rec-edit-id').value = '';
-  ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
+  ['rec-nome','rec-descricao','rec-obs','rec-atende-pessoas'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('rec-rendimento').value  = '';
   document.getElementById('rec-preco-venda').value = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   document.getElementById('rec-ins-lista').innerHTML = '';
+  const subList = document.getElementById('rec-sub-lista'); if (subList) subList.innerHTML = '';
+  const ehIng = document.getElementById('rec-eh-ingrediente'); if (ehIng) ehIng.checked = false;
   const ct = document.getElementById('rec-custo-total');  if (ct) ct.textContent = 'R$ 0,00';
   const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
   const rm = document.getElementById('rec-margem');       if (rm) { rm.textContent = '—'; rm.style.color = ''; }
   const rl = document.getElementById('rec-resumo-lista'); if (rl) rl.style.display = 'none';
+  // Mostra de volta o bloco preço/margem (caso estivessem ocultos)
+  const precoBox = document.getElementById('rec-preco-venda')?.closest('.form-group');
+  const margemBox = document.getElementById('rec-margem')?.closest('.flex-between');
+  if (precoBox) precoBox.style.display = '';
+  if (margemBox) margemBox.style.display = '';
   fecharModal('modal-receita');
 }
 
 function abrirModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   document.getElementById('rec-modal-title').textContent = 'Nova Receita';
-  ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
+  ['rec-nome','rec-descricao','rec-obs','rec-atende-pessoas'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('rec-rendimento').value   = '';
   document.getElementById('rec-preco-venda').value  = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   document.getElementById('rec-ins-lista').innerHTML = '';
+  const subList = document.getElementById('rec-sub-lista'); if (subList) subList.innerHTML = '';
+  const ehIng = document.getElementById('rec-eh-ingrediente'); if (ehIng) ehIng.checked = false;
   document.getElementById('rec-custo-total').textContent = 'R$ 0,00';
   document.getElementById('rec-margem').textContent = '—';
+  // Garante que preço/margem fiquem visíveis ao abrir nova receita
+  const precoBox = document.getElementById('rec-preco-venda')?.closest('.form-group');
+  const margemBox = document.getElementById('rec-margem')?.closest('.flex-between');
+  if (precoBox) precoBox.style.display = '';
+  if (margemBox) margemBox.style.display = '';
   renderRecChips();
   document.getElementById('modal-receita').classList.remove('hidden');
 }
@@ -2680,8 +2849,14 @@ function editarReceita(id) {
   document.getElementById('rec-rendimento').value       = r.rendimento || '';
   document.getElementById('rec-preco-venda').value      = r.preco_venda || '';
   document.getElementById('rec-obs').value              = r.obs || '';
+  const elAtende = document.getElementById('rec-atende-pessoas');
+  if (elAtende) elAtende.value                          = r.atende_pessoas || '';
+  const elEhIng = document.getElementById('rec-eh-ingrediente');
+  if (elEhIng) elEhIng.checked                          = !!r.eh_ingrediente;
   document.getElementById('rec-ing-lista').innerHTML    = '';
   document.getElementById('rec-ins-lista').innerHTML    = '';
+  const subListEl = document.getElementById('rec-sub-lista');
+  if (subListEl) subListEl.innerHTML = '';
 
   (r.ingredientes || []).forEach(item => {
     addLinhaIngReceira();
@@ -2706,6 +2881,18 @@ function editarReceita(id) {
     if (ins) linha.querySelector('.un-label').textContent = ins.unidade;
   });
 
+  // Sub-receitas
+  (r.sub_receitas || []).forEach(item => {
+    addLinhaSubReceita();
+    const linhas = document.querySelectorAll('#rec-sub-lista .recipe-row');
+    const linha  = linhas[linhas.length - 1];
+    linha.querySelector('select').value = item.id;
+    linha.querySelector('input').value  = item.quantidade;
+  });
+
+  // Aplica visibilidade do preço/margem com base no eh_ingrediente
+  if (typeof onChangeEhIngrediente === 'function') onChangeEhIngrediente();
+
   recalcularCusto();
   document.getElementById('modal-receita').classList.remove('hidden');
 }
@@ -2728,18 +2915,56 @@ async function salvarReceita() {
     if (id && qtd > 0) insumos.push({ id, quantidade: qtd });
   });
 
-  const payload = {
-    nome,
-    categoria:   document.getElementById('rec-categoria').value,
-    descricao:   document.getElementById('rec-descricao').value.trim(),
-    rendimento:  parseInt(document.getElementById('rec-rendimento').value) || null,
-    preco_venda: parseFloat(document.getElementById('rec-preco-venda').value) || null,
-    obs:         document.getElementById('rec-obs').value.trim(),
-    ingredientes,
-    insumos
-  };
+  // Sub-receitas
+  const sub_receitas = [];
+  const subList = document.getElementById('rec-sub-lista');
+  if (subList) {
+    subList.querySelectorAll('.recipe-row').forEach(row => {
+      const id  = row.querySelector('select').value;
+      const qtd = parseFloat(row.querySelector('input').value) || 0;
+      if (id && qtd > 0) sub_receitas.push({ id, quantidade: qtd });
+    });
+  }
 
   const editId = document.getElementById('rec-edit-id').value;
+
+  // Validação anti-ciclo: a sub-receita não pode usar a receita sendo editada (direta ou indiretamente)
+  if (editId && sub_receitas.length > 0) {
+    const usaCiclo = (subId) => {
+      const visitar = new Set();
+      const stack = [String(subId)];
+      while (stack.length) {
+        const cur = stack.pop();
+        if (String(cur) === String(editId)) return true; // achou ciclo
+        if (visitar.has(cur)) continue;
+        visitar.add(cur);
+        const r = DB.receitas.find(x => String(x.id) === String(cur));
+        (r?.sub_receitas || []).forEach(s => stack.push(String(s.id)));
+      }
+      return false;
+    };
+    for (const s of sub_receitas) {
+      if (usaCiclo(s.id)) {
+        const subNome = DB.receitas.find(r => String(r.id) === String(s.id))?.nome || '?';
+        toast(`Ciclo detectado: "${subNome}" já depende desta receita.`, 'error');
+        return;
+      }
+    }
+  }
+
+  const payload = {
+    nome,
+    categoria:       document.getElementById('rec-categoria').value,
+    descricao:       document.getElementById('rec-descricao').value.trim(),
+    rendimento:      parseInt(document.getElementById('rec-rendimento').value) || null,
+    preco_venda:     parseFloat(document.getElementById('rec-preco-venda').value) || null,
+    obs:             document.getElementById('rec-obs').value.trim(),
+    ingredientes,
+    insumos,
+    sub_receitas,
+    eh_ingrediente:  !!document.getElementById('rec-eh-ingrediente')?.checked,
+    atende_pessoas:  document.getElementById('rec-atende-pessoas')?.value.trim() || null,
+  };
 
   if (editId) {
     if (supabase) {
@@ -2815,11 +3040,35 @@ function verReceita(id) {
     </div>`;
   }).join('');
 
+  // Sub-receitas
+  const subRows = (r.sub_receitas || []).map(item => {
+    const sub = DB.receitas.find(x => String(x.id) === String(item.id));
+    if (!sub) return `<div class="mercado-item"><span>(sub-receita não encontrada)</span></div>`;
+    const subCustoTotal = calcularCustoReceita(sub);
+    const subCustoUnit  = subCustoTotal / (sub.rendimento || 1);
+    const custo = subCustoUnit * (item.quantidade || 0);
+    return `<div class="mercado-item" onclick="event.stopPropagation(); fecharModal('modal-detalhe-receita'); setTimeout(()=>verReceita('${sub.id}'),50)" style="cursor:pointer">
+      <span style="min-width:0;flex:1">🧪 ${sub.nome}</span>
+      <div style="text-align:right;flex-shrink:0;margin-left:8px">
+        <div style="font-size:0.85rem">${item.quantidade} un · R$ ${subCustoUnit.toFixed(2)}/un</div>
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:600">R$ ${custo.toFixed(2)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const subSubtotal = (r.sub_receitas || []).reduce((s, it) => {
+    const sub = DB.receitas.find(x => String(x.id) === String(it.id));
+    if (!sub) return s;
+    const subCustoUnit = calcularCustoReceita(sub) / (sub.rendimento || 1);
+    return s + subCustoUnit * (it.quantidade || 0);
+  }, 0);
+
   document.getElementById('det-rec-title').textContent = r.nome;
   document.getElementById('det-rec-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <span class="badge badge-accent">${r.categoria}</span>
+      ${r.eh_ingrediente ? '<span class="badge badge-gray">🧪 Base (usada em outras receitas)</span>' : ''}
       ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} ${r.rendimento === 1 ? 'unidade' : 'unidades'}</span>` : ''}
+      ${r.atende_pessoas ? `<span class="badge badge-gray">👥 ${r.atende_pessoas}</span>` : ''}
     </div>
     ${r.descricao ? `<p class="text-muted" style="margin-bottom:14px">${r.descricao}</p>` : ''}
 
@@ -2837,7 +3086,14 @@ function verReceita(id) {
       </div>
     </div>` : ''}
 
-    <div class="section-label">💰 Custos & Precificação</div>
+    ${subRows ? `<div class="section-label">🧪 Sub-receitas</div><div class="card" style="padding:12px;margin-bottom:12px">${subRows}
+      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:8px">
+        <span style="font-weight:700">Subtotal sub-receitas</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${subSubtotal.toFixed(2)}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="section-label">💰 Custos${r.eh_ingrediente ? '' : ' & Precificação'}</div>
     <div class="card" style="padding:12px;margin-bottom:12px">
       <div class="mercado-item">
         <span>Custo total da receita</span>
@@ -2851,7 +3107,9 @@ function verReceita(id) {
         <span style="font-weight:700">Custo por unidade</span>
         <span style="font-weight:700;color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</span>
       </div>
-      ${precoVenda > 0 ? `
+      ${r.eh_ingrediente ? `
+        <p class="text-muted" style="margin-top:8px;font-size:0.78rem;font-style:italic">Esta receita é usada como ingrediente em outras receitas — não tem preço de venda direto.</p>
+      ` : (precoVenda > 0 ? `
         <div class="mercado-item" style="margin-top:8px">
           <span>Preço de venda (unidade)</span>
           <span style="font-weight:700">R$ ${precoVenda.toFixed(2)}</span>
@@ -2864,7 +3122,7 @@ function verReceita(id) {
           <span style="font-weight:700;color:${selo.cor}">${selo.icon} ${selo.label}</span>
           <span style="font-weight:700;color:${selo.cor}">${margem !== null ? (margem*100).toFixed(1) + '%' : '—'}</span>
         </div>
-      ` : `<p class="text-muted" style="margin-top:8px;font-size:0.82rem">⚠️ Defina o preço de venda para ver lucro e margem.</p>`}
+      ` : `<p class="text-muted" style="margin-top:8px;font-size:0.82rem">⚠️ Defina o preço de venda para ver lucro e margem.</p>`)}
     </div>
 
     ${r.obs ? `<div class="section-label">📝 Observações</div><p class="text-muted">${r.obs}</p>` : ''}
@@ -3124,10 +3382,12 @@ function filtrarCalDia(dia) {
 function addLinhaPedido() {
   const div = document.createElement('div');
   div.className = 'pedido-item-row';
+  // Não inclui receitas-base (que são usadas como ingrediente em outras receitas)
+  const receitasVendaveis = DB.receitas.filter(r => !r.eh_ingrediente);
   div.innerHTML = `
     <select class="form-select" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
       <option value="">Receita...</option>
-      ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
+      ${receitasVendaveis.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
     </select>
     <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" value="1" min="1"
       placeholder="Qtd" oninput="calcularTotalPedidoForm()">
@@ -3210,6 +3470,52 @@ function editarPedido(id) {
 }
 
 // ──────────────────────────────────────────
+//  EXPANSÃO RECURSIVA — ingredientes/insumos consumidos por unidade de receita
+//  Quando uma receita usa sub-receitas, expande cada sub-receita até os
+//  ingredientes-folha. Útil para snapshot de pedido, estoque e lista de mercado.
+//
+//  Retorna { ingredientes: [{id, qtd}], insumos: [{id, qtd}] } onde qtd é a
+//  quantidade consumida pra produzir UMA unidade da receita raiz.
+// ──────────────────────────────────────────
+function expandirReceitaPorUnidade(receitaId, _visitados) {
+  const r = DB.receitas.find(x => String(x.id) === String(receitaId));
+  if (!r) return { ingredientes: [], insumos: [] };
+  const visitados = _visitados || new Set();
+  if (visitados.has(String(r.id))) return { ingredientes: [], insumos: [] };
+  visitados.add(String(r.id));
+
+  const rendimento = r.rendimento || 1;
+  const ingMap = new Map(); // id -> qtd
+  const insMap = new Map();
+
+  (r.ingredientes || []).forEach(it => {
+    const qtd = (it.quantidade || 0) / rendimento;
+    ingMap.set(String(it.id), (ingMap.get(String(it.id)) || 0) + qtd);
+  });
+  (r.insumos || []).forEach(it => {
+    const qtd = (it.quantidade || 0) / rendimento;
+    insMap.set(String(it.id), (insMap.get(String(it.id)) || 0) + qtd);
+  });
+  // Sub-receitas: recursivamente expande
+  (r.sub_receitas || []).forEach(it => {
+    const qtdSubPorUnidade = (it.quantidade || 0) / rendimento;
+    const expanded = expandirReceitaPorUnidade(it.id, visitados);
+    expanded.ingredientes.forEach(({id, qtd}) => {
+      ingMap.set(String(id), (ingMap.get(String(id)) || 0) + qtd * qtdSubPorUnidade);
+    });
+    expanded.insumos.forEach(({id, qtd}) => {
+      insMap.set(String(id), (insMap.get(String(id)) || 0) + qtd * qtdSubPorUnidade);
+    });
+  });
+
+  visitados.delete(String(r.id));
+  return {
+    ingredientes: Array.from(ingMap.entries()).map(([id, qtd]) => ({ id, qtd })),
+    insumos:      Array.from(insMap.entries()).map(([id, qtd]) => ({ id, qtd })),
+  };
+}
+
+// ──────────────────────────────────────────
 //  PEDIDOS — CRUD
 // ──────────────────────────────────────────
 // Gera snapshot completo do pedido no momento em que vira "efetuado":
@@ -3246,20 +3552,21 @@ function gerarSnapshotCusto(itens) {
       margem:          margem !== null ? parseFloat(margem.toFixed(4)) : null,
     });
 
-    // Detalhamento de ingredientes/insumos consumidos:
-    // qtd da receita está pra rendimento — proporção: qtd_receita / rendimento * qtdVendida
-    (r.ingredientes || []).forEach(ri => {
-      const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
+    // Detalhamento de ingredientes/insumos consumidos — usa expansor
+    // que considera sub-receitas recursivamente.
+    const expanded = expandirReceitaPorUnidade(r.id);
+    expanded.ingredientes.forEach(({id, qtd}) => {
+      const ing = DB.ingredientes.find(x => String(x.id) === String(id));
       if (!ing || !ing.qtd_embalagem) return;
-      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
+      const qtdConsumida = qtd * qtdVendida;
       const c = (ing.preco / ing.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
       custoTotal += c;
     });
-    (r.insumos || []).forEach(ri => {
-      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
+    expanded.insumos.forEach(({id, qtd}) => {
+      const ins = DB.insumos.find(x => String(x.id) === String(id));
       if (!ins || !ins.qtd_embalagem) return;
-      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
+      const qtdConsumida = qtd * qtdVendida;
       const c = (ins.preco / ins.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ins.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ins.unidade, custo: parseFloat(c.toFixed(4)) });
       custoTotal += c;
@@ -3790,7 +4097,7 @@ function renderEstoque() {
       }
     });
 
-    const receitasComEstoque = DB.receitas.filter(r => idsComPedido.has(String(r.id)));
+    const receitasComEstoque = DB.receitas.filter(r => !r.eh_ingrediente && idsComPedido.has(String(r.id)));
 
     if (receitasComEstoque.length === 0) {
       el.innerHTML = `<div class="empty-state">
@@ -4011,26 +4318,18 @@ function descontarEstoquePedido(pedido) {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (!r) return;
     const qtdVendida = item.quantidade || 1;
-    const rendimento = r.rendimento || 1;
 
-    (r.ingredientes || []).forEach(ing => {
-      const est = DB.estoque.find(e =>
-        String(e.item_id) === String(ing.id) && e.tipo === 'ingrediente'
-      );
-      if (est) {
-        const consumo = (ing.quantidade || 0) / rendimento * qtdVendida;
-        est.quantidade = Math.max(0, est.quantidade - consumo);
-      }
+    // Expande recursivamente — inclui ingredientes/insumos das sub-receitas
+    const expanded = expandirReceitaPorUnidade(r.id);
+
+    expanded.ingredientes.forEach(({id, qtd}) => {
+      const est = DB.estoque.find(e => String(e.item_id) === String(id) && e.tipo === 'ingrediente');
+      if (est) est.quantidade = Math.max(0, est.quantidade - qtd * qtdVendida);
     });
 
-    (r.insumos || []).forEach(ins => {
-      const est = DB.estoque.find(e =>
-        String(e.item_id) === String(ins.id) && e.tipo === 'insumo'
-      );
-      if (est) {
-        const consumo = (ins.quantidade || 0) / rendimento * qtdVendida;
-        est.quantidade = Math.max(0, est.quantidade - consumo);
-      }
+    expanded.insumos.forEach(({id, qtd}) => {
+      const est = DB.estoque.find(e => String(e.item_id) === String(id) && e.tipo === 'insumo');
+      if (est) est.quantidade = Math.max(0, est.quantidade - qtd * qtdVendida);
     });
   });
   renderEstoque();
@@ -4068,14 +4367,14 @@ function gerarListaMercado() {
         const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
         if (!r) return;
         const qtdVendida = item.quantidade || 1;
-        const rendimento = r.rendimento || 1;
-        (r.ingredientes || []).forEach(ing => {
-          const k = 'ing_' + ing.id;
-          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) / rendimento * qtdVendida;
+        const expanded = expandirReceitaPorUnidade(r.id);
+        expanded.ingredientes.forEach(({id, qtd}) => {
+          const k = 'ing_' + id;
+          nec[k] = (nec[k] || 0) + qtd * qtdVendida;
         });
-        (r.insumos || []).forEach(ins => {
-          const k = 'ins_' + ins.id;
-          nec[k] = (nec[k] || 0) + (ins.quantidade || 0) / rendimento * qtdVendida;
+        expanded.insumos.forEach(({id, qtd}) => {
+          const k = 'ins_' + id;
+          nec[k] = (nec[k] || 0) + qtd * qtdVendida;
         });
       });
     });
@@ -4420,20 +4719,24 @@ create index if not exists idx_categorias_tipo on categorias (tipo);
 
 -- ─── RECEITAS ───────────────────────────────────────────
 create table if not exists receitas (
-  id           uuid default gen_random_uuid() primary key,
-  nome         text not null,
-  categoria    text not null,
-  descricao    text,
-  rendimento   integer check (rendimento > 0),
-  preco_venda  numeric check (preco_venda >= 0),
-  obs          text,
-  ingredientes jsonb not null default '[]',
-  insumos      jsonb not null default '[]',
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
+  id              uuid default gen_random_uuid() primary key,
+  nome            text not null,
+  categoria       text not null,
+  descricao       text,
+  rendimento      integer check (rendimento > 0),
+  preco_venda     numeric check (preco_venda >= 0),
+  obs             text,
+  ingredientes    jsonb not null default '[]',
+  insumos         jsonb not null default '[]',
+  sub_receitas    jsonb not null default '[]',
+  eh_ingrediente  boolean not null default false,
+  atende_pessoas  text,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
-create index if not exists idx_receitas_nome      on receitas (nome);
-create index if not exists idx_receitas_categoria on receitas (categoria);
+create index if not exists idx_receitas_nome           on receitas (nome);
+create index if not exists idx_receitas_categoria      on receitas (categoria);
+create index if not exists idx_receitas_eh_ingrediente on receitas (eh_ingrediente);
 
 -- ─── PEDIDOS ────────────────────────────────────────────
 create table if not exists pedidos (
