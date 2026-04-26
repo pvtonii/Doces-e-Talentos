@@ -1172,9 +1172,9 @@ body {
           <div class="section-label">📏 Tamanhos & Preços</div>
           <button class="btn btn-secondary btn-sm" onclick="addLinhaTamanho()">+ Tamanho</button>
         </div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Defina os tamanhos disponíveis. O custo dos ingredientes será proporcional ao "atende".</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:10px;font-style:italic">Defina os tamanhos disponíveis com seus respectivos preços. O cliente pode escolher formato retangular no pedido (+R$ 10).</div>
         <div id="rec-tamanhos-lista"></div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Forma retangular: acréscimo automático de R$ 10,00 (configurável por tamanho)</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;font-style:italic">💡 Os ingredientes da receita acima são para fazer 1 bolo (qualquer tamanho).</div>
       </div>
 
       <div class="divider"></div>
@@ -2732,7 +2732,7 @@ function setRecTipo(tipo) {
   );
   const isPronta = tipo === 'pronta';
   // Em receita pronta, "rendimento" e "preço de venda por unidade" não fazem sentido —
-  // o preço vem da tabela de tamanhos e o rendimento é por tamanho (atende N pessoas)
+  // o preço vem da tabela de tamanhos
   const rendG  = document.getElementById('rec-rendimento-group');
   const precoG = document.getElementById('rec-preco-group');
   const margem = document.getElementById('rec-margem-row');
@@ -2743,9 +2743,18 @@ function setRecTipo(tipo) {
   if (margem)  margem.style.display  = isPronta ? 'none' : '';
   if (tamSec)  tamSec.style.display  = isPronta ? '' : 'none';
   if (ingHint) ingHint.style.display = isPronta ? '' : 'none';
+
+  // Se virou Pronta e a lista de tamanhos está vazia, pré-preenche com os 5 aros padrão
+  if (isPronta) {
+    const lista = document.getElementById('rec-tamanhos-lista');
+    if (lista && lista.children.length === 0) {
+      TAMANHOS_PADRAO.forEach(t => addLinhaTamanho(t));
+    }
+  }
 }
 
-// Linha de tamanho: nome (ex: "Aro 15"), pessoas, preço, preço chocolate, retangular extra
+// Linha de tamanho: nome (ex: "Aro 15"), preço, preço chocolate
+// Retangular é definido no pedido (checkbox), com acréscimo fixo de R$ 10
 function addLinhaTamanho(dados = {}) {
   const div = document.createElement('div');
   div.className = 'recipe-row';
@@ -2754,23 +2763,29 @@ function addLinhaTamanho(dados = {}) {
   div.style.gap          = '6px';
   div.innerHTML = `
     <div style="display:flex;gap:6px;align-items:center">
-      <input type="text" class="form-input tam-nome" placeholder="Aro 15" style="flex:1.2;font-size:0.85rem;padding:8px" value="${dados.nome || ''}">
-      <input type="number" class="form-input tam-pessoas" placeholder="Pessoas" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.atende_pessoas || ''}">
+      <input type="text" class="form-input tam-nome" placeholder="Aro 15" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.nome || ''}">
       <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove()">✕</button>
     </div>
     <div style="display:flex;gap:6px;align-items:center">
-      <span style="font-size:0.72rem;color:var(--text3);min-width:60px">Preço:</span>
+      <span style="font-size:0.72rem;color:var(--text3);min-width:80px">Preço normal:</span>
       <input type="number" class="form-input tam-preco" placeholder="0,00" step="0.01" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.preco || ''}">
-      <span style="font-size:0.72rem;color:var(--text3);min-width:80px">+chocolate:</span>
-      <input type="number" class="form-input tam-preco-choc" placeholder="0,00" step="0.01" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.preco_chocolate || ''}">
     </div>
     <div style="display:flex;gap:6px;align-items:center">
-      <span style="font-size:0.72rem;color:var(--text3);min-width:120px">Acréscimo retangular:</span>
-      <input type="number" class="form-input tam-extra-ret" placeholder="10,00" step="0.01" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.extra_retangular ?? 10}">
+      <span style="font-size:0.72rem;color:var(--text3);min-width:80px">Chocolate:</span>
+      <input type="number" class="form-input tam-preco-choc" placeholder="0,00" step="0.01" style="flex:1;font-size:0.85rem;padding:8px" value="${dados.preco_chocolate || ''}">
     </div>
   `;
   document.getElementById('rec-tamanhos-lista').appendChild(div);
 }
+
+// Tamanhos pré-definidos pra novas receitas prontas
+const TAMANHOS_PADRAO = [
+  { nome: 'Aro 12', preco: '', preco_chocolate: '' },
+  { nome: 'Aro 15', preco: '', preco_chocolate: '' },
+  { nome: 'Aro 17', preco: '', preco_chocolate: '' },
+  { nome: 'Aro 20', preco: '', preco_chocolate: '' },
+  { nome: 'Aro 25', preco: '', preco_chocolate: '' },
+];
 
 function fecharModalReceita() {
   document.getElementById('rec-edit-id').value = '';
@@ -2879,16 +2894,12 @@ async function salvarReceita() {
   if (tipo === 'pronta') {
     document.querySelectorAll('#rec-tamanhos-lista .recipe-row').forEach(row => {
       const tNome    = row.querySelector('.tam-nome').value.trim();
-      const pessoas  = parseInt(row.querySelector('.tam-pessoas').value) || 0;
       const preco    = parseFloat(row.querySelector('.tam-preco').value) || 0;
       const precoChoc= parseFloat(row.querySelector('.tam-preco-choc').value) || 0;
-      const extraRet = parseFloat(row.querySelector('.tam-extra-ret').value) || 0;
       if (tNome) tamanhos.push({
         nome: tNome,
-        atende_pessoas: pessoas,
         preco,
-        preco_chocolate: precoChoc,
-        extra_retangular: extraRet
+        preco_chocolate: precoChoc
       });
     });
     if (tamanhos.length === 0) { toast('Adicione ao menos um tamanho!', 'error'); return; }
@@ -3105,23 +3116,17 @@ function precoUnitarioItem(p, i) {
   return parseFloat(r?.preco_venda) || 0;
 }
 
-// Custo unitário do item de pedido (proporcional ao tamanho se for receita pronta)
+// Custo unitário do item de pedido
+// - Custom: calcularCustoUnitario (custo da receita / rendimento)
+// - Pronta: custo total da receita base (os ingredientes definidos são pra fazer 1 bolo
+//   independente do tamanho — quem quiser variar por tamanho ajusta os ingredientes)
 function custoUnitarioItem(p, i) {
   const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
   if (snap && snap.custo_unitario != null) return snap.custo_unitario;
   const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
   if (!r) return 0;
   if ((r.tipo || 'custom') === 'pronta') {
-    // Custo total dos ingredientes/insumos da receita base, proporcional ao "atende_pessoas".
-    // Convenção: a receita base atende a maior quantidade definida nos tamanhos —
-    // cada tamanho consome (atende_pessoas / atende_pessoas_base) da base.
-    const custoBase = calcularCustoReceita(r);
-    const tamanhos  = r.tamanhos || [];
-    if (tamanhos.length === 0 || custoBase === 0) return custoBase;
-    const maxAtende = Math.max(...tamanhos.map(t => parseInt(t.atende_pessoas) || 0));
-    const atende    = parseInt(i.atende_pessoas) || 0;
-    if (!maxAtende || !atende) return custoBase;
-    return custoBase * (atende / maxAtende);
+    return calcularCustoReceita(r);
   }
   return calcularCustoUnitario(r);
 }
@@ -3388,7 +3393,7 @@ function calcularPrecoSugerido(row) {
   let preco   = sabor === 'chocolate' ? (parseFloat(tam.preco_chocolate) || 0) : (parseFloat(tam.preco) || 0);
   // Fallback: se não tiver preço chocolate, usa preço normal
   if (sabor === 'chocolate' && preco === 0) preco = parseFloat(tam.preco) || 0;
-  if (ret) preco += parseFloat(tam.extra_retangular) || 0;
+  if (ret) preco += 10; // Retangular: acréscimo fixo de R$ 10
   return preco;
 }
 
@@ -3403,7 +3408,7 @@ function onChangePedidoReceita(sel) {
     opts.style.display = 'flex';
     const tamSel = row.querySelector('.ped-tamanho-sel');
     tamSel.innerHTML = (r.tamanhos || []).map((t, i) =>
-      `<option value="${i}">${t.nome}${t.atende_pessoas ? ' (~'+t.atende_pessoas+'p)' : ''}</option>`
+      `<option value="${i}">${t.nome}</option>`
     ).join('');
     // Inicializa preço auto
     const precoInp = row.querySelector('.ped-preco-edit');
@@ -3557,23 +3562,16 @@ function gerarSnapshotCusto(itens) {
     const qtdVendida = item.quantidade || 1;
     const rendimento = r.rendimento || 1;
 
-    // Fator de proporção pra receitas prontas (custo é proporcional ao tamanho/atende_pessoas)
-    let fatorProporcao = 1;
-    if (tipoR === 'pronta') {
-      const tamanhos  = r.tamanhos || [];
-      const maxAtende = tamanhos.length ? Math.max(...tamanhos.map(t => parseInt(t.atende_pessoas) || 0)) : 0;
-      const atende    = parseInt(item.atende_pessoas) || 0;
-      if (maxAtende && atende) fatorProporcao = atende / maxAtende;
-    }
-
     // Preço: receita pronta usa preco_unitario salvo no item; custom usa preco_venda da receita
     const precoUnitario = tipoR === 'pronta'
       ? (parseFloat(item.preco_unitario) || 0)
       : (parseFloat(r.preco_venda) || 0);
 
-    // Custo: para receita custom, calcularCustoUnitario; para pronta, custo da base × fator
+    // Custo:
+    // - Custom: custo / rendimento (calcularCustoUnitario)
+    // - Pronta: custo total da receita base (1 receita = 1 bolo)
     const custoUnitario = tipoR === 'pronta'
-      ? calcularCustoReceita(r) * fatorProporcao
+      ? calcularCustoReceita(r)
       : calcularCustoUnitario(r);
 
     const receita = precoUnitario * qtdVendida;
@@ -3599,12 +3597,12 @@ function gerarSnapshotCusto(itens) {
 
     // Detalhamento de ingredientes/insumos consumidos:
     // - Custom: qtd da receita / rendimento × qtdVendida
-    // - Pronta: qtd da receita base × fatorProporcao × qtdVendida
+    // - Pronta: qtd da receita base × qtdVendida (1 receita = 1 bolo)
     (r.ingredientes || []).forEach(ri => {
       const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
       if (!ing || !ing.qtd_embalagem) return;
       const qtdConsumida = tipoR === 'pronta'
-        ? (ri.quantidade || 0) * fatorProporcao * qtdVendida
+        ? (ri.quantidade || 0) * qtdVendida
         : (ri.quantidade || 0) / rendimento * qtdVendida;
       const c = (ing.preco / ing.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
@@ -3614,7 +3612,7 @@ function gerarSnapshotCusto(itens) {
       const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
       if (!ins || !ins.qtd_embalagem) return;
       const qtdConsumida = tipoR === 'pronta'
-        ? (ri.quantidade || 0) * fatorProporcao * qtdVendida
+        ? (ri.quantidade || 0) * qtdVendida
         : (ri.quantidade || 0) / rendimento * qtdVendida;
       const c = (ins.preco / ins.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ins.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ins.unidade, custo: parseFloat(c.toFixed(4)) });
@@ -3658,7 +3656,6 @@ async function salvarPedido() {
       const precoEd  = parseFloat(row.querySelector('.ped-preco-edit')?.value) || 0;
       item.tamanho_idx     = isNaN(tIdx) ? null : tIdx;
       item.tamanho_nome    = tam ? tam.nome : null;
-      item.atende_pessoas  = tam ? tam.atende_pessoas : null;
       item.sabor           = sabor;
       item.formato         = ret ? 'retangular' : 'redondo';
       item.preco_unitario  = precoEd;
@@ -3771,7 +3768,7 @@ function verPedido(id) {
     // Detalhes da receita pronta (tamanho/sabor/formato)
     const detPronta = (tipoR === 'pronta' && i.tamanho_nome)
       ? `<div style="font-size:0.78rem;color:var(--text2);margin-top:2px">
-           ${i.tamanho_nome}${i.atende_pessoas ? ' · ~'+i.atende_pessoas+'p' : ''}
+           ${i.tamanho_nome}
            ${i.sabor === 'chocolate' ? ' · Chocolate' : ''}
            ${i.formato === 'retangular' ? ' · Retangular' : ''}
          </div>`
@@ -3855,7 +3852,7 @@ function gerarOrcamento() {
       const ret   = !!row.querySelector('.ped-retangular')?.checked;
       preco = parseFloat(row.querySelector('.ped-preco-edit')?.value) || 0;
       if (tam) {
-        descItem = `${r.nome}${sabor === 'chocolate' ? ' chocolate' : ''} ${tam.nome}${tam.atende_pessoas ? ' (~'+tam.atende_pessoas+'p)' : ''}${ret ? ' retangular' : ''}`;
+        descItem = `${r.nome}${sabor === 'chocolate' ? ' chocolate' : ''} ${tam.nome}${ret ? ' retangular' : ''}`;
       }
     } else {
       preco = parseFloat(r.preco_venda) || 0;
@@ -4406,16 +4403,10 @@ async function deletarEstoque(id) {
 // ──────────────────────────────────────────
 // Fator de consumo de uma RECEITA por unidade do item de pedido.
 // - Custom: 1 / rendimento (cada "unidade" do pedido consome 1/rendimento da receita)
-// - Pronta: atende_pessoas / max(atende_pessoas) — consumo proporcional ao tamanho
+// - Pronta: 1 (cada unidade do pedido consome 1 receita base inteira)
 function fatorConsumoReceita(r, item) {
   if (!r) return 0;
-  if ((r.tipo || 'custom') === 'pronta') {
-    const tamanhos  = r.tamanhos || [];
-    const maxAtende = tamanhos.length ? Math.max(...tamanhos.map(t => parseInt(t.atende_pessoas) || 0)) : 0;
-    const atende    = parseInt(item?.atende_pessoas) || 0;
-    if (!maxAtende || !atende) return 1;
-    return atende / maxAtende;
-  }
+  if ((r.tipo || 'custom') === 'pronta') return 1;
   const rendimento = r.rendimento || 1;
   return 1 / rendimento;
 }
