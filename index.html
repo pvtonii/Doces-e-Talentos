@@ -863,6 +863,12 @@ body {
   <div id="page-receitas" class="section-page">
     <div class="page-header">
       <div><div class="page-title">Receitas</div><div class="page-subtitle" id="rec-count-label">—</div></div>
+      <select class="form-select" id="rec-sort" onchange="renderReceitas()" style="width:auto;font-size:0.78rem;padding:6px 10px">
+        <option value="recente">↓ Recentes</option>
+        <option value="alfa">A–Z</option>
+        <option value="preco-desc">💰 Mais caro</option>
+        <option value="preco-asc">💰 Mais barato</option>
+      </select>
     </div>
     <div class="search-wrap"><input type="text" id="rec-search" placeholder="Buscar receita..." oninput="filtrarReceitas(recCatFilter)"></div>
     <div class="chip-row" id="rec-chips">
@@ -903,6 +909,7 @@ body {
         <option value="qtd-desc">↓ Maior qtd</option>
       </select>
     </div>
+    <div class="search-wrap"><input type="text" id="est-search" placeholder="Buscar no estoque..." oninput="renderEstoque()"></div>
     <div id="est-alertas"></div>
     <div class="chip-row">
       <div class="chip active" onclick="filtrarEstoque('ingrediente')" id="est-chip-ing">🧂 Ingredientes</div>
@@ -2445,10 +2452,20 @@ function filtrarReceitas(cat) {
 
 function renderReceitas() {
   const q     = (document.getElementById('rec-search')?.value || '').toLowerCase();
-  const dados = DB.receitas.filter(r =>
+  let dados = DB.receitas.filter(r =>
     (!recCatFilter || r.categoria === recCatFilter) &&
     (!q || r.nome.toLowerCase().includes(q) || (r.descricao || '').toLowerCase().includes(q))
   );
+
+  // Ordenação
+  const sortMode = document.getElementById('rec-sort')?.value || 'recente';
+  dados = [...dados].sort((a, b) => {
+    if (sortMode === 'alfa') return a.nome.localeCompare(b.nome);
+    if (sortMode === 'preco-desc') return (parseFloat(b.preco_venda) || 0) - (parseFloat(a.preco_venda) || 0);
+    if (sortMode === 'preco-asc') return (parseFloat(a.preco_venda) || 0) - (parseFloat(b.preco_venda) || 0);
+    // recente: por id decrescente (mais recentes primeiro)
+    return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+  });
 
   const label = document.getElementById('rec-count-label');
   if (label) label.textContent = DB.receitas.length + (DB.receitas.length === 1 ? ' receita' : ' receitas');
@@ -3780,6 +3797,9 @@ function renderEstoque() {
   const el = document.getElementById('est-lista');
   if (!el) return;
 
+  // Filtro de busca
+  const searchQuery = (document.getElementById('est-search')?.value || '').toLowerCase();
+
   // ─── Aba Receitas: calcula a partir de pedidos efetuados ───
   if (currentEstoqueTab === 'receita') {
     // Só mostra receitas que já apareceram em algum pedido efetuado
@@ -3790,7 +3810,15 @@ function renderEstoque() {
       }
     });
 
-    const receitasComEstoque = DB.receitas.filter(r => idsComPedido.has(String(r.id)));
+    let receitasComEstoque = DB.receitas.filter(r => idsComPedido.has(String(r.id)));
+    
+    // Aplicar filtro de busca nas receitas
+    if (searchQuery) {
+      receitasComEstoque = receitasComEstoque.filter(r => 
+        r.nome.toLowerCase().includes(searchQuery) || 
+        (r.categoria || '').toLowerCase().includes(searchQuery)
+      );
+    }
 
     if (receitasComEstoque.length === 0) {
       el.innerHTML = `<div class="empty-state">
@@ -3834,7 +3862,17 @@ function renderEstoque() {
   }
 
   // ─── Abas Ingredientes / Insumos ───
-  const dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
+  let dados = DB.estoque.filter(e => e.tipo === currentEstoqueTab);
+  
+  // Aplicar filtro de busca
+  if (searchQuery) {
+    dados = dados.filter(e => {
+      const item = currentEstoqueTab === 'ingrediente'
+        ? DB.ingredientes.find(x => String(x.id) === String(e.item_id))
+        : DB.insumos.find(x => String(x.id) === String(e.item_id));
+      return item && item.nome.toLowerCase().includes(searchQuery);
+    });
+  }
 
   if (dados.length === 0) {
     el.innerHTML = `<div class="empty-state">
