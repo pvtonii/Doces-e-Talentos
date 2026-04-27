@@ -3187,9 +3187,7 @@ function onChangePedidoReceita(sel) {
 function calcularTotalPedidoForm() {
   let total = 0;
   let totalQtdSolicitada = 0;
-  const producaoInfo = [];
-  const ingredientesMap = {}; // { nome: { qtd, unidade } }
-  const insumosMap = {};
+  const producaoInfo = []; // Array com info de cada receita + seus ingredientes
 
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
     const id  = row.querySelector('select').value;
@@ -3208,35 +3206,33 @@ function calcularTotalPedidoForm() {
     total += precoUnitario * qtdSolicitada;
     totalQtdSolicitada += qtdSolicitada;
     
-    // Info de producao
+    // Calcular ingredientes desta receita
+    const ingredientes = [];
+    (r.ingredientes || []).forEach(ri => {
+      const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
+      if (!ing) return;
+      const qtdNecessaria = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
+      ingredientes.push({ nome: ing.nome, qtd: qtdNecessaria, unidade: ing.unidade || '' });
+    });
+    
+    // Calcular insumos desta receita
+    const insumos = [];
+    (r.insumos || []).forEach(ri => {
+      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
+      if (!ins) return;
+      const qtdNecessaria = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
+      insumos.push({ nome: ins.nome, qtd: qtdNecessaria, unidade: ins.unidade || '' });
+    });
+    
+    // Info de producao com ingredientes separados por receita
     producaoInfo.push({
       nome: r.nome,
       qtdSolicitada,
       receitasNecessarias,
       producaoTotal,
-      rendimento
-    });
-    
-    // Calcular ingredientes necessarios (multiplicado pelo numero de receitas)
-    (r.ingredientes || []).forEach(ri => {
-      const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
-      if (!ing) return;
-      const qtdNecessaria = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
-      if (!ingredientesMap[ing.nome]) {
-        ingredientesMap[ing.nome] = { qtd: 0, unidade: ing.unidade || '' };
-      }
-      ingredientesMap[ing.nome].qtd += qtdNecessaria;
-    });
-    
-    // Calcular insumos necessarios
-    (r.insumos || []).forEach(ri => {
-      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
-      if (!ins) return;
-      const qtdNecessaria = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
-      if (!insumosMap[ins.nome]) {
-        insumosMap[ins.nome] = { qtd: 0, unidade: ins.unidade || '' };
-      }
-      insumosMap[ins.nome].qtd += qtdNecessaria;
+      rendimento,
+      ingredientes,
+      insumos
     });
   });
 
@@ -3249,47 +3245,53 @@ function calcularTotalPedidoForm() {
     resumoEl.textContent = totalQtdSolicitada > 0 ? `Quantidade solicitada: ${totalQtdSolicitada} unidade(s)` : '';
   }
 
-  // Atualizar box de producao
+  // Atualizar box de producao (agora inclui ingredientes por receita)
   const producaoBox = document.getElementById('ped-producao-box');
   const producaoInfoEl = document.getElementById('ped-producao-info');
   if (producaoBox && producaoInfoEl) {
     if (producaoInfo.length > 0) {
       producaoBox.style.display = 'block';
-      producaoInfoEl.innerHTML = producaoInfo.map(p => `
-        <div style="padding:6px 0;border-bottom:1px solid var(--border)">
-          <div style="font-weight:600;color:var(--text1)">${p.nome}</div>
-          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
-            <span>${p.receitasNecessarias} receita(s) necessaria(s)</span>
-            <span>${p.producaoTotal} unidades produzidas</span>
+      producaoInfoEl.innerHTML = producaoInfo.map(p => {
+        const temItens = p.ingredientes.length > 0 || p.insumos.length > 0;
+        return `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:600;color:var(--text1);font-size:0.95rem">${p.nome}</div>
+          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap;font-size:0.8rem;color:var(--text2)">
+            <span>${p.receitasNecessarias} receita(s)</span>
+            <span>${p.producaoTotal} un. produzidas</span>
             ${p.producaoTotal > p.qtdSolicitada ? `<span style="color:var(--yellow-dark)">+${p.producaoTotal - p.qtdSolicitada} sobra(s)</span>` : ''}
           </div>
+          ${temItens ? `
+          <div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">
+            <div style="font-size:0.75rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase">Ingredientes necessarios:</div>
+            ${p.ingredientes.map(i => `
+              <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.8rem">
+                <span>${i.nome}</span>
+                <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
+              </div>
+            `).join('')}
+            ${p.insumos.length > 0 ? `
+              <div style="font-size:0.75rem;font-weight:600;color:var(--text2);margin:8px 0 6px;text-transform:uppercase">Insumos necessarios:</div>
+              ${p.insumos.map(i => `
+                <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.8rem">
+                  <span>${i.nome}</span>
+                  <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
+                </div>
+              `).join('')}
+            ` : ''}
+          </div>
+          ` : ''}
         </div>
-      `).join('');
+      `}).join('');
     } else {
       producaoBox.style.display = 'none';
     }
   }
 
-  // Atualizar box de ingredientes
+  // Esconder box de ingredientes antigo (agora esta integrado na producao)
   const ingredientesBox = document.getElementById('ped-ingredientes-box');
-  const ingredientesLista = document.getElementById('ped-ingredientes-lista');
-  if (ingredientesBox && ingredientesLista) {
-    const todosItens = [
-      ...Object.entries(ingredientesMap).map(([nome, v]) => ({ nome, ...v, tipo: 'ing' })),
-      ...Object.entries(insumosMap).map(([nome, v]) => ({ nome, ...v, tipo: 'ins' }))
-    ];
-    
-    if (todosItens.length > 0) {
-      ingredientesBox.style.display = 'block';
-      ingredientesLista.innerHTML = todosItens.map(item => `
-        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
-          <span>${item.nome}</span>
-          <span style="font-weight:600">${formatarNumero(item.qtd)} ${item.unidade}</span>
-        </div>
-      `).join('');
-    } else {
-      ingredientesBox.style.display = 'none';
-    }
+  if (ingredientesBox) {
+    ingredientesBox.style.display = 'none';
   }
 }
 
@@ -4165,7 +4167,7 @@ async function deletarEstoque(id) {
 //  ESTOQUE — DESCONTAR AO CONFIRMAR PEDIDO
 //  Regra: ingredientes da receita são pelo lote inteiro (rendimento).
 //  Consumo por unidade vendida = qtd_receita / rendimento
-// ──────────────────────────────────────────
+// ─────────���────────────────────────────────
 function descontarEstoquePedido(pedido) {
   (pedido.itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
@@ -4214,7 +4216,7 @@ function verificarEstoqueCritico() {
   });
 }
 
-// ──────────────────────────────────────────
+// ───────────────────���──────────────────────
 //  MERCADO
 // ──────────────────────────────────────────
 function gerarListaMercado() {
