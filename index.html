@@ -3354,7 +3354,8 @@ function addLinhaInsumoPedido() {
       </div>
       <div>
         <label>💰 Cobrar</label>
-        <input type="number" class="pis-cobrado-input pis-cobrado" placeholder="0,00" step="0.01" oninput="calcularTotalPedidoForm()">
+        <input type="number" class="pis-cobrado-input pis-cobrado" placeholder="0,00" step="0.01"
+          oninput="this.closest('.pedido-insumo-row').dataset.cobradoTouched='true'; calcularTotalPedidoForm()">
       </div>
     </div>
   `;
@@ -3363,32 +3364,36 @@ function addLinhaInsumoPedido() {
 
 function onChangePedidoInsumo(sel) {
   const row = sel.closest('.pedido-insumo-row');
-  // Ao trocar insumo, atualiza unidade/custo e reseta o cobrado
-  atualizarLinhaInsumoPedido(row, /*resetCobrado=*/true);
+  // Ao trocar insumo, "destrava" o cobrado e força reset pro novo custo
+  row.dataset.cobradoTouched = 'false';
+  atualizarLinhaInsumoPedido(row, /*forceResetCobrado=*/true);
   calcularTotalPedidoForm();
 }
 
-// Atualiza unidade e custo da linha de insumo. Se resetCobrado=true, reseta também o "Cobrar".
-function atualizarLinhaInsumoPedido(row, resetCobrado) {
+// Atualiza unidade e custo da linha de insumo.
+// O "Cobrar" auto-acompanha o custo, exceto se o usuário já editou manualmente
+// (dataset.cobradoTouched === 'true'). forceResetCobrado=true sobrescreve mesmo assim.
+function atualizarLinhaInsumoPedido(row, forceResetCobrado) {
   const insId = row.querySelector('.pis-insumo').value;
   const qtd   = parseFloat(row.querySelector('.pis-qtd').value) || 0;
   const ins   = DB.insumos.find(x => String(x.id) === String(insId));
   const unEl  = row.querySelector('.pis-unidade');
   const cusEl = row.querySelector('.pis-custo');
   const cobEl = row.querySelector('.pis-cobrado');
+  const touched = row.dataset.cobradoTouched === 'true';
 
   if (!ins) {
     unEl.textContent  = '—';
     cusEl.textContent = 'R$ 0,00';
-    if (resetCobrado) cobEl.value = '';
+    if (forceResetCobrado) cobEl.value = '';
     return;
   }
   unEl.textContent = ins.unidade || 'un';
   const custoUnit = (ins.qtd_embalagem > 0) ? (ins.preco / ins.qtd_embalagem) : 0;
   const custoTotal = custoUnit * qtd;
   cusEl.textContent = 'R$ ' + custoTotal.toFixed(2);
-  if (resetCobrado) {
-    // Default: cobrar igual ao custo (ela ajusta se quiser margem)
+  // Auto-atualiza "Cobrar" se: forçado OU usuário ainda não editou manualmente
+  if (forceResetCobrado || !touched) {
     cobEl.value = custoTotal > 0 ? custoTotal.toFixed(2) : '';
   }
 }
@@ -3630,11 +3635,21 @@ function editarPedido(id) {
     const linha  = linhas[linhas.length - 1];
     linha.querySelector('.pis-insumo').value = item.insumo_id;
     linha.querySelector('.pis-qtd').value    = item.quantidade;
-    // Atualiza unidade/custo SEM resetar cobrado (preserva preço salvo)
-    atualizarLinhaInsumoPedido(linha, /*resetCobrado=*/false);
+    // Atualiza unidade/custo (sem forçar reset do cobrado)
+    atualizarLinhaInsumoPedido(linha, /*forceResetCobrado=*/false);
     const cobInp = linha.querySelector('.pis-cobrado');
     if (item.preco_cobrado !== null && item.preco_cobrado !== undefined && !isNaN(item.preco_cobrado)) {
-      cobInp.value = parseFloat(item.preco_cobrado).toFixed(2);
+      const valorSalvo = parseFloat(item.preco_cobrado);
+      cobInp.value = valorSalvo.toFixed(2);
+      // Se o valor salvo difere do custo calculado, marca como editado manualmente
+      // (assim mexer na qtd não sobrescreve o valor manual da usuária)
+      const ins = DB.insumos.find(x => String(x.id) === String(item.insumo_id));
+      const custoCalc = (ins && ins.qtd_embalagem > 0)
+        ? (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0)
+        : 0;
+      if (Math.abs(valorSalvo - custoCalc) > 0.005) {
+        linha.dataset.cobradoTouched = 'true';
+      }
     }
   });
 
