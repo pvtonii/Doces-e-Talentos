@@ -725,6 +725,56 @@ body {
   font-size: 0.78rem;
   padding-top: 4px;
 }
+.pedido-insumo-row {
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pedido-insumo-row .pis-line1 {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  align-items: center;
+}
+.pedido-insumo-row .pis-line2 {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr;
+  gap: 7px;
+  align-items: center;
+}
+.pedido-insumo-row .pis-precos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.78rem;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+.pedido-insumo-row .pis-precos label {
+  display: block;
+  color: var(--text3);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.pedido-insumo-row .pis-custo {
+  font-weight: 600;
+  color: var(--text2);
+}
+.pedido-insumo-row .pis-cobrado-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--text1);
+}
 
 /* ══════════════════════════════════════════
    ORÇAMENTO BOX
@@ -1205,12 +1255,6 @@ body {
       </div>
       <div id="rec-ing-lista"></div>
       <div class="divider"></div>
-      <div class="flex-between mb-12">
-        <div class="section-label">📦 Insumos</div>
-        <button class="btn btn-secondary btn-sm" onclick="addLinhaInsReceira()">+ Adicionar</button>
-      </div>
-      <div id="rec-ins-lista"></div>
-      <div class="divider"></div>
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px">
         <div class="flex-between" style="margin-bottom:6px">
           <span style="font-weight:700;color:var(--accent)">Custo Total:</span>
@@ -1301,6 +1345,14 @@ body {
         <button class="btn btn-secondary btn-sm" onclick="addLinhaPedido()">+ Item</button>
       </div>
       <div id="ped-itens-lista"></div>
+
+      <div class="divider"></div>
+      <div class="flex-between mb-12">
+        <div class="section-label">📦 Insumos do Pedido</div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaInsumoPedido()">+ Insumo</button>
+      </div>
+      <div id="ped-insumos-lista"></div>
+
       <div class="form-group mt-12"><label class="form-label">Observações</label><textarea class="form-textarea" id="ped-obs" placeholder="Tema, cores, mensagem no bolo..."></textarea></div>
       
       <!-- PRODUCAO NECESSARIA -->
@@ -2156,13 +2208,13 @@ function atualizarPrecoUnit() {
 }
 
 function mostrarImpactoReceitas(itemId, tipo, nomeItem, precoAntigo, precoNovo) {
+  // Insumos não fazem mais parte das receitas — sem impacto a mostrar.
+  if (tipo === 'ins') return;
   const receitas_afetadas = DB.receitas.map(r => {
-    const lista = tipo === 'ing' ? (r.ingredientes || []) : (r.insumos || []);
+    const lista = (r.ingredientes || []);
     if (!lista.find(x => String(x.id) === String(itemId))) return null;
     const custoDepois = calcularCustoReceita(r);
-    const ing_ant = tipo === 'ing'
-      ? DB.ingredientes.find(x => String(x.id) === String(itemId))
-      : DB.insumos.find(x => String(x.id) === String(itemId));
+    const ing_ant = DB.ingredientes.find(x => String(x.id) === String(itemId));
     const qtdEmb = ing_ant?.qtd_embalagem || 1;
     const diffUnit = (precoNovo - precoAntigo) / qtdEmb;
     const custoAntes = custoDepois - lista.reduce((s, x) => {
@@ -2479,24 +2531,19 @@ function fatorAro(aro) {
   return FATORES_ARO[aro] || 1.0;
 }
 
-// Custo unitário escalado pelo aro: ingredientes recebem o fator, insumos não.
-// Retorna o custo de UMA unidade da receita produzida no aro escolhido.
+// Custo unitário escalado pelo aro: ingredientes recebem o fator.
+// Insumos não fazem mais parte da receita — vêm direto do pedido.
 function calcularCustoUnitarioEscalado(r, aro) {
   if (!r) return 0;
   const rendimento = r.rendimento || 1;
   const fator = fatorAro(aro);
-  let custoIng = 0, custoIns = 0;
+  let custoIng = 0;
   (r.ingredientes || []).forEach(item => {
     const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
     if (ing && ing.qtd_embalagem > 0)
       custoIng += (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0);
   });
-  (r.insumos || []).forEach(item => {
-    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
-    if (ins && ins.qtd_embalagem > 0)
-      custoIns += (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0);
-  });
-  return ((custoIng * fator) + custoIns) / rendimento;
+  return (custoIng * fator) / rendimento;
 }
 
 // Preço sugerido escalado: pega o preco_venda da receita (referência Aro 17)
@@ -2623,11 +2670,6 @@ function calcularCustoReceita(r) {
     if (ing && ing.qtd_embalagem > 0)
       total += (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0);
   });
-  (r.insumos || []).forEach(item => {
-    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
-    if (ins && ins.qtd_embalagem > 0)
-      total += (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0);
-  });
   return total;
 }
 
@@ -2673,21 +2715,8 @@ function resolverIngId(input) {
 }
 
 function addLinhaInsReceira() {
-  const div = document.createElement('div');
-  div.className = 'recipe-row';
-  div.innerHTML = `
-    <select class="form-select" style="font-size:0.85rem;padding:9px"
-      onchange="recalcularCusto(); this.closest('.recipe-row').querySelector('.un-label').textContent = DB.insumos.find(x=>String(x.id)===this.value)?.unidade || '—'">
-      <option value="">Insumo...</option>
-      ${DB.insumos.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
-    </select>
-    <input type="number" class="form-input" style="font-size:0.85rem;padding:9px" placeholder="Qtd" oninput="recalcularCusto()">
-    <div style="display:flex;align-items:center;gap:4px">
-      <span class="un-label text-muted" style="font-size:0.72rem;min-width:20px">—</span>
-      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.recipe-row').remove(); recalcularCusto()">✕</button>
-    </div>
-  `;
-  document.getElementById('rec-ins-lista').appendChild(div);
+  // Função obsoleta — insumos agora ficam direto no pedido.
+  // Mantida como no-op para compatibilidade, mas não é mais chamada.
 }
 
 function recalcularCusto() {
@@ -2703,17 +2732,6 @@ function recalcularCusto() {
       const custo = valorUnit * qtd;
       total += custo;
       if (qtd > 0) itensResumo.push({ nome: ing.nome, qtd, unidade: ing.unidade || '', valorUnit, custo });
-    }
-  });
-  document.querySelectorAll('#rec-ins-lista .recipe-row').forEach(row => {
-    const id  = row.querySelector('select').value;
-    const qtd = parseFloat(row.querySelector('input').value) || 0;
-    const ins = DB.insumos.find(x => String(x.id) === id);
-    if (ins && ins.qtd_embalagem > 0) {
-      const valorUnit = ins.preco / ins.qtd_embalagem;
-      const custo = valorUnit * qtd;
-      total += custo;
-      if (qtd > 0) itensResumo.push({ nome: ins.nome, qtd, unidade: ins.unidade || 'un', valorUnit, custo });
     }
   });
 
@@ -2770,7 +2788,6 @@ function fecharModalReceita() {
   document.getElementById('rec-rendimento').value  = '';
   document.getElementById('rec-preco-venda').value = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
-  document.getElementById('rec-ins-lista').innerHTML = '';
   const ct = document.getElementById('rec-custo-total');  if (ct) ct.textContent = 'R$ 0,00';
   const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
   const rm = document.getElementById('rec-margem');       if (rm) { rm.textContent = '—'; rm.style.color = ''; }
@@ -2785,7 +2802,6 @@ function abrirModalReceita() {
   document.getElementById('rec-rendimento').value   = '';
   document.getElementById('rec-preco-venda').value  = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
-  document.getElementById('rec-ins-lista').innerHTML = '';
   document.getElementById('rec-custo-total').textContent = 'R$ 0,00';
   document.getElementById('rec-margem').textContent = '—';
   renderRecChips();
@@ -2804,7 +2820,6 @@ function editarReceita(id) {
   document.getElementById('rec-preco-venda').value      = r.preco_venda || '';
   document.getElementById('rec-obs').value              = r.obs || '';
   document.getElementById('rec-ing-lista').innerHTML    = '';
-  document.getElementById('rec-ins-lista').innerHTML    = '';
 
   (r.ingredientes || []).forEach(item => {
     addLinhaIngReceira();
@@ -2817,16 +2832,6 @@ function editarReceita(id) {
       linha.querySelector('.un-label').textContent = ing.unidade;
     }
     linha.querySelector('input[type="number"]').value = item.quantidade;
-  });
-
-  (r.insumos || []).forEach(item => {
-    addLinhaInsReceira();
-    const linhas = document.querySelectorAll('#rec-ins-lista .recipe-row');
-    const linha  = linhas[linhas.length - 1];
-    linha.querySelector('select').value = item.id;
-    linha.querySelector('input').value  = item.quantidade;
-    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
-    if (ins) linha.querySelector('.un-label').textContent = ins.unidade;
   });
 
   recalcularCusto();
@@ -2844,13 +2849,6 @@ async function salvarReceita() {
     if (id && qtd > 0) ingredientes.push({ id, quantidade: qtd });
   });
 
-  const insumos = [];
-  document.querySelectorAll('#rec-ins-lista .recipe-row').forEach(row => {
-    const id  = row.querySelector('select').value;
-    const qtd = parseFloat(row.querySelector('input').value) || 0;
-    if (id && qtd > 0) insumos.push({ id, quantidade: qtd });
-  });
-
   const payload = {
     nome,
     categoria:   document.getElementById('rec-categoria').value,
@@ -2859,7 +2857,7 @@ async function salvarReceita() {
     preco_venda: parseFloat(document.getElementById('rec-preco-venda').value) || null,
     obs:         document.getElementById('rec-obs').value.trim(),
     ingredientes,
-    insumos
+    insumos:     []
   };
 
   const editId = document.getElementById('rec-edit-id').value;
@@ -2924,20 +2922,6 @@ function verReceita(id) {
     </div>`;
   }).join('');
 
-  const insRows = (r.insumos || []).map(item => {
-    const ins = DB.insumos.find(x => String(x.id) === String(item.id));
-    const custo = (ins && ins.qtd_embalagem)
-      ? (ins.preco / ins.qtd_embalagem) * (item.quantidade || 0)
-      : 0;
-    return `<div class="mercado-item">
-      <span style="min-width:0;flex:1">${ins?.nome || '?'}</span>
-      <div style="text-align:right;flex-shrink:0;margin-left:8px">
-        <div style="font-size:0.85rem">${item.quantidade} ${ins?.unidade || ''}</div>
-        <div style="font-size:0.75rem;color:var(--accent);font-weight:600">R$ ${custo.toFixed(2)}</div>
-      </div>
-    </div>`;
-  }).join('');
-
   document.getElementById('det-rec-title').textContent = r.nome;
   document.getElementById('det-rec-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
@@ -2950,13 +2934,6 @@ function verReceita(id) {
       <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:8px">
         <span style="font-weight:700">Subtotal ingredientes</span>
         <span style="font-weight:700;color:var(--accent)">R$ ${(r.ingredientes||[]).reduce((s,it)=>{const ing=DB.ingredientes.find(x=>String(x.id)===String(it.id));return s+((ing&&ing.qtd_embalagem)?(ing.preco/ing.qtd_embalagem)*(it.quantidade||0):0);},0).toFixed(2)}</span>
-      </div>
-    </div>` : ''}
-
-    ${insRows ? `<div class="section-label">📦 Insumos</div><div class="card" style="padding:12px;margin-bottom:12px">${insRows}
-      <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:8px">
-        <span style="font-weight:700">Subtotal insumos</span>
-        <span style="font-weight:700;color:var(--accent)">R$ ${(r.insumos||[]).reduce((s,it)=>{const ins=DB.insumos.find(x=>String(x.id)===String(it.id));return s+((ins&&ins.qtd_embalagem)?(ins.preco/ins.qtd_embalagem)*(it.quantidade||0):0);},0).toFixed(2)}</span>
       </div>
     </div>` : ''}
 
@@ -3043,7 +3020,7 @@ function formatarItensPedido(p) {
 }
 
 function calcularTotalPedido(p) {
-  return (p.itens || []).reduce((acc, i) => {
+  let total = (p.itens || []).reduce((acc, i) => {
     // Se efetuado, usa snapshot do preço (preço congelado no momento do efetuado)
     const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
     if (snap) return acc + (snap.preco_unitario || 0) * (i.quantidade || 1);
@@ -3056,6 +3033,20 @@ function calcularTotalPedido(p) {
     if (!r) return acc;
     return acc + precoSugeridoEscalado(r, i.aro) * (i.quantidade || 1);
   }, 0);
+
+  // Soma insumos do pedido — usa snapshot se efetuado, senão usa preco_cobrado salvo
+  if (p.status === 'efetuado' && Array.isArray(p.insumos_snapshot) && p.insumos_snapshot.length > 0) {
+    total += p.insumos_snapshot.reduce((acc, s) => acc + (s.preco_cobrado || 0), 0);
+  } else {
+    total += (p.insumos_pedido || []).reduce((acc, i) => {
+      if (typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0) return acc + i.preco_cobrado;
+      // Fallback: custo do insumo
+      const ins = DB.insumos.find(x => String(x.id) === String(i.insumo_id));
+      if (!ins || !ins.qtd_embalagem) return acc;
+      return acc + (ins.preco / ins.qtd_embalagem) * (i.quantidade || 0);
+    }, 0);
+  }
+  return total;
 }
 
 // ──────────────────────────────────────────
@@ -3336,10 +3327,77 @@ function atualizarLinhaPedido(row, resetCobrado) {
   if (resetCobrado) cobEl.value = sugerido > 0 ? sugerido.toFixed(2) : '';
 }
 
+// ──────────────────────────────────────────
+//  PEDIDO — INSUMOS (linha dinâmica)
+// ──────────────────────────────────────────
+function addLinhaInsumoPedido() {
+  const div = document.createElement('div');
+  div.className = 'pedido-insumo-row';
+  div.innerHTML = `
+    <div class="pis-line1">
+      <select class="form-select pis-insumo" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoInsumo(this)">
+        <option value="">Insumo...</option>
+        ${DB.insumos.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
+      </select>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-insumo-row').remove(); calcularTotalPedidoForm()">✕</button>
+    </div>
+    <div class="pis-line2">
+      <input type="number" class="form-input pis-qtd" style="font-size:0.85rem;padding:9px" value="1" min="0.01" step="0.01"
+        placeholder="Qtd" oninput="atualizarLinhaInsumoPedido(this.closest('.pedido-insumo-row')); calcularTotalPedidoForm()">
+      <span class="pis-unidade text-muted" style="font-size:0.78rem">—</span>
+      <span></span>
+    </div>
+    <div class="pis-precos">
+      <div>
+        <label>💸 Custo</label>
+        <div class="pis-custo">R$ 0,00</div>
+      </div>
+      <div>
+        <label>💰 Cobrar</label>
+        <input type="number" class="pis-cobrado-input pis-cobrado" placeholder="0,00" step="0.01" oninput="calcularTotalPedidoForm()">
+      </div>
+    </div>
+  `;
+  document.getElementById('ped-insumos-lista').appendChild(div);
+}
+
+function onChangePedidoInsumo(sel) {
+  const row = sel.closest('.pedido-insumo-row');
+  // Ao trocar insumo, atualiza unidade/custo e reseta o cobrado
+  atualizarLinhaInsumoPedido(row, /*resetCobrado=*/true);
+  calcularTotalPedidoForm();
+}
+
+// Atualiza unidade e custo da linha de insumo. Se resetCobrado=true, reseta também o "Cobrar".
+function atualizarLinhaInsumoPedido(row, resetCobrado) {
+  const insId = row.querySelector('.pis-insumo').value;
+  const qtd   = parseFloat(row.querySelector('.pis-qtd').value) || 0;
+  const ins   = DB.insumos.find(x => String(x.id) === String(insId));
+  const unEl  = row.querySelector('.pis-unidade');
+  const cusEl = row.querySelector('.pis-custo');
+  const cobEl = row.querySelector('.pis-cobrado');
+
+  if (!ins) {
+    unEl.textContent  = '—';
+    cusEl.textContent = 'R$ 0,00';
+    if (resetCobrado) cobEl.value = '';
+    return;
+  }
+  unEl.textContent = ins.unidade || 'un';
+  const custoUnit = (ins.qtd_embalagem > 0) ? (ins.preco / ins.qtd_embalagem) : 0;
+  const custoTotal = custoUnit * qtd;
+  cusEl.textContent = 'R$ ' + custoTotal.toFixed(2);
+  if (resetCobrado) {
+    // Default: cobrar igual ao custo (ela ajusta se quiser margem)
+    cobEl.value = custoTotal > 0 ? custoTotal.toFixed(2) : '';
+  }
+}
+
 function calcularTotalPedidoForm() {
   let total = 0;
   let totalQtdSolicitada = 0;
   const producaoInfo = []; // Array com info de cada receita + seus ingredientes
+  const insumosPedido = []; // Insumos escolhidos manualmente no pedido
 
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
     const id  = row.querySelector('.pir-receita').value;
@@ -3393,16 +3451,7 @@ function calcularTotalPedidoForm() {
       ingredientes.push({ nome: ing.nome, qtd: qtdNecessaria, unidade: ing.unidade || '' });
     });
 
-    // Calcular insumos desta receita (NÃO escalam pelo aro)
-    const insumos = [];
-    (r.insumos || []).forEach(ri => {
-      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
-      if (!ins) return;
-      const qtdNecessaria = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
-      insumos.push({ nome: ins.nome, qtd: qtdNecessaria, unidade: ins.unidade || '' });
-    });
-
-    // Info de producao com ingredientes separados por receita
+    // Info de producao com ingredientes por receita
     producaoInfo.push({
       nome: r.nome,
       aro,
@@ -3410,9 +3459,27 @@ function calcularTotalPedidoForm() {
       receitasNecessarias,
       producaoTotal,
       rendimento,
-      ingredientes,
-      insumos
+      ingredientes
     });
+  });
+
+  // Iterar insumos manualmente escolhidos no pedido — somam no total e atualizam custo de cada linha
+  document.querySelectorAll('#ped-insumos-lista .pedido-insumo-row').forEach(row => {
+    const insId  = row.querySelector('.pis-insumo').value;
+    const qtd    = parseFloat(row.querySelector('.pis-qtd').value) || 0;
+    const cobVal = parseFloat(row.querySelector('.pis-cobrado').value);
+    const ins    = DB.insumos.find(x => String(x.id) === String(insId));
+    if (!ins || qtd <= 0) {
+      // Mantém a linha mas limpa custo
+      const cusEl = row.querySelector('.pis-custo');
+      if (cusEl) cusEl.textContent = 'R$ 0,00';
+      return;
+    }
+    // Atualiza UI da linha (unidade e custo) sem resetar cobrado
+    atualizarLinhaInsumoPedido(row, /*resetCobrado=*/false);
+    const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : 0;
+    total += precoCobrado;
+    insumosPedido.push({ nome: ins.nome, qtd, unidade: ins.unidade || 'un' });
   });
 
   // Atualizar total
@@ -3424,14 +3491,15 @@ function calcularTotalPedidoForm() {
     resumoEl.textContent = totalQtdSolicitada > 0 ? `Quantidade solicitada: ${totalQtdSolicitada} unidade(s)` : '';
   }
 
-  // Atualizar box de producao (agora inclui ingredientes por receita)
+  // Atualizar box de producao (agora inclui ingredientes por receita + insumos do pedido)
   const producaoBox = document.getElementById('ped-producao-box');
   const producaoInfoEl = document.getElementById('ped-producao-info');
   if (producaoBox && producaoInfoEl) {
-    if (producaoInfo.length > 0) {
+    const temAlgo = producaoInfo.length > 0 || insumosPedido.length > 0;
+    if (temAlgo) {
       producaoBox.style.display = 'block';
-      producaoInfoEl.innerHTML = producaoInfo.map(p => {
-        const temItens = p.ingredientes.length > 0 || p.insumos.length > 0;
+      const blocosReceitas = producaoInfo.map(p => {
+        const temItens = p.ingredientes.length > 0;
         const aroBadge = p.aro ? ` <span style="font-size:0.72rem;color:var(--accent);font-weight:600">📐 Aro ${p.aro}</span>` : '';
         return `
         <div style="padding:10px 0;border-bottom:1px solid var(--border)">
@@ -3450,19 +3518,25 @@ function calcularTotalPedidoForm() {
                 <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
               </div>
             `).join('')}
-            ${p.insumos.length > 0 ? `
-              <div style="font-size:0.75rem;font-weight:600;color:var(--text2);margin:8px 0 6px;text-transform:uppercase">Insumos necessarios:</div>
-              ${p.insumos.map(i => `
-                <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.8rem">
-                  <span>${i.nome}</span>
-                  <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
-                </div>
-              `).join('')}
-            ` : ''}
           </div>
           ` : ''}
-        </div>
-      `}).join('');
+        </div>`;
+      }).join('');
+
+      const blocoInsumos = insumosPedido.length > 0 ? `
+        <div style="padding:10px 0">
+          <div style="font-weight:600;color:var(--text1);font-size:0.95rem">📦 Insumos do pedido</div>
+          <div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">
+            ${insumosPedido.map(i => `
+              <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.8rem">
+                <span>${i.nome}</span>
+                <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : '';
+
+      producaoInfoEl.innerHTML = blocosReceitas + blocoInsumos;
     } else {
       producaoBox.style.display = 'none';
     }
@@ -3496,6 +3570,7 @@ function abrirModalPedido() {
   document.getElementById('ped-pagamento').value    = '';
   document.getElementById('ped-pago').value         = 'false';
   document.getElementById('ped-itens-lista').innerHTML  = '';
+  document.getElementById('ped-insumos-lista').innerHTML = '';
   document.getElementById('ped-total-display').textContent = 'R$ 0,00';
   document.getElementById('ped-orcamento-text').value  = '';
   document.getElementById('modal-pedido').classList.remove('hidden');
@@ -3517,6 +3592,7 @@ function editarPedido(id) {
   document.getElementById('ped-preferencias').value     = p.preferencias || '';
   document.getElementById('ped-obs').value              = p.obs || '';
   document.getElementById('ped-itens-lista').innerHTML  = '';
+  document.getElementById('ped-insumos-lista').innerHTML = '';
 
   (p.itens || []).forEach(item => {
     addLinhaPedido();
@@ -3547,6 +3623,21 @@ function editarPedido(id) {
     }
   });
 
+  // Carregar insumos do pedido (campo novo)
+  (p.insumos_pedido || []).forEach(item => {
+    addLinhaInsumoPedido();
+    const linhas = document.querySelectorAll('#ped-insumos-lista .pedido-insumo-row');
+    const linha  = linhas[linhas.length - 1];
+    linha.querySelector('.pis-insumo').value = item.insumo_id;
+    linha.querySelector('.pis-qtd').value    = item.quantidade;
+    // Atualiza unidade/custo SEM resetar cobrado (preserva preço salvo)
+    atualizarLinhaInsumoPedido(linha, /*resetCobrado=*/false);
+    const cobInp = linha.querySelector('.pis-cobrado');
+    if (item.preco_cobrado !== null && item.preco_cobrado !== undefined && !isNaN(item.preco_cobrado)) {
+      cobInp.value = parseFloat(item.preco_cobrado).toFixed(2);
+    }
+  });
+
   calcularTotalPedidoForm();
   document.getElementById('modal-pedido').classList.remove('hidden');
 }
@@ -3559,10 +3650,11 @@ function editarPedido(id) {
 //    receita, custo, lucro, margem
 //  - custo_snapshot: detalhamento dos ingredientes/insumos consumidos
 //  - custo_total_snapshot: total CMV do pedido
-function gerarSnapshotCusto(itens) {
+function gerarSnapshotCusto(itens, insumosPedido) {
   let custoTotal = 0;
   const ingSnapshot = [];
   const itensSnapshot = [];
+  const insumosSnapshot = [];
 
   (itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
@@ -3571,7 +3663,7 @@ function gerarSnapshotCusto(itens) {
     const rendimento    = r.rendimento || 1;
     const aro           = (item.aro !== null && item.aro !== undefined) ? item.aro : null;
     const fator         = fatorAro(aro);
-    // Custo unitário ESCALADO pelo aro (ingredientes escalam, insumos não)
+    // Custo unitário ESCALADO pelo aro (só ingredientes — insumos saíram da receita)
     const custoUnitario = calcularCustoUnitarioEscalado(r, aro);
     // Preço cobrado tem prioridade; fallback pro sugerido escalado se não houver
     const precoUnitario = (typeof item.preco_cobrado === 'number' && item.preco_cobrado > 0)
@@ -3606,19 +3698,48 @@ function gerarSnapshotCusto(itens) {
       ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
       custoTotal += c;
     });
-    // Insumos NÃO escalam pelo aro
-    (r.insumos || []).forEach(ri => {
-      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
-      if (!ins || !ins.qtd_embalagem) return;
-      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida;
-      const c = (ins.preco / ins.qtd_embalagem) * qtdConsumida;
-      ingSnapshot.push({ nome: ins.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ins.unidade, custo: parseFloat(c.toFixed(4)) });
-      custoTotal += c;
+  });
+
+  // Insumos do pedido (escolhidos manualmente) — congela custo + cobrado
+  (insumosPedido || []).forEach(item => {
+    const ins = DB.insumos.find(x => String(x.id) === String(item.insumo_id));
+    if (!ins || !ins.qtd_embalagem) return;
+    const qtd = item.quantidade || 0;
+    if (qtd <= 0) return;
+    const custoUnit = ins.preco / ins.qtd_embalagem;
+    const custo     = custoUnit * qtd;
+    const precoUnit = (typeof item.preco_cobrado === 'number' && item.preco_cobrado > 0)
+      ? item.preco_cobrado
+      : custo;
+    const lucro     = precoUnit - custo;
+    const margem    = precoUnit > 0 ? lucro / precoUnit : null;
+
+    insumosSnapshot.push({
+      insumo_id:       ins.id,
+      nome:            ins.nome,
+      quantidade:      qtd,
+      unidade:         ins.unidade,
+      custo_unitario:  parseFloat(custoUnit.toFixed(4)),
+      preco_cobrado:   parseFloat(precoUnit.toFixed(2)),
+      custo:           parseFloat(custo.toFixed(2)),
+      lucro:           parseFloat(lucro.toFixed(2)),
+      margem:          margem !== null ? parseFloat(margem.toFixed(4)) : null,
     });
+
+    // Inclui no detalhamento geral de consumo (pra estoque/relatórios)
+    ingSnapshot.push({
+      nome: ins.nome,
+      qtd: parseFloat(qtd.toFixed(4)),
+      unidade: ins.unidade,
+      custo: parseFloat(custo.toFixed(4)),
+      tipo: 'insumo'
+    });
+    custoTotal += custo;
   });
 
   return {
     itens_snapshot:        itensSnapshot,
+    insumos_snapshot:      insumosSnapshot,
     custo_snapshot:        ingSnapshot,
     custo_total_snapshot:  parseFloat(custoTotal.toFixed(2)),
   };
@@ -3628,13 +3749,19 @@ function calcularCustoPedido(p) {
   if (p.status === 'efetuado' && typeof p.custo_total_snapshot === 'number' && p.custo_total_snapshot > 0) {
     return p.custo_total_snapshot;
   }
-  // Senão, calcula dinamicamente: custo_unitario_escalado × quantidade
-  return (p.itens || []).reduce((acc, i) => {
+  // Senão, calcula dinamicamente: custo dos ingredientes escalados + custo dos insumos do pedido
+  let custo = (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
     const custoUnit = calcularCustoUnitarioEscalado(r, i.aro);
     return acc + custoUnit * (i.quantidade || 1);
   }, 0);
+  custo += (p.insumos_pedido || []).reduce((acc, i) => {
+    const ins = DB.insumos.find(x => String(x.id) === String(i.insumo_id));
+    if (!ins || !ins.qtd_embalagem) return acc;
+    return acc + (ins.preco / ins.qtd_embalagem) * (i.quantidade || 0);
+  }, 0);
+  return custo;
 }
 async function salvarPedido() {
   const nome     = document.getElementById('ped-cliente').value.trim();
@@ -3664,6 +3791,26 @@ async function salvarPedido() {
     }
   });
 
+  // Coletar insumos do pedido (selecionados manualmente)
+  const insumos_pedido = [];
+  document.querySelectorAll('#ped-insumos-lista .pedido-insumo-row').forEach(row => {
+    const insId  = row.querySelector('.pis-insumo').value;
+    const qtd    = parseFloat(row.querySelector('.pis-qtd').value) || 0;
+    const cobVal = parseFloat(row.querySelector('.pis-cobrado').value);
+    if (insId && qtd > 0) {
+      const ins = DB.insumos.find(x => String(x.id) === String(insId));
+      const custoUnit = (ins && ins.qtd_embalagem > 0) ? (ins.preco / ins.qtd_embalagem) : 0;
+      const custoCalc = custoUnit * qtd;
+      // Default: cobrar = custo se usuário não preencheu
+      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : custoCalc;
+      insumos_pedido.push({
+        insumo_id:     insId,
+        quantidade:    qtd,
+        preco_cobrado: parseFloat(precoCobrado.toFixed(2))
+      });
+    }
+  });
+
   const editId = document.getElementById('ped-edit-id').value;
   const status = document.getElementById('ped-status').value;
   const pago   = document.getElementById('ped-pago').value === 'true';
@@ -3679,18 +3826,21 @@ async function salvarPedido() {
     forma_pagamento:  document.getElementById('ped-pagamento').value,
     preferencias:     document.getElementById('ped-preferencias').value.trim(),
     obs:              document.getElementById('ped-obs').value.trim(),
-    itens
+    itens,
+    insumos_pedido
   };
   const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
   const eraOrcamento   = pedidoAnterior?.status === 'orcamento';
   const virandoEfetuado = status === 'efetuado' && (eraOrcamento || !editId);
   if (virandoEfetuado) {
-    const snap = gerarSnapshotCusto(itens);
+    const snap = gerarSnapshotCusto(itens, insumos_pedido);
     payload.itens_snapshot       = snap.itens_snapshot;
+    payload.insumos_snapshot     = snap.insumos_snapshot;
     payload.custo_snapshot       = snap.custo_snapshot;
     payload.custo_total_snapshot = snap.custo_total_snapshot;
   } else if (status === 'orcamento') {
     payload.itens_snapshot       = null;
+    payload.insumos_snapshot     = null;
     payload.custo_snapshot       = null;
     payload.custo_total_snapshot = null;
   }
@@ -3746,10 +3896,8 @@ function verPedido(id) {
   const margem = total > 0 ? lucro / total : null;
   const selo = selomargem(margem);
 
-  // Agregação de ingredientes/insumos consumidos no pedido inteiro
-  // (escala ingredientes pelo aro; insumos não escalam)
-  const ingredientesAgg = {}; // chave: nome → { qtd, unidade }
-  const insumosAgg      = {};
+  // Agregação de ingredientes consumidos no pedido inteiro (escalados pelo aro)
+  const ingredientesAgg = {}; // chave: nome|unidade → { nome, qtd, unidade }
 
   // Pra cada item: receita, custo unitário, lucro, margem
   const linhasItens = (p.itens || []).map(i => {
@@ -3776,7 +3924,7 @@ function verPedido(id) {
     const sugAtual = precoSugeridoEscalado(r, aro);
     const cobrouDiferente = !snap && sugAtual > 0 && Math.abs(precoUnit - sugAtual) > 0.005;
 
-    // Agregar ingredientes (escalam) e insumos (não escalam) deste item pra produção
+    // Agregar ingredientes deste item pra produção (escalados pelo aro)
     const rendimento = r.rendimento || 1;
     const receitasNecessarias = Math.ceil(qtd / rendimento);
     (r.ingredientes || []).forEach(ri => {
@@ -3786,14 +3934,6 @@ function verPedido(id) {
       const k = ing.nome + '|' + (ing.unidade || '');
       if (!ingredientesAgg[k]) ingredientesAgg[k] = { nome: ing.nome, qtd: 0, unidade: ing.unidade || '' };
       ingredientesAgg[k].qtd += qtdNec;
-    });
-    (r.insumos || []).forEach(ri => {
-      const ins = DB.insumos.find(x => String(x.id) === String(ri.id));
-      if (!ins) return;
-      const qtdNec = (parseFloat(ri.quantidade) || 0) * receitasNecessarias;
-      const k = ins.nome + '|' + (ins.unidade || '');
-      if (!insumosAgg[k]) insumosAgg[k] = { nome: ins.nome, qtd: 0, unidade: ins.unidade || '' };
-      insumosAgg[k].qtd += qtdNec;
     });
 
     const aroBadge = aro ? `<span style="font-size:0.72rem;color:var(--accent);font-weight:600;margin-left:4px">📐 Aro ${aro}</span>` : '';
@@ -3816,10 +3956,46 @@ function verPedido(id) {
     </div>`;
   }).join('');
 
-  // Renderiza seção de ingredientes/insumos necessários
+  // Linhas dos insumos do pedido (com snapshot se efetuado, senão dinâmico)
+  const usarSnapInsumos = p.status === 'efetuado' && Array.isArray(p.insumos_snapshot) && p.insumos_snapshot.length > 0;
+  const insumosFonte = usarSnapInsumos ? p.insumos_snapshot : (p.insumos_pedido || []);
+  const linhasInsumos = insumosFonte.map(i => {
+    const insId = usarSnapInsumos ? i.insumo_id : i.insumo_id;
+    const ins   = DB.insumos.find(x => String(x.id) === String(insId));
+    const nome  = i.nome || ins?.nome || '?';
+    const unidade = i.unidade || ins?.unidade || 'un';
+    const qtd   = i.quantidade || 0;
+    let custoUnit, custoItem, precoUnit;
+    if (usarSnapInsumos) {
+      custoUnit  = i.custo_unitario || 0;
+      custoItem  = i.custo || 0;
+      precoUnit  = i.preco_cobrado || 0;
+    } else {
+      custoUnit  = (ins && ins.qtd_embalagem > 0) ? (ins.preco / ins.qtd_embalagem) : 0;
+      custoItem  = custoUnit * qtd;
+      precoUnit  = (typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0) ? i.preco_cobrado : custoItem;
+    }
+    const lucroItem  = precoUnit - custoItem;
+    const margemItem = precoUnit > 0 ? lucroItem / precoUnit : null;
+    const seloItem   = selomargem(margemItem);
+
+    return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
+      <div class="mercado-item" style="border:none;padding:0">
+        <span style="font-weight:700">${nome} <span style="font-weight:500;color:var(--text3)">×${formatarNumero(qtd)} ${unidade}</span></span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${precoUnit.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;gap:8px;font-size:0.75rem;color:var(--text3);margin-top:4px;flex-wrap:wrap">
+        <span>Custo: R$ ${custoItem.toFixed(2)}</span>
+        <span>Lucro: <b style="color:${lucroItem >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroItem.toFixed(2)}</b></span>
+        ${margemItem !== null ? `<span style="color:${seloItem.cor};font-weight:600">${seloItem.icon} ${(margemItem*100).toFixed(0)}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Renderiza seção de ingredientes necessários (só os de receitas — insumos vão em outra seção)
   const ingArr = Object.values(ingredientesAgg);
-  const insArr = Object.values(insumosAgg);
-  const temItensProducao = ingArr.length > 0 || insArr.length > 0;
+  const temIngredientes = ingArr.length > 0;
+  const temInsumosPedido = insumosFonte.length > 0;
 
   document.getElementById('det-ped-title').textContent = `Pedido #${p.numero_pedido}`;
   document.getElementById('det-ped-body').innerHTML = `
@@ -3839,27 +4015,22 @@ function verPedido(id) {
       ${linhasItens}
     </div>
 
-    ${temItensProducao ? `
+    ${temInsumosPedido ? `
+      <div class="section-label">📦 Insumos</div>
+      <div class="card" style="padding:12px;margin-bottom:12px">
+        ${linhasInsumos}
+      </div>
+    ` : ''}
+
+    ${temIngredientes ? `
       <div class="section-label">🥣 Ingredientes necessários para produção</div>
       <div class="card" style="padding:12px;margin-bottom:12px">
-        ${ingArr.length > 0 ? `
-          <div style="font-size:0.75rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase">Ingredientes</div>
-          ${ingArr.map(i => `
-            <div class="mercado-item" style="padding:4px 0;border:none">
-              <span>${i.nome}</span>
-              <span style="font-weight:600">${formatarNumero(i.qtd)} ${i.unidade}</span>
-            </div>
-          `).join('')}
-        ` : ''}
-        ${insArr.length > 0 ? `
-          <div style="font-size:0.75rem;font-weight:600;color:var(--text2);margin:${ingArr.length > 0 ? '10px' : '0'} 0 6px;text-transform:uppercase">Insumos</div>
-          ${insArr.map(i => `
-            <div class="mercado-item" style="padding:4px 0;border:none">
-              <span>${i.nome}</span>
-              <span style="font-weight:600">${formatarNumero(i.qtd)} ${i.unidade}</span>
-            </div>
-          `).join('')}
-        ` : ''}
+        ${ingArr.map(i => `
+          <div class="mercado-item" style="padding:4px 0;border:none">
+            <span>${i.nome}</span>
+            <span style="font-weight:600">${formatarNumero(i.qtd)} ${i.unidade}</span>
+          </div>
+        `).join('')}
       </div>
     ` : ''}
 
@@ -3906,6 +4077,16 @@ function gerarOrcamento() {
       const aroLabel = aro ? ` (Aro ${aro})` : '';
       itens.push(`• ${r.nome}${aroLabel} ×${qtd} — R$ ${(preco * qtd).toFixed(2)}`);
       total += preco * qtd;
+    }
+  });
+
+  // Insumos: NÃO entram no texto da mensagem, mas o preço cobrado entra no total
+  document.querySelectorAll('#ped-insumos-lista .pedido-insumo-row').forEach(row => {
+    const insId  = row.querySelector('.pis-insumo').value;
+    const qtd    = parseFloat(row.querySelector('.pis-qtd').value) || 0;
+    const cobVal = parseFloat(row.querySelector('.pis-cobrado').value);
+    if (insId && qtd > 0 && !isNaN(cobVal) && cobVal > 0) {
+      total += cobVal;
     }
   });
 
@@ -4477,27 +4658,30 @@ function descontarEstoquePedido(pedido) {
     if (!r) return;
     const qtdVendida = item.quantidade || 1;
     const rendimento = r.rendimento || 1;
+    const fator      = fatorAro((item.aro !== null && item.aro !== undefined) ? item.aro : null);
 
     (r.ingredientes || []).forEach(ing => {
       const est = DB.estoque.find(e =>
         String(e.item_id) === String(ing.id) && e.tipo === 'ingrediente'
       );
       if (est) {
-        const consumo = (ing.quantidade || 0) / rendimento * qtdVendida;
-        est.quantidade = Math.max(0, est.quantidade - consumo);
-      }
-    });
-
-    (r.insumos || []).forEach(ins => {
-      const est = DB.estoque.find(e =>
-        String(e.item_id) === String(ins.id) && e.tipo === 'insumo'
-      );
-      if (est) {
-        const consumo = (ins.quantidade || 0) / rendimento * qtdVendida;
+        const consumo = (ing.quantidade || 0) / rendimento * qtdVendida * fator;
         est.quantidade = Math.max(0, est.quantidade - consumo);
       }
     });
   });
+
+  // Insumos do pedido (escolhidos manualmente — não escalam pelo aro)
+  (pedido.insumos_pedido || []).forEach(ip => {
+    const est = DB.estoque.find(e =>
+      String(e.item_id) === String(ip.insumo_id) && e.tipo === 'insumo'
+    );
+    if (est) {
+      const consumo = ip.quantidade || 0;
+      est.quantidade = Math.max(0, est.quantidade - consumo);
+    }
+  });
+
   renderEstoque();
   verificarEstoqueCritico();
 }
@@ -4534,14 +4718,16 @@ function gerarListaMercado() {
         if (!r) return;
         const qtdVendida = item.quantidade || 1;
         const rendimento = r.rendimento || 1;
+        const fator      = fatorAro((item.aro !== null && item.aro !== undefined) ? item.aro : null);
         (r.ingredientes || []).forEach(ing => {
           const k = 'ing_' + ing.id;
-          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) / rendimento * qtdVendida;
+          nec[k] = (nec[k] || 0) + (ing.quantidade || 0) / rendimento * qtdVendida * fator;
         });
-        (r.insumos || []).forEach(ins => {
-          const k = 'ins_' + ins.id;
-          nec[k] = (nec[k] || 0) + (ins.quantidade || 0) / rendimento * qtdVendida;
-        });
+      });
+      // Insumos do pedido (escolhidos manualmente)
+      (pedido.insumos_pedido || []).forEach(ip => {
+        const k = 'ins_' + ip.insumo_id;
+        nec[k] = (nec[k] || 0) + (ip.quantidade || 0);
       });
     });
     return nec;
@@ -4916,7 +5102,9 @@ create table if not exists pedidos (
   preferencias     text,
   obs              text,
   itens            jsonb not null default '[]',
+  insumos_pedido   jsonb not null default '[]',
   itens_snapshot   jsonb,
+  insumos_snapshot jsonb,
   custo_snapshot   jsonb,
   custo_total_snapshot numeric,
   created_at       timestamptz not null default now(),
