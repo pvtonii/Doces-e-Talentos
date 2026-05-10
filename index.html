@@ -725,7 +725,8 @@ body {
   font-size: 0.78rem;
   padding-top: 4px;
 }
-.pedido-insumo-row {
+.pedido-insumo-row,
+.pedido-adicional-row {
   background: var(--bg2);
   border-radius: 10px;
   padding: 10px;
@@ -734,19 +735,22 @@ body {
   flex-direction: column;
   gap: 8px;
 }
-.pedido-insumo-row .pis-line1 {
+.pedido-insumo-row .pis-line1,
+.pedido-adicional-row .pis-line1 {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 7px;
   align-items: center;
 }
-.pedido-insumo-row .pis-line2 {
+.pedido-insumo-row .pis-line2,
+.pedido-adicional-row .pis-line2 {
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
   gap: 7px;
   align-items: center;
 }
-.pedido-insumo-row .pis-precos {
+.pedido-insumo-row .pis-precos,
+.pedido-adicional-row .pis-precos {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -754,18 +758,21 @@ body {
   padding-top: 6px;
   border-top: 1px dashed var(--border);
 }
-.pedido-insumo-row .pis-precos label {
+.pedido-insumo-row .pis-precos label,
+.pedido-adicional-row .pis-precos label {
   display: block;
   color: var(--text3);
   font-size: 0.7rem;
   text-transform: uppercase;
   margin-bottom: 2px;
 }
-.pedido-insumo-row .pis-custo {
+.pedido-insumo-row .pis-custo,
+.pedido-adicional-row .pis-custo {
   font-weight: 600;
   color: var(--text2);
 }
-.pedido-insumo-row .pis-cobrado-input {
+.pedido-insumo-row .pis-cobrado-input,
+.pedido-adicional-row .pis-cobrado-input {
   width: 100%;
   border: 1.5px solid var(--border);
   border-radius: 6px;
@@ -1186,6 +1193,15 @@ body {
         </div>
       </div>
       <div id="ing-preco-unit-preview" class="text-muted" style="margin-top:-6px"></div>
+      <div class="form-group" style="margin-top:14px;background:var(--bg2);border-radius:10px;padding:12px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0">
+          <input type="checkbox" id="ing-pode-adicional" style="width:18px;height:18px;cursor:pointer">
+          <div>
+            <div style="font-weight:600;font-size:0.92rem">🍓 Disponível como adicional</div>
+            <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Aparece no dropdown de adicionais do pedido (ex: morango, banana, ameixa)</div>
+          </div>
+        </label>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary btn-full"    onclick="salvarIngrediente()">💾 Salvar Ingrediente</button>
@@ -1352,6 +1368,13 @@ body {
         <button class="btn btn-secondary btn-sm" onclick="addLinhaInsumoPedido()">+ Insumo</button>
       </div>
       <div id="ped-insumos-lista"></div>
+
+      <div class="divider"></div>
+      <div class="flex-between mb-12">
+        <div class="section-label">🍓 Adicionais do Pedido</div>
+        <button class="btn btn-secondary btn-sm" onclick="addLinhaAdicionalPedido()">+ Adicional</button>
+      </div>
+      <div id="ped-adicionais-lista"></div>
 
       <div class="form-group mt-12"><label class="form-label">Observações</label><textarea class="form-textarea" id="ped-obs" placeholder="Tema, cores, mensagem no bolo..."></textarea></div>
       
@@ -2177,6 +2200,7 @@ function abrirModalIngrediente() {
   document.getElementById('ing-unidade').value    = 'grama';
   document.getElementById('ing-preco').value      = '';
   document.getElementById('ing-categoria').value  = '';
+  document.getElementById('ing-pode-adicional').checked = false;
   document.getElementById('ing-preco-unit-preview').textContent = '';
   // Popular autocomplete com nomes existentes
   const dl = document.getElementById('ing-nome-list');
@@ -2195,6 +2219,7 @@ function editarIngrediente(id) {
   document.getElementById('ing-unidade').value    = i.unidade;
   document.getElementById('ing-preco').value      = i.preco;
   document.getElementById('ing-categoria').value  = i.categoria || '';
+  document.getElementById('ing-pode-adicional').checked = !!i.pode_ser_adicional;
   atualizarPrecoUnit();
   document.getElementById('modal-ingrediente').classList.remove('hidden');
 }
@@ -2268,11 +2293,12 @@ async function salvarIngrediente() {
   const unidade   = document.getElementById('ing-unidade').value;
   const preco     = parseFloat(document.getElementById('ing-preco').value);
   const categoria = document.getElementById('ing-categoria').value.trim();
+  const podeAdicional = document.getElementById('ing-pode-adicional').checked;
   const editId    = document.getElementById('ing-edit-id').value;
 
   if (!nome || !qtd || !preco) { toast('Preencha os campos obrigatórios!', 'error'); return; }
 
-  const payload = { nome, qtd_embalagem: qtd, unidade, preco, categoria };
+  const payload = { nome, qtd_embalagem: qtd, unidade, preco, categoria, pode_ser_adicional: podeAdicional };
 
   if (editId) {
     const atual = DB.ingredientes.find(x => String(x.id) === String(editId));
@@ -3046,6 +3072,18 @@ function calcularTotalPedido(p) {
       return acc + (ins.preco / ins.qtd_embalagem) * (i.quantidade || 0);
     }, 0);
   }
+
+  // Soma adicionais do pedido — usa snapshot se efetuado, senão preco_cobrado salvo
+  if (p.status === 'efetuado' && Array.isArray(p.adicionais_snapshot) && p.adicionais_snapshot.length > 0) {
+    total += p.adicionais_snapshot.reduce((acc, s) => acc + (s.preco_cobrado || 0), 0);
+  } else {
+    total += (p.adicionais_pedido || []).reduce((acc, i) => {
+      if (typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0) return acc + i.preco_cobrado;
+      const ing = DB.ingredientes.find(x => String(x.id) === String(i.ingrediente_id));
+      if (!ing || !ing.qtd_embalagem) return acc;
+      return acc + (ing.preco / ing.qtd_embalagem) * (i.quantidade || 0);
+    }, 0);
+  }
   return total;
 }
 
@@ -3398,11 +3436,88 @@ function atualizarLinhaInsumoPedido(row, forceResetCobrado) {
   }
 }
 
+// ──────────────────────────────────────────
+//  PEDIDO — ADICIONAIS (linha dinâmica)
+//  Adicionais são INGREDIENTES marcados como pode_ser_adicional=true.
+//  Não escalam pelo aro (qtd é manual).
+// ──────────────────────────────────────────
+function addLinhaAdicionalPedido() {
+  const adicionaisDisponiveis = DB.ingredientes.filter(i => i.pode_ser_adicional);
+  if (adicionaisDisponiveis.length === 0) {
+    toast('Nenhum ingrediente está marcado como adicional. Marque na edição do ingrediente.', 'error');
+    return;
+  }
+  const div = document.createElement('div');
+  div.className = 'pedido-adicional-row';
+  div.innerHTML = `
+    <div class="pis-line1">
+      <select class="form-select pad-ingrediente" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoAdicional(this)">
+        <option value="">Adicional...</option>
+        ${adicionaisDisponiveis.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')}
+      </select>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-adicional-row').remove(); calcularTotalPedidoForm()">✕</button>
+    </div>
+    <div class="pis-line2">
+      <input type="number" class="form-input pad-qtd" style="font-size:0.85rem;padding:9px" value="1" min="0.01" step="0.01"
+        placeholder="Qtd" oninput="atualizarLinhaAdicionalPedido(this.closest('.pedido-adicional-row')); calcularTotalPedidoForm()">
+      <span class="pad-unidade text-muted" style="font-size:0.78rem">—</span>
+      <span></span>
+    </div>
+    <div class="pis-precos">
+      <div>
+        <label>💸 Custo</label>
+        <div class="pis-custo pad-custo">R$ 0,00</div>
+      </div>
+      <div>
+        <label>💰 Cobrar</label>
+        <input type="number" class="pis-cobrado-input pad-cobrado" placeholder="0,00" step="0.01"
+          oninput="this.closest('.pedido-adicional-row').dataset.cobradoTouched='true'; calcularTotalPedidoForm()">
+      </div>
+    </div>
+  `;
+  document.getElementById('ped-adicionais-lista').appendChild(div);
+}
+
+function onChangePedidoAdicional(sel) {
+  const row = sel.closest('.pedido-adicional-row');
+  // Trocou ingrediente: destrava o cobrado e força reset pro novo custo
+  row.dataset.cobradoTouched = 'false';
+  atualizarLinhaAdicionalPedido(row, /*forceResetCobrado=*/true);
+  calcularTotalPedidoForm();
+}
+
+// Atualiza unidade e custo da linha de adicional. Mesma lógica dos insumos:
+// Cobrar acompanha o custo, exceto se o usuário já editou manualmente.
+function atualizarLinhaAdicionalPedido(row, forceResetCobrado) {
+  const ingId = row.querySelector('.pad-ingrediente').value;
+  const qtd   = parseFloat(row.querySelector('.pad-qtd').value) || 0;
+  const ing   = DB.ingredientes.find(x => String(x.id) === String(ingId));
+  const unEl  = row.querySelector('.pad-unidade');
+  const cusEl = row.querySelector('.pad-custo');
+  const cobEl = row.querySelector('.pad-cobrado');
+  const touched = row.dataset.cobradoTouched === 'true';
+
+  if (!ing) {
+    unEl.textContent  = '—';
+    cusEl.textContent = 'R$ 0,00';
+    if (forceResetCobrado) cobEl.value = '';
+    return;
+  }
+  unEl.textContent = ing.unidade || 'un';
+  const custoUnit = (ing.qtd_embalagem > 0) ? (ing.preco / ing.qtd_embalagem) : 0;
+  const custoTotal = custoUnit * qtd;
+  cusEl.textContent = 'R$ ' + custoTotal.toFixed(2);
+  if (forceResetCobrado || !touched) {
+    cobEl.value = custoTotal > 0 ? custoTotal.toFixed(2) : '';
+  }
+}
+
 function calcularTotalPedidoForm() {
   let total = 0;
   let totalQtdSolicitada = 0;
   const producaoInfo = []; // Array com info de cada receita + seus ingredientes
   const insumosPedido = []; // Insumos escolhidos manualmente no pedido
+  const adicionaisPedido = []; // Adicionais escolhidos manualmente no pedido
 
   document.querySelectorAll('#ped-itens-lista .pedido-item-row').forEach(row => {
     const id  = row.querySelector('.pir-receita').value;
@@ -3487,6 +3602,24 @@ function calcularTotalPedidoForm() {
     insumosPedido.push({ nome: ins.nome, qtd, unidade: ins.unidade || 'un' });
   });
 
+  // Iterar adicionais manualmente escolhidos no pedido — somam no total
+  document.querySelectorAll('#ped-adicionais-lista .pedido-adicional-row').forEach(row => {
+    const ingId  = row.querySelector('.pad-ingrediente').value;
+    const qtd    = parseFloat(row.querySelector('.pad-qtd').value) || 0;
+    const cobVal = parseFloat(row.querySelector('.pad-cobrado').value);
+    const ing    = DB.ingredientes.find(x => String(x.id) === String(ingId));
+    if (!ing || qtd <= 0) {
+      const cusEl = row.querySelector('.pad-custo');
+      if (cusEl) cusEl.textContent = 'R$ 0,00';
+      return;
+    }
+    atualizarLinhaAdicionalPedido(row, /*forceResetCobrado=*/false);
+    const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : 0;
+    total += precoCobrado;
+    adicionaisPedido.push({ nome: ing.nome, qtd, unidade: ing.unidade || 'un' });
+  });
+
+
   // Atualizar total
   document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
 
@@ -3500,7 +3633,7 @@ function calcularTotalPedidoForm() {
   const producaoBox = document.getElementById('ped-producao-box');
   const producaoInfoEl = document.getElementById('ped-producao-info');
   if (producaoBox && producaoInfoEl) {
-    const temAlgo = producaoInfo.length > 0 || insumosPedido.length > 0;
+    const temAlgo = producaoInfo.length > 0 || insumosPedido.length > 0 || adicionaisPedido.length > 0;
     if (temAlgo) {
       producaoBox.style.display = 'block';
       const blocosReceitas = producaoInfo.map(p => {
@@ -3529,7 +3662,7 @@ function calcularTotalPedidoForm() {
       }).join('');
 
       const blocoInsumos = insumosPedido.length > 0 ? `
-        <div style="padding:10px 0">
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="font-weight:600;color:var(--text1);font-size:0.95rem">📦 Insumos do pedido</div>
           <div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">
             ${insumosPedido.map(i => `
@@ -3541,7 +3674,20 @@ function calcularTotalPedidoForm() {
           </div>
         </div>` : '';
 
-      producaoInfoEl.innerHTML = blocosReceitas + blocoInsumos;
+      const blocoAdicionais = adicionaisPedido.length > 0 ? `
+        <div style="padding:10px 0">
+          <div style="font-weight:600;color:var(--text1);font-size:0.95rem">🍓 Adicionais do pedido</div>
+          <div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">
+            ${adicionaisPedido.map(i => `
+              <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.8rem">
+                <span>${i.nome}</span>
+                <span style="font-weight:500">${formatarNumero(i.qtd)} ${i.unidade}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : '';
+
+      producaoInfoEl.innerHTML = blocosReceitas + blocoInsumos + blocoAdicionais;
     } else {
       producaoBox.style.display = 'none';
     }
@@ -3576,6 +3722,7 @@ function abrirModalPedido() {
   document.getElementById('ped-pago').value         = 'false';
   document.getElementById('ped-itens-lista').innerHTML  = '';
   document.getElementById('ped-insumos-lista').innerHTML = '';
+  document.getElementById('ped-adicionais-lista').innerHTML = '';
   document.getElementById('ped-total-display').textContent = 'R$ 0,00';
   document.getElementById('ped-orcamento-text').value  = '';
   document.getElementById('modal-pedido').classList.remove('hidden');
@@ -3598,6 +3745,7 @@ function editarPedido(id) {
   document.getElementById('ped-obs').value              = p.obs || '';
   document.getElementById('ped-itens-lista').innerHTML  = '';
   document.getElementById('ped-insumos-lista').innerHTML = '';
+  document.getElementById('ped-adicionais-lista').innerHTML = '';
 
   (p.itens || []).forEach(item => {
     addLinhaPedido();
@@ -3653,6 +3801,29 @@ function editarPedido(id) {
     }
   });
 
+  // Carregar adicionais do pedido
+  (p.adicionais_pedido || []).forEach(item => {
+    addLinhaAdicionalPedido();
+    const linhas = document.querySelectorAll('#ped-adicionais-lista .pedido-adicional-row');
+    const linha  = linhas[linhas.length - 1];
+    if (!linha) return; // Pode ser null se nenhum ingrediente for marcado como adicional
+    linha.querySelector('.pad-ingrediente').value = item.ingrediente_id;
+    linha.querySelector('.pad-qtd').value         = item.quantidade;
+    atualizarLinhaAdicionalPedido(linha, /*forceResetCobrado=*/false);
+    const cobInp = linha.querySelector('.pad-cobrado');
+    if (item.preco_cobrado !== null && item.preco_cobrado !== undefined && !isNaN(item.preco_cobrado)) {
+      const valorSalvo = parseFloat(item.preco_cobrado);
+      cobInp.value = valorSalvo.toFixed(2);
+      const ing = DB.ingredientes.find(x => String(x.id) === String(item.ingrediente_id));
+      const custoCalc = (ing && ing.qtd_embalagem > 0)
+        ? (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0)
+        : 0;
+      if (Math.abs(valorSalvo - custoCalc) > 0.005) {
+        linha.dataset.cobradoTouched = 'true';
+      }
+    }
+  });
+
   calcularTotalPedidoForm();
   document.getElementById('modal-pedido').classList.remove('hidden');
 }
@@ -3665,11 +3836,12 @@ function editarPedido(id) {
 //    receita, custo, lucro, margem
 //  - custo_snapshot: detalhamento dos ingredientes/insumos consumidos
 //  - custo_total_snapshot: total CMV do pedido
-function gerarSnapshotCusto(itens, insumosPedido) {
+function gerarSnapshotCusto(itens, insumosPedido, adicionaisPedido) {
   let custoTotal = 0;
   const ingSnapshot = [];
   const itensSnapshot = [];
   const insumosSnapshot = [];
+  const adicionaisSnapshot = [];
 
   (itens || []).forEach(item => {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
@@ -3752,9 +3924,47 @@ function gerarSnapshotCusto(itens, insumosPedido) {
     custoTotal += custo;
   });
 
+  // Adicionais do pedido (ingredientes marcados como pode_ser_adicional)
+  (adicionaisPedido || []).forEach(item => {
+    const ing = DB.ingredientes.find(x => String(x.id) === String(item.ingrediente_id));
+    if (!ing || !ing.qtd_embalagem) return;
+    const qtd = item.quantidade || 0;
+    if (qtd <= 0) return;
+    const custoUnit = ing.preco / ing.qtd_embalagem;
+    const custo     = custoUnit * qtd;
+    const precoUnit = (typeof item.preco_cobrado === 'number' && item.preco_cobrado > 0)
+      ? item.preco_cobrado
+      : custo;
+    const lucro     = precoUnit - custo;
+    const margem    = precoUnit > 0 ? lucro / precoUnit : null;
+
+    adicionaisSnapshot.push({
+      ingrediente_id:  ing.id,
+      nome:            ing.nome,
+      quantidade:      qtd,
+      unidade:         ing.unidade,
+      custo_unitario:  parseFloat(custoUnit.toFixed(4)),
+      preco_cobrado:   parseFloat(precoUnit.toFixed(2)),
+      custo:           parseFloat(custo.toFixed(2)),
+      lucro:           parseFloat(lucro.toFixed(2)),
+      margem:          margem !== null ? parseFloat(margem.toFixed(4)) : null,
+    });
+
+    // Inclui no detalhamento geral de consumo (pra estoque/relatórios)
+    ingSnapshot.push({
+      nome: ing.nome,
+      qtd: parseFloat(qtd.toFixed(4)),
+      unidade: ing.unidade,
+      custo: parseFloat(custo.toFixed(4)),
+      tipo: 'adicional'
+    });
+    custoTotal += custo;
+  });
+
   return {
     itens_snapshot:        itensSnapshot,
     insumos_snapshot:      insumosSnapshot,
+    adicionais_snapshot:   adicionaisSnapshot,
     custo_snapshot:        ingSnapshot,
     custo_total_snapshot:  parseFloat(custoTotal.toFixed(2)),
   };
@@ -3764,7 +3974,7 @@ function calcularCustoPedido(p) {
   if (p.status === 'efetuado' && typeof p.custo_total_snapshot === 'number' && p.custo_total_snapshot > 0) {
     return p.custo_total_snapshot;
   }
-  // Senão, calcula dinamicamente: custo dos ingredientes escalados + custo dos insumos do pedido
+  // Senão, calcula dinamicamente: custo dos ingredientes escalados + custo dos insumos do pedido + adicionais
   let custo = (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
@@ -3775,6 +3985,11 @@ function calcularCustoPedido(p) {
     const ins = DB.insumos.find(x => String(x.id) === String(i.insumo_id));
     if (!ins || !ins.qtd_embalagem) return acc;
     return acc + (ins.preco / ins.qtd_embalagem) * (i.quantidade || 0);
+  }, 0);
+  custo += (p.adicionais_pedido || []).reduce((acc, i) => {
+    const ing = DB.ingredientes.find(x => String(x.id) === String(i.ingrediente_id));
+    if (!ing || !ing.qtd_embalagem) return acc;
+    return acc + (ing.preco / ing.qtd_embalagem) * (i.quantidade || 0);
   }, 0);
   return custo;
 }
@@ -3826,6 +4041,25 @@ async function salvarPedido() {
     }
   });
 
+  // Coletar adicionais do pedido (ingredientes selecionados manualmente)
+  const adicionais_pedido = [];
+  document.querySelectorAll('#ped-adicionais-lista .pedido-adicional-row').forEach(row => {
+    const ingId  = row.querySelector('.pad-ingrediente').value;
+    const qtd    = parseFloat(row.querySelector('.pad-qtd').value) || 0;
+    const cobVal = parseFloat(row.querySelector('.pad-cobrado').value);
+    if (ingId && qtd > 0) {
+      const ing = DB.ingredientes.find(x => String(x.id) === String(ingId));
+      const custoUnit = (ing && ing.qtd_embalagem > 0) ? (ing.preco / ing.qtd_embalagem) : 0;
+      const custoCalc = custoUnit * qtd;
+      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : custoCalc;
+      adicionais_pedido.push({
+        ingrediente_id: ingId,
+        quantidade:     qtd,
+        preco_cobrado:  parseFloat(precoCobrado.toFixed(2))
+      });
+    }
+  });
+
   const editId = document.getElementById('ped-edit-id').value;
   const status = document.getElementById('ped-status').value;
   const pago   = document.getElementById('ped-pago').value === 'true';
@@ -3842,20 +4076,23 @@ async function salvarPedido() {
     preferencias:     document.getElementById('ped-preferencias').value.trim(),
     obs:              document.getElementById('ped-obs').value.trim(),
     itens,
-    insumos_pedido
+    insumos_pedido,
+    adicionais_pedido
   };
   const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
   const eraOrcamento   = pedidoAnterior?.status === 'orcamento';
   const virandoEfetuado = status === 'efetuado' && (eraOrcamento || !editId);
   if (virandoEfetuado) {
-    const snap = gerarSnapshotCusto(itens, insumos_pedido);
+    const snap = gerarSnapshotCusto(itens, insumos_pedido, adicionais_pedido);
     payload.itens_snapshot       = snap.itens_snapshot;
     payload.insumos_snapshot     = snap.insumos_snapshot;
+    payload.adicionais_snapshot  = snap.adicionais_snapshot;
     payload.custo_snapshot       = snap.custo_snapshot;
     payload.custo_total_snapshot = snap.custo_total_snapshot;
   } else if (status === 'orcamento') {
     payload.itens_snapshot       = null;
     payload.insumos_snapshot     = null;
+    payload.adicionais_snapshot  = null;
     payload.custo_snapshot       = null;
     payload.custo_total_snapshot = null;
   }
@@ -4007,10 +4244,47 @@ function verPedido(id) {
     </div>`;
   }).join('');
 
-  // Renderiza seção de ingredientes necessários (só os de receitas — insumos vão em outra seção)
+  // Linhas dos adicionais do pedido (com snapshot se efetuado, senão dinâmico)
+  const usarSnapAdicionais = p.status === 'efetuado' && Array.isArray(p.adicionais_snapshot) && p.adicionais_snapshot.length > 0;
+  const adicionaisFonte = usarSnapAdicionais ? p.adicionais_snapshot : (p.adicionais_pedido || []);
+  const linhasAdicionais = adicionaisFonte.map(i => {
+    const ingId = i.ingrediente_id;
+    const ing   = DB.ingredientes.find(x => String(x.id) === String(ingId));
+    const nome  = i.nome || ing?.nome || '?';
+    const unidade = i.unidade || ing?.unidade || 'un';
+    const qtd   = i.quantidade || 0;
+    let custoUnit, custoItem, precoUnit;
+    if (usarSnapAdicionais) {
+      custoUnit  = i.custo_unitario || 0;
+      custoItem  = i.custo || 0;
+      precoUnit  = i.preco_cobrado || 0;
+    } else {
+      custoUnit  = (ing && ing.qtd_embalagem > 0) ? (ing.preco / ing.qtd_embalagem) : 0;
+      custoItem  = custoUnit * qtd;
+      precoUnit  = (typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0) ? i.preco_cobrado : custoItem;
+    }
+    const lucroItem  = precoUnit - custoItem;
+    const margemItem = precoUnit > 0 ? lucroItem / precoUnit : null;
+    const seloItem   = selomargem(margemItem);
+
+    return `<div style="border-bottom:1px solid var(--border);padding:8px 0">
+      <div class="mercado-item" style="border:none;padding:0">
+        <span style="font-weight:700">${nome} <span style="font-weight:500;color:var(--text3)">×${formatarNumero(qtd)} ${unidade}</span></span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${precoUnit.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;gap:8px;font-size:0.75rem;color:var(--text3);margin-top:4px;flex-wrap:wrap">
+        <span>Custo: R$ ${custoItem.toFixed(2)}</span>
+        <span>Lucro: <b style="color:${lucroItem >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroItem.toFixed(2)}</b></span>
+        ${margemItem !== null ? `<span style="color:${seloItem.cor};font-weight:600">${seloItem.icon} ${(margemItem*100).toFixed(0)}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Renderiza seção de ingredientes necessários (só os de receitas — insumos e adicionais vão em outras seções)
   const ingArr = Object.values(ingredientesAgg);
   const temIngredientes = ingArr.length > 0;
   const temInsumosPedido = insumosFonte.length > 0;
+  const temAdicionaisPedido = adicionaisFonte.length > 0;
 
   document.getElementById('det-ped-title').textContent = `Pedido #${p.numero_pedido}`;
   document.getElementById('det-ped-body').innerHTML = `
@@ -4034,6 +4308,13 @@ function verPedido(id) {
       <div class="section-label">📦 Insumos</div>
       <div class="card" style="padding:12px;margin-bottom:12px">
         ${linhasInsumos}
+      </div>
+    ` : ''}
+
+    ${temAdicionaisPedido ? `
+      <div class="section-label">🍓 Adicionais</div>
+      <div class="card" style="padding:12px;margin-bottom:12px">
+        ${linhasAdicionais}
       </div>
     ` : ''}
 
@@ -4697,6 +4978,17 @@ function descontarEstoquePedido(pedido) {
     }
   });
 
+  // Adicionais do pedido (ingredientes escolhidos manualmente — não escalam pelo aro)
+  (pedido.adicionais_pedido || []).forEach(ap => {
+    const est = DB.estoque.find(e =>
+      String(e.item_id) === String(ap.ingrediente_id) && e.tipo === 'ingrediente'
+    );
+    if (est) {
+      const consumo = ap.quantidade || 0;
+      est.quantidade = Math.max(0, est.quantidade - consumo);
+    }
+  });
+
   renderEstoque();
   verificarEstoqueCritico();
 }
@@ -4743,6 +5035,11 @@ function gerarListaMercado() {
       (pedido.insumos_pedido || []).forEach(ip => {
         const k = 'ins_' + ip.insumo_id;
         nec[k] = (nec[k] || 0) + (ip.quantidade || 0);
+      });
+      // Adicionais do pedido (ingredientes escolhidos manualmente)
+      (pedido.adicionais_pedido || []).forEach(ap => {
+        const k = 'ing_' + ap.ingrediente_id;
+        nec[k] = (nec[k] || 0) + (ap.quantidade || 0);
       });
     });
     return nec;
@@ -5052,6 +5349,7 @@ create table if not exists ingredientes (
   unidade          text not null,
   preco            numeric not null check (preco >= 0),
   categoria        text,
+  pode_ser_adicional boolean not null default false,
   historico_precos jsonb not null default '[]',
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
@@ -5118,8 +5416,10 @@ create table if not exists pedidos (
   obs              text,
   itens            jsonb not null default '[]',
   insumos_pedido   jsonb not null default '[]',
+  adicionais_pedido jsonb not null default '[]',
   itens_snapshot   jsonb,
   insumos_snapshot jsonb,
+  adicionais_snapshot jsonb,
   custo_snapshot   jsonb,
   custo_total_snapshot numeric,
   created_at       timestamptz not null default now(),
