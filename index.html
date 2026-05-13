@@ -103,6 +103,31 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   background: #555;
   flex-shrink: 0;
 }
+.btn-refresh-hard {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: #fbf0e1;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.btn-refresh-hard:hover { opacity: 1; background: rgba(255,255,255,0.12); }
+.btn-refresh-hard:active { background: rgba(255,255,255,0.2); }
+.btn-refresh-hard svg { width: 18px; height: 18px; display: block; }
+.btn-refresh-hard.spinning svg {
+  animation: refreshSpin 0.6s linear infinite;
+}
+@keyframes refreshSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 .conn-dot.online { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
 
 /* ══════════════════════════════════════════
@@ -852,6 +877,12 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
         <em style="color:#fbf0e1;font-style:normal;font-weight:700">Doces & Talentos</em>
       </div>
   <div id="header-date" style="font-size:0.72rem;color:#f5ddd0;font-style:italic;"></div>
+  <button id="btn-refresh-hard" class="btn-refresh-hard" onclick="refreshHard()" title="Atualizar app (ignorar cache)" aria-label="Atualizar app">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-3-6.7"/>
+      <polyline points="21 4 21 10 15 10"/>
+    </svg>
+  </button>
   <div id="conn-dot" class="conn-dot"></div>
 </header>
 
@@ -2517,6 +2548,35 @@ function toast(msg, tipo = 'success') {
   el.innerHTML = `<span>${tipo === 'success' ? '✅' : tipo === 'error' ? '❌' : '⚠️'}</span>${msg}`;
   document.getElementById('toast-container').appendChild(el);
   setTimeout(() => el.remove(), 3500);
+}
+
+// ──────────────────────────────────────────
+//  REFRESH FORÇADO — ignora cache do navegador,
+//  Service Workers e Cache API. Recarrega com
+//  querystring nova pra evitar cache de HTML/asset.
+// ──────────────────────────────────────────
+async function refreshHard() {
+  const btn = document.getElementById('btn-refresh-hard');
+  if (btn) btn.classList.add('spinning');
+  try {
+    // 1) Limpa Cache API (PWA caches)
+    if (typeof caches !== 'undefined' && caches.keys) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      } catch (e) { /* ignora */ }
+    }
+    // 2) Desregistra Service Workers
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      } catch (e) { /* ignora */ }
+    }
+  } catch (e) { /* ignora */ }
+  // 3) Reload com querystring nova pra forçar download do HTML
+  const url = window.location.pathname + '?v=' + Date.now() + window.location.hash;
+  window.location.replace(url);
 }
 
 function formatarData(s) {
