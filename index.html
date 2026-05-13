@@ -3059,10 +3059,13 @@ function formatarItensPedido(p) {
 }
 
 function calcularTotalPedido(p) {
+  const usarSnapItens = p.status === 'efetuado' && Array.isArray(p.itens_snapshot) && p.itens_snapshot.length > 0;
   let total = (p.itens || []).reduce((acc, i) => {
-    // Se efetuado, usa snapshot do preço (preço congelado no momento do efetuado)
-    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
-    if (snap) return acc + (snap.preco_unitario || 0) * (i.quantidade || 1);
+    // Só usa snapshot se pedido estiver efetuado E houver snapshot válido
+    if (usarSnapItens) {
+      const snap = p.itens_snapshot.find(s => String(s.receita_id) === String(i.receita_id));
+      if (snap) return acc + (snap.preco_unitario || 0) * (i.quantidade || 1);
+    }
     // Preço cobrado salvo no item tem prioridade sobre o preco_venda da receita
     if (typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0) {
       return acc + i.preco_cobrado * (i.quantidade || 1);
@@ -4092,10 +4095,11 @@ async function salvarPedido() {
     insumos_pedido,
     adicionais_pedido
   };
-  const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
-  const eraOrcamento   = pedidoAnterior?.status === 'orcamento';
-  const virandoEfetuado = status === 'efetuado' && (eraOrcamento || !editId);
-  if (virandoEfetuado) {
+  // Snapshot é regenerado SEMPRE que o pedido for/continuar efetuado.
+  // Isso garante que edições em pedidos já efetuados (preço, qtd, aro, insumo)
+  // sejam refletidas no card, no Ver, e no dashboard/CMV/margem.
+  // Trade-off aceito: custo histórico é recalculado com preços atuais dos ingredientes/insumos.
+  if (status === 'efetuado') {
     const snap = gerarSnapshotCusto(itens, insumos_pedido, adicionais_pedido);
     payload.itens_snapshot       = snap.itens_snapshot;
     payload.insumos_snapshot     = snap.insumos_snapshot;
@@ -4170,8 +4174,9 @@ function verPedido(id) {
     if (!r) return `<div class="mercado-item"><span>? ×${i.quantidade}</span><span>—</span></div>`;
     const aro = (i.aro !== null && i.aro !== undefined) ? i.aro : null;
     const fator = fatorAro(aro);
-    // Se tem snapshot, usa congelado; senão calcula dinâmico (com aro)
-    const snap = (p.itens_snapshot || []).find(s => String(s.receita_id) === String(i.receita_id));
+    // Só usa snapshot se pedido efetuado; senão calcula dinâmico (com aro)
+    const usarSnap = p.status === 'efetuado' && Array.isArray(p.itens_snapshot) && p.itens_snapshot.length > 0;
+    const snap = usarSnap ? p.itens_snapshot.find(s => String(s.receita_id) === String(i.receita_id)) : null;
     const precoUnit  = snap
       ? snap.preco_unitario
       : ((typeof i.preco_cobrado === 'number' && i.preco_cobrado > 0)
