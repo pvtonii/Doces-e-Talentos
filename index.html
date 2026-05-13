@@ -4155,6 +4155,9 @@ async function salvarPedido() {
     insumos_pedido,
     adicionais_pedido
   };
+  // Detecta transição orcamento → efetuado (pra descontar estoque mais abaixo)
+  const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
+  const eraOrcamento   = pedidoAnterior?.status === 'orcamento';
   // Snapshot é regenerado SEMPRE que o pedido for/continuar efetuado.
   // Isso garante que edições em pedidos já efetuados (preço, qtd, aro, insumo)
   // sejam refletidas no card, no Ver, e no dashboard/CMV/margem.
