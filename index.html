@@ -406,6 +406,16 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 .ped-items-text { font-size: 0.82rem; color: var(--text2); margin: 6px 0; }
 .ped-row-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; flex-wrap: wrap; }
 .ped-total    { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.ped-desc-toggle {
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 0.85rem;
+  transition: background 0.12s, color 0.12s;
+}
+.ped-desc-toggle.ativo {
+  background: var(--accent);
+  color: #fbf0e1;
+}
 .ped-actions  { display: flex; gap: 8px; margin-top: 12px; }
 
 /* ══════════════════════════════════════════
@@ -1433,7 +1443,24 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
         <div class="section-label" style="margin-bottom:8px">Ingredientes Necessarios</div>
         <div id="ped-ingredientes-lista" style="font-size:0.85rem;color:var(--text2);max-height:200px;overflow-y:auto"></div>
       </div>
-      
+
+      <!-- DESCONTO -->
+      <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px">
+        <div class="section-label" style="margin-bottom:8px">💸 Desconto</div>
+        <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">
+          <input type="number" class="form-input" id="ped-desconto-valor" placeholder="0,00" step="0.01" min="0" style="flex:1;min-width:0" oninput="calcularTotalPedidoForm()">
+          <div style="display:flex;border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;flex-shrink:0">
+            <button type="button" id="ped-desconto-tipo-rs" class="ped-desc-toggle ativo" onclick="setDescontoTipo('fixo')" style="padding:0 14px;font-weight:700;border:none;cursor:pointer">R$</button>
+            <button type="button" id="ped-desconto-tipo-pct" class="ped-desc-toggle" onclick="setDescontoTipo('percentual')" style="padding:0 14px;font-weight:700;border:none;cursor:pointer">%</button>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="aplicarDesconto()" style="flex-shrink:0">Aplicar</button>
+        </div>
+        <input type="text" class="form-input" id="ped-desconto-motivo" placeholder="Motivo (opcional)" style="margin-bottom:6px">
+        <div id="ped-desconto-aplicado" style="font-size:0.78rem;color:var(--text3);min-height:1.2em"></div>
+        <input type="hidden" id="ped-desconto-tipo" value="fixo">
+        <input type="hidden" id="ped-desconto-rs"   value="0">
+      </div>
+
       <!-- RESUMO TOTAL -->
       <div style="background:var(--accent-light);border-radius:var(--radius);padding:14px;margin-top:12px">
         <div id="ped-resumo-qtd" style="font-size:0.85rem;color:var(--text2);margin-bottom:8px"></div>
@@ -2649,7 +2676,18 @@ function calcularCustoUnitarioEscalado(r, aro) {
 // e aplica o fator do aro escolhido.
 function precoSugeridoEscalado(r, aro) {
   if (!r) return 0;
-  return (parseFloat(r.preco_venda) || 0) * fatorAro(aro);
+  // preco_venda no cadastro = preço da fornada inteira (rendimento N).
+  // Aqui retornamos preço UNITÁRIO escalado pelo aro.
+  // Receitas sem rendimento (bolos de aro, etc.) usam rendimento=1, então não altera.
+  const rendimento = parseInt(r.rendimento) || 1;
+  return ((parseFloat(r.preco_venda) || 0) * fatorAro(aro)) / rendimento;
+}
+
+// Preço unitário da receita SEM aro (usado em cards/listagens de receita)
+function precoUnitarioReceita(r) {
+  if (!r) return 0;
+  const rendimento = parseInt(r.rendimento) || 1;
+  return (parseFloat(r.preco_venda) || 0) / rendimento;
 }
 
 function calcularMargem(precoUnitario, custoUnitario) {
@@ -2738,7 +2776,7 @@ function renderReceitas() {
     const custoTotal    = calcularCustoReceita(r);
     const rendimento    = r.rendimento || 1;
     const custoUnitario = custoTotal / rendimento;
-    const precoVenda    = parseFloat(r.preco_venda) || 0;
+    const precoVenda    = precoUnitarioReceita(r);
     const margem        = calcularMargem(precoVenda, custoUnitario);
     const selo          = selomargem(margem);
     return `<div class="rec-card" onclick="verReceita('${r.id}')">
@@ -2864,11 +2902,12 @@ function atualizarMargemUI(custo) {
   const c           = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
   const rendimento  = parseInt(document.getElementById('rec-rendimento').value) || 1;
   const custoUnit   = c / rendimento;
-  const venda       = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const vendaFornada = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const vendaUnit   = vendaFornada / rendimento; // preço da fornada → preço unitário
   const el          = document.getElementById('rec-margem');
   const elUnit      = document.getElementById('rec-custo-porcao');
   if (elUnit) elUnit.textContent = rendimento > 1 ? `R$ ${custoUnit.toFixed(2)} (rende ${rendimento})` : '—';
-  const m = calcularMargem(venda, custoUnit);
+  const m = calcularMargem(vendaUnit, custoUnit);
   if (m !== null && custoUnit > 0) {
     const selo = selomargem(m);
     el.innerHTML = `<span style="color:${selo.cor}">${selo.icon} ${(m*100).toFixed(1)}% · ${selo.label}</span>`;
@@ -3001,7 +3040,7 @@ function verReceita(id) {
   const custoTotal    = calcularCustoReceita(r);
   const rendimento    = r.rendimento || 1;
   const custoUnitario = custoTotal / rendimento;
-  const precoVenda    = parseFloat(r.preco_venda) || 0;
+  const precoVenda    = precoUnitarioReceita(r);
   const margem        = calcularMargem(precoVenda, custoUnitario);
   const selo          = selomargem(margem);
   const lucroUnit     = precoVenda - custoUnitario;
@@ -3159,6 +3198,16 @@ function calcularTotalPedido(p) {
       if (!ing || !ing.qtd_embalagem) return acc;
       return acc + (ing.preco / ing.qtd_embalagem) * (i.quantidade || 0);
     }, 0);
+  }
+
+  // Aplicar desconto (R$ ou %) — usa os campos salvos no pedido
+  const descTipo = p.desconto_tipo;
+  const descOrig = parseFloat(p.desconto_valor_original) || 0;
+  if (descOrig > 0) {
+    const descRs = descTipo === 'percentual'
+      ? total * (Math.min(100, descOrig) / 100)
+      : Math.min(total, descOrig);
+    total = Math.max(0, total - descRs);
   }
   return total;
 }
@@ -3588,6 +3637,42 @@ function atualizarLinhaAdicionalPedido(row, forceResetCobrado) {
   }
 }
 
+// ──────────────────────────────────────────
+//  DESCONTO DO PEDIDO (R$ ou %)
+// ──────────────────────────────────────────
+function setDescontoTipo(tipo) {
+  const hidden = document.getElementById('ped-desconto-tipo');
+  const btRs   = document.getElementById('ped-desconto-tipo-rs');
+  const btPct  = document.getElementById('ped-desconto-tipo-pct');
+  if (!hidden || !btRs || !btPct) return;
+  hidden.value = tipo;
+  btRs.classList.toggle('ativo',  tipo === 'fixo');
+  btPct.classList.toggle('ativo', tipo === 'percentual');
+  calcularTotalPedidoForm();
+}
+
+function calcularDescontoRS(subtotal) {
+  const tipo = document.getElementById('ped-desconto-tipo')?.value || 'fixo';
+  const val  = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
+  if (val <= 0) return 0;
+  if (tipo === 'percentual') {
+    const pct = Math.min(100, val);
+    return subtotal * (pct / 100);
+  }
+  return Math.min(subtotal, val);
+}
+
+// Botão "Aplicar": apenas recalcula e dá feedback rápido (input já recalcula em tempo real)
+function aplicarDesconto() {
+  calcularTotalPedidoForm();
+  const val = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
+  if (val > 0) {
+    toast('Desconto aplicado!', 'success');
+  } else {
+    toast('Informe um valor de desconto.', 'warning');
+  }
+}
+
 function calcularTotalPedidoForm() {
   let total = 0;
   let totalQtdSolicitada = 0;
@@ -3696,8 +3781,28 @@ function calcularTotalPedidoForm() {
   });
 
 
+  // Aplicar desconto (R$ ou %)
+  const subtotal = total;
+  const descRs   = calcularDescontoRS(subtotal);
+  const totalComDesconto = Math.max(0, subtotal - descRs);
+  // Salvar no hidden pra usar no salvar
+  const elDescRs = document.getElementById('ped-desconto-rs');
+  if (elDescRs) elDescRs.value = String(descRs);
+  // Atualizar a linha "Desconto aplicado: ..."
+  const elDescInfo = document.getElementById('ped-desconto-aplicado');
+  if (elDescInfo) {
+    if (descRs > 0) {
+      const tipo = document.getElementById('ped-desconto-tipo')?.value || 'fixo';
+      const valDigitado = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
+      const subtxt = tipo === 'percentual' ? ` (${valDigitado.toFixed(0)}%)` : '';
+      elDescInfo.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ Desconto aplicado: -R$ ${descRs.toFixed(2)}${subtxt}</span>`;
+    } else {
+      elDescInfo.textContent = '';
+    }
+  }
+
   // Atualizar total
-  document.getElementById('ped-total-display').textContent = 'R$ ' + total.toFixed(2);
+  document.getElementById('ped-total-display').textContent = 'R$ ' + totalComDesconto.toFixed(2);
 
   // Atualizar resumo de quantidade
   const resumoEl = document.getElementById('ped-resumo-qtd');
@@ -3801,6 +3906,12 @@ function abrirModalPedido() {
   document.getElementById('ped-adicionais-lista').innerHTML = '';
   document.getElementById('ped-total-display').textContent = 'R$ 0,00';
   document.getElementById('ped-orcamento-text').value  = '';
+  // Reset desconto
+  if (document.getElementById('ped-desconto-valor'))    document.getElementById('ped-desconto-valor').value = '';
+  if (document.getElementById('ped-desconto-motivo'))   document.getElementById('ped-desconto-motivo').value = '';
+  if (document.getElementById('ped-desconto-aplicado')) document.getElementById('ped-desconto-aplicado').textContent = '';
+  if (document.getElementById('ped-desconto-rs'))       document.getElementById('ped-desconto-rs').value = '0';
+  setDescontoTipo('fixo');
   document.getElementById('modal-pedido').classList.remove('hidden');
 }
 
@@ -3899,6 +4010,15 @@ function editarPedido(id) {
       }
     }
   });
+
+  // Carregar desconto salvo
+  const elDescVal    = document.getElementById('ped-desconto-valor');
+  const elDescMot    = document.getElementById('ped-desconto-motivo');
+  const elDescAplic  = document.getElementById('ped-desconto-aplicado');
+  if (elDescVal)   elDescVal.value   = (p.desconto_valor_original && p.desconto_valor_original > 0) ? String(p.desconto_valor_original) : '';
+  if (elDescMot)   elDescMot.value   = p.desconto_motivo || '';
+  if (elDescAplic) elDescAplic.textContent = '';
+  setDescontoTipo(p.desconto_tipo === 'percentual' ? 'percentual' : 'fixo');
 
   calcularTotalPedidoForm();
   document.getElementById('modal-pedido').classList.remove('hidden');
@@ -4140,6 +4260,12 @@ async function salvarPedido() {
   const status = document.getElementById('ped-status').value;
   const pago   = document.getElementById('ped-pago').value === 'true';
 
+  // Desconto: usuário digita um valor + escolhe tipo (R$ fixo ou %)
+  // Salvamos o valor original digitado, o tipo, e o motivo. O total final é calculado dinamicamente.
+  const descontoTipo   = document.getElementById('ped-desconto-tipo')?.value || 'fixo';
+  const descontoOrig   = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
+  const descontoMotivo = document.getElementById('ped-desconto-motivo')?.value.trim() || '';
+
   const payload = {
     cliente_nome:     nome,
     cliente_telefone: telefone,
@@ -4153,7 +4279,10 @@ async function salvarPedido() {
     obs:              document.getElementById('ped-obs').value.trim(),
     itens,
     insumos_pedido,
-    adicionais_pedido
+    adicionais_pedido,
+    desconto_tipo:           descontoOrig > 0 ? descontoTipo : null,
+    desconto_valor_original: descontoOrig > 0 ? descontoOrig : null,
+    desconto_motivo:         descontoMotivo || null
   };
   // Detecta transição orcamento → efetuado (pra descontar estoque mais abaixo)
   const pedidoAnterior = editId ? DB.pedidos.find(x => String(x.id) === String(editId)) : null;
@@ -4475,12 +4604,30 @@ function gerarOrcamento() {
     }
   });
 
+  // Aplicar desconto na cotação
+  const subtotal = total;
+  const descRs   = calcularDescontoRS(subtotal);
+  const totalComDesc = Math.max(0, subtotal - descRs);
+
+  const linhasDesc = [];
+  if (descRs > 0) {
+    const tipo = document.getElementById('ped-desconto-tipo')?.value || 'fixo';
+    const valOrig = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
+    const motivo = document.getElementById('ped-desconto-motivo')?.value.trim() || '';
+    const labelDesc = tipo === 'percentual'
+      ? `${valOrig.toFixed(0)}% (-R$ ${descRs.toFixed(2)})`
+      : `R$ ${descRs.toFixed(2)}`;
+    linhasDesc.push(`💵 Subtotal: R$ ${subtotal.toFixed(2)}`);
+    linhasDesc.push(`💸 Desconto: ${labelDesc}${motivo ? ` — ${motivo}` : ''}`);
+  }
+
   const texto = [
     `📋 *ORÇAMENTO*`,
     ``,
     `Olá ${nome}! 🎂`,
     ``,
-    `💰 *Total: R$ ${total.toFixed(2)}*`,
+    ...linhasDesc,
+    `💰 *Total: R$ ${totalComDesc.toFixed(2)}*`,
     entrega ? `📅 Entrega: ${formatarData(entrega)}` : '',
     obs     ? `📝 ${obs}` : '',
     ``,
@@ -4828,7 +4975,7 @@ function renderEstoque() {
       const calc          = calcularEstoqueReceita(r.id);
       const custoTotal    = calcularCustoReceita(r);
       const custoUnitario = custoTotal / (r.rendimento || 1);
-      const precoVenda    = parseFloat(r.preco_venda) || 0;
+      const precoVenda    = precoUnitarioReceita(r);
       const margem        = calcularMargem(precoVenda, custoUnitario);
       const selo          = selomargem(margem);
 
