@@ -1450,10 +1450,9 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
         <div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px">
           <input type="number" class="form-input" id="ped-desconto-valor" placeholder="0,00" step="0.01" min="0" style="flex:1;min-width:0" oninput="calcularTotalPedidoForm()">
           <div style="display:flex;border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;flex-shrink:0">
-            <button type="button" id="ped-desconto-tipo-rs" class="ped-desc-toggle ativo" onclick="setDescontoTipo('fixo')" style="padding:0 14px;font-weight:700;border:none;cursor:pointer">R$</button>
-            <button type="button" id="ped-desconto-tipo-pct" class="ped-desc-toggle" onclick="setDescontoTipo('percentual')" style="padding:0 14px;font-weight:700;border:none;cursor:pointer">%</button>
+            <button type="button" id="ped-desconto-tipo-rs" class="ped-desc-toggle ativo" onclick="setDescontoTipo('fixo')" style="padding:0 16px;font-weight:700;border:none;cursor:pointer">R$</button>
+            <button type="button" id="ped-desconto-tipo-pct" class="ped-desc-toggle" onclick="setDescontoTipo('percentual')" style="padding:0 16px;font-weight:700;border:none;cursor:pointer">%</button>
           </div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="aplicarDesconto()" style="flex-shrink:0">Aplicar</button>
         </div>
         <input type="text" class="form-input" id="ped-desconto-motivo" placeholder="Motivo (opcional)" style="margin-bottom:6px">
         <div id="ped-desconto-aplicado" style="font-size:0.78rem;color:var(--text3);min-height:1.2em"></div>
@@ -3662,16 +3661,8 @@ function calcularDescontoRS(subtotal) {
   return Math.min(subtotal, val);
 }
 
-// Botão "Aplicar": apenas recalcula e dá feedback rápido (input já recalcula em tempo real)
-function aplicarDesconto() {
-  calcularTotalPedidoForm();
-  const val = parseFloat(document.getElementById('ped-desconto-valor')?.value) || 0;
-  if (val > 0) {
-    toast('Desconto aplicado!', 'success');
-  } else {
-    toast('Informe um valor de desconto.', 'warning');
-  }
-}
+// Botão "Aplicar" removido — o desconto já atualiza em tempo real
+// conforme o usuário digita o valor ou troca o toggle R$/%.
 
 function calcularTotalPedidoForm() {
   let total = 0;
