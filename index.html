@@ -1152,6 +1152,11 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
     </div>
 
     <div class="config-block">
+      <div class="config-block-title">ℹ️ Versão do app</div>
+      <div id="cfg-versao" style="font-size:0.95rem;color:var(--text2);font-weight:600">—</div>
+    </div>
+
+    <div class="config-block">
       <div class="config-block-title">🎂 Sobre</div>
       <p class="text-muted">Doceria Gestão — Feito com ❤️ para a mamãe confeiteira.</p>
     </div>
@@ -1609,6 +1614,12 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 
 <!-- JS VEM AQUI (partes 2, 3 e 4) -->
 <script>
+// ════════════════════════════════════════════════════════
+//  VERSÃO DO APP
+//  Atualizada manualmente a cada entrega.
+// ════════════════════════════════════════════════════════
+const APP_VERSION = { numero: '01', data: '17 de maio de 2026' };
+
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
 //  Usados como fallback quando não há Supabase configurado
@@ -5797,6 +5808,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const key = localStorage.getItem(SUPA_KEY_KEY);
   if (url) document.getElementById('cfg-url').value = url;
   if (key) document.getElementById('cfg-key').value = key;
+
+  // Mostra a versão do app na tela de Configurações
+  const elVersao = document.getElementById('cfg-versao');
+  if (elVersao) elVersao.textContent = `v${APP_VERSION.numero} — ${APP_VERSION.data}`;
 
   // Tenta conectar ao Supabase; se não tiver config, carrega do localStorage
   initSupabase().then(() => {
