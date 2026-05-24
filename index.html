@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#1a110a">
+<meta name="theme-color" content="#904746">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Doceria">
@@ -50,7 +50,6 @@
 ══════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; }
-@supports (-webkit-touch-callout: none) { .bottom-nav { padding-bottom: max(var(--safe-bottom), 16px); } }
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -82,7 +81,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   background: #904746;
   color: white;
   height: calc(var(--header-h) + var(--safe-top));
-  padding: calc(var(--safe-top) + 10px) 18px 10px;
+  padding: calc(var(--safe-top) + 10px) calc(18px + env(safe-area-inset-right, 0px)) 10px calc(18px + env(safe-area-inset-left, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1619,7 +1618,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '02', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '03', data: '24 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
