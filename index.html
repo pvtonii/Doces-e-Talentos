@@ -49,19 +49,16 @@
    RESET & BASE
 ══════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
-html { background: var(--bg); }
+html { background: var(--bg); -webkit-text-size-adjust: 100%; }
 body {
   background:
     linear-gradient(#904746, #904746) top center / 100% calc(var(--header-h) + var(--safe-top)) no-repeat,
     var(--bg);
-  height: 100dvh;
+  min-height: 100dvh;
 }
 body {
   font-family: var(--font);
   color: var(--text);
-  display: flex;
-  flex-direction: column;
   max-width: 430px;
   margin: 0 auto;
   position: relative;
@@ -86,6 +83,8 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 .app-header {
   background: #904746;
   color: white;
+  position: sticky;
+  top: 0;
   height: calc(var(--header-h) + var(--safe-top));
   padding: calc(var(--safe-top) + 10px) calc(18px + env(safe-area-inset-right, 0px)) 10px calc(18px + env(safe-area-inset-left, 0px));
   display: flex;
@@ -140,8 +139,6 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
    SCROLL AREA
 ══════════════════════════════════════════ */
 .app-scroll {
-  flex: 1;
-  overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
@@ -1622,7 +1619,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '06', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '07', data: '24 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -1998,7 +1995,10 @@ function navigate(page) {
   // Troca de página visível
   document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('app-scroll').scrollTop = 0;
+  // Reset de scroll ao trocar de página (body rola naturalmente agora)
+  window.scrollTo(0, 0);
+  const sc = document.getElementById('app-scroll');
+  if (sc) sc.scrollTop = 0;
 
   // Bottom nav highlight
   MAIN_PAGES.forEach(p => {
