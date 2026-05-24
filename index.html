@@ -158,11 +158,10 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   width: 100%;
   max-width: 430px;
   height: calc(var(--nav-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
   background: var(--surface);
   border-top: 1.5px solid var(--border);
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: space-around;
   z-index: 100;
   box-shadow: 0 -4px 20px rgba(60,30,10,0.10);
@@ -173,7 +172,8 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 10px;
+  padding-top: 0;
+  padding-bottom: var(--safe-bottom);
   gap: 3px;
   cursor: pointer;
   color: var(--text3);
@@ -1624,7 +1624,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '04', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '05', data: '24 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
