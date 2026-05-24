@@ -50,9 +50,15 @@
 ══════════════════════════════════════════ */
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; }
+html { background: var(--bg); }
+body {
+  background:
+    linear-gradient(#904746, #904746) top center / 100% calc(var(--header-h) + var(--safe-top)) no-repeat,
+    var(--bg);
+  height: 100dvh;
+}
 body {
   font-family: var(--font);
-  background: var(--bg);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -1618,7 +1624,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '03', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '04', data: '24 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
