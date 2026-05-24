@@ -157,12 +157,12 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  height: calc(var(--nav-h) + var(--safe-bottom));
   background: var(--surface);
   border-top: 1.5px solid var(--border);
   display: flex;
   align-items: stretch;
   justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   z-index: 100;
   box-shadow: 0 -4px 20px rgba(60,30,10,0.10);
 }
@@ -172,8 +172,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 0;
-  padding-bottom: var(--safe-bottom);
+  padding: 10px 4px;
   gap: 3px;
   cursor: pointer;
   color: var(--text3);
@@ -181,7 +180,6 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   font-weight: 600;
   letter-spacing: 0.03em;
   position: relative;
-  min-height: var(--nav-h);
   transition: color 0.18s;
 }
 .nav-icon { font-size: 1.5rem; line-height: 1; transition: transform 0.2s; display:flex; align-items:center; justify-content:center; }
@@ -1624,7 +1622,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '05', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '06', data: '24 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
