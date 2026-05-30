@@ -582,6 +582,18 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   backdrop-filter: blur(3px);
   animation: fadeIn 0.18s ease;
 }
+.modal-overlay.modal-center {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.modal-overlay.modal-center .modal {
+  width: 100%;
+  max-width: 340px;
+  border-radius: var(--radius-lg);
+  animation: fadeIn 0.18s ease;
+  padding-bottom: 0;
+}
 .modal {
   background: var(--surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -1599,8 +1611,8 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 </div>
 
 <!-- MODAL CONFIRMAÇÃO (substitui o confirm() do navegador) -->
-<div id="modal-confirm" class="modal-overlay hidden">
-  <div class="modal" style="max-width:340px">
+<div id="modal-confirm" class="modal-overlay modal-center hidden">
+  <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="confirm-title">Confirmar</div>
     </div>
@@ -1620,7 +1632,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '09', data: '29 de maio de 2026' };
+const APP_VERSION = { numero: '10', data: '29 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
