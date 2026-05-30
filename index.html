@@ -1620,7 +1620,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '08', data: '24 de maio de 2026' };
+const APP_VERSION = { numero: '09', data: '29 de maio de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -2425,10 +2425,14 @@ async function deletarIngrediente(id) {
   if (!(await confirmDialog('Tem certeza que deseja deletar este ingrediente?<br><br>Esta ação não pode ser desfeita.', 'Deletar ingrediente'))) return;
   if (supabase) {
     try { await sbDelete('ingredientes', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    // Apaga entradas de estoque órfãs
+    try { await sbDelete('estoque', 'item_id=eq.'+id+'&tipo=eq.ingrediente'); } catch(_) {}
   }
   DB.ingredientes = DB.ingredientes.filter(x => String(x.id) !== String(id));
+  DB.estoque = DB.estoque.filter(x => !(String(x.item_id) === String(id) && x.tipo === 'ingrediente'));
   renderIngChips();
   filtrarIngredientes();
+  if (document.getElementById('page-estoque')?.classList.contains('active')) renderEstoque();
   toast('Ingrediente removido.', 'success');
 }
 
@@ -2570,10 +2574,14 @@ async function deletarInsumo(id) {
   if (!(await confirmDialog('Tem certeza que deseja deletar este insumo?<br><br>Esta ação não pode ser desfeita.', 'Deletar insumo'))) return;
   if (supabase) {
     try { await sbDelete('insumos', 'id=eq.'+id); } catch(e) { toast('Erro: ' + e.message, 'error'); return; }
+    // Apaga entradas de estoque órfãs
+    try { await sbDelete('estoque', 'item_id=eq.'+id+'&tipo=eq.insumo'); } catch(_) {}
   }
   DB.insumos = DB.insumos.filter(x => String(x.id) !== String(id));
+  DB.estoque = DB.estoque.filter(x => !(String(x.item_id) === String(id) && x.tipo === 'insumo'));
   renderInsumos();
   renderInsChips();
+  if (document.getElementById('page-estoque')?.classList.contains('active')) renderEstoque();
   toast('Insumo removido.', 'success');
 }
 
@@ -5077,7 +5085,7 @@ function renderEstoque() {
 
     return `<div class="est-row${critico ? ' critico' : ''}">
       <div class="est-info">
-        <div class="est-name">${item?.nome || e.item_id}</div>
+        <div class="est-name">${item?.nome || '<span style="color:var(--text3);font-style:italic">(item removido)</span>'}</div>
         <div class="est-qty">${e.quantidade} ${item?.unidade || ''} · mín: ${e.minimo ?? '—'}</div>
         ${validadeHtml}
       </div>
@@ -5305,7 +5313,8 @@ function gerarListaMercado() {
       const comprar   = Math.max(0, qtdNecessaria - emEstoque);
       if (comprar <= 0) return null;
       const fmt = n => Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
-      return { nome: item?.nome || itemId, unidade: item?.unidade || '', qtdNecessaria: fmt(qtdNecessaria), emEstoque: fmt(emEstoque), comprar: fmt(comprar) };
+      if (!item) return null; // ignora itens cujo ingrediente/insumo foi removido
+      return { nome: item.nome, unidade: item.unidade || '', qtdNecessaria: fmt(qtdNecessaria), emEstoque: fmt(emEstoque), comprar: fmt(comprar) };
     }).filter(Boolean);
 
     if (itens.length === 0) {
