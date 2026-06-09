@@ -325,6 +325,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 .btn-secondary { background: var(--bg2); color: var(--text2); border: 1.5px solid var(--border); }
 .btn-danger   { background: var(--red-light); color: var(--red); border: 1.5px solid #f5c6c2; }
 .btn-ghost    { background: transparent; color: var(--text3); padding: 8px 10px; }
+.modal-header .btn-ghost.btn-icon { background: var(--bg2); color: var(--text2); border: 1.5px solid var(--border2); font-size: 1rem; font-weight: 700; }
 .btn-sm   { padding: 7px 13px; font-size: 0.82rem; }
 .btn-icon { padding: 9px; border-radius: 10px; }
 .btn-full { width: 100%; justify-content: center; }
@@ -745,10 +746,9 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   align-items: center;
 }
 .pedido-item-row .pir-line2 {
-  display: grid;
-  grid-template-columns: 1.2fr 70px;
-  gap: 7px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .pedido-item-row .pir-precos {
   display: grid;
@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '11', data: '8 de junho de 2026' };
+const APP_VERSION = { numero: '12', data: '8 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -3481,7 +3481,7 @@ function addLinhaPedido() {
       </select>
       <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
     </div>
-    <div class="pir-line2" style="flex-direction:column;gap:6px">
+    <div class="pir-line2">
       <div class="pir-modo-toggle">
         <button type="button" class="pir-modo-btn active" data-modo="aro" onclick="onChangePedidoModo(this)">📐 Aro</button>
         <button type="button" class="pir-modo-btn" data-modo="peso" onclick="onChangePedidoModo(this)">⚖️ Peso</button>
@@ -3828,7 +3828,8 @@ function calcularTotalPedidoForm() {
     // Info de producao com ingredientes por receita
     producaoInfo.push({
       nome: r.nome,
-      aro,
+      aro:  modoAtivo === 'aro'  ? (row.querySelector('.pir-aro').value  || null) : null,
+      peso: modoAtivo === 'peso' ? (parseInt(row.querySelector('.pir-peso').value) || null) : null,
       qtdSolicitada,
       receitasNecessarias,
       producaoTotal,
@@ -3912,7 +3913,9 @@ function calcularTotalPedidoForm() {
       producaoBox.style.display = 'block';
       const blocosReceitas = producaoInfo.map(p => {
         const temItens = p.ingredientes.length > 0;
-        const aroBadge = p.aro ? ` <span style="font-size:0.72rem;color:var(--accent);font-weight:600">📐 Aro ${p.aro}</span>` : '';
+        const aroBadge = p.peso
+          ? ` <span style="font-size:0.72rem;color:var(--accent);font-weight:600">⚖️ ${p.peso >= 1000 ? (p.peso/1000).toLocaleString('pt-BR') + 'kg' : p.peso + 'g'}</span>`
+          : p.aro ? ` <span style="font-size:0.72rem;color:var(--accent);font-weight:600">📐 Aro ${p.aro}</span>` : '';
         return `
         <div style="padding:10px 0;border-bottom:1px solid var(--border)">
           <div style="font-weight:600;color:var(--text1);font-size:0.95rem">${p.nome}${aroBadge}</div>
