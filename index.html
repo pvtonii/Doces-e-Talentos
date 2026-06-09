@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '12', data: '8 de junho de 2026' };
+const APP_VERSION = { numero: '13', data: '8 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -3495,17 +3495,7 @@ function addLinhaPedido() {
           <option value="20">📐 Aro 20</option>
           <option value="25">📐 Aro 25</option>
         </select>
-        <select class="form-select pir-peso" style="font-size:0.85rem;padding:9px;flex:1;display:none" onchange="onChangePedidoPeso(this)">
-          <option value="">Sem peso</option>
-          <option value="300">⚖️ 300g</option>
-          <option value="500">⚖️ 500g</option>
-          <option value="700">⚖️ 700g</option>
-          <option value="1000">⚖️ 1 kg</option>
-          <option value="1500">⚖️ 1,5 kg</option>
-          <option value="2000">⚖️ 2 kg</option>
-          <option value="2500">⚖️ 2,5 kg</option>
-          <option value="3000">⚖️ 3 kg</option>
-        </select>
+        <input type="number" class="form-input pir-peso" min="1" placeholder="Peso (g)" style="font-size:0.85rem;padding:9px;flex:1;display:none" oninput="onChangePedidoPeso(this)">
         <input type="number" class="form-input pir-qtd" style="font-size:0.85rem;padding:9px;width:72px" value="1" min="1"
           placeholder="Qtd" oninput="calcularTotalPedidoForm()">
       </div>
