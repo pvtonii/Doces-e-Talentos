@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '13', data: '8 de junho de 2026' };
+const APP_VERSION = { numero: '14', data: '9 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -3646,7 +3646,7 @@ function atualizarLinhaInsumoPedido(row, forceResetCobrado) {
   cusEl.textContent = 'R$ ' + custoTotal.toFixed(2);
   // Auto-atualiza "Cobrar" se: forçado OU usuário ainda não editou manualmente
   if (forceResetCobrado || !touched) {
-    cobEl.value = custoTotal > 0 ? custoTotal.toFixed(2) : '';
+    cobEl.value = custoTotal > 0 ? (custoTotal * 1.5).toFixed(2) : '';
   }
 }
 
@@ -3722,7 +3722,7 @@ function atualizarLinhaAdicionalPedido(row, forceResetCobrado) {
   const custoTotal = custoUnit * qtd;
   cusEl.textContent = 'R$ ' + custoTotal.toFixed(2);
   if (forceResetCobrado || !touched) {
-    cobEl.value = custoTotal > 0 ? custoTotal.toFixed(2) : '';
+    cobEl.value = custoTotal > 0 ? (custoTotal * 2).toFixed(2) : '';
   }
 }
 
@@ -4325,8 +4325,8 @@ async function salvarPedido() {
       const ins = DB.insumos.find(x => String(x.id) === String(insId));
       const custoUnit = (ins && ins.qtd_embalagem > 0) ? (ins.preco / ins.qtd_embalagem) : 0;
       const custoCalc = custoUnit * qtd;
-      // Default: cobrar = custo se usuário não preencheu
-      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : custoCalc;
+      // Default: cobrar = custo × 1.5 (50% markup) se usuário não preencheu
+      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : (custoCalc * 1.5);
       insumos_pedido.push({
         insumo_id:     insId,
         quantidade:    qtd,
@@ -4345,7 +4345,7 @@ async function salvarPedido() {
       const ing = DB.ingredientes.find(x => String(x.id) === String(ingId));
       const custoUnit = (ing && ing.qtd_embalagem > 0) ? (ing.preco / ing.qtd_embalagem) : 0;
       const custoCalc = custoUnit * qtd;
-      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : custoCalc;
+      const precoCobrado = (!isNaN(cobVal) && cobVal > 0) ? cobVal : (custoCalc * 2);
       adicionais_pedido.push({
         ingrediente_id: ingId,
         quantidade:     qtd,
