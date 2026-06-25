@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '14', data: '9 de junho de 2026' };
+const APP_VERSION = { numero: '15', data: '9 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -2759,7 +2759,7 @@ function calcularMargem(precoUnitario, custoUnitario) {
 
 function selomargem(margem) {
   if (margem === null || margem === undefined) return { label: '—', cor: 'var(--text3)', bg: 'transparent', icon: '' };
-  if (margem < 0.60)  return { label: 'Lucro baixo',    cor: 'var(--red)',    bg: 'var(--red-light)',    icon: '⚠️' };
+  if (margem < 0.55)  return { label: 'Lucro baixo',    cor: 'var(--red)',    bg: 'var(--red-light)',    icon: '⚠️' };
   if (margem < 0.75)  return { label: 'Margem OK',      cor: 'var(--green)',  bg: 'var(--green-light)',  icon: '✅' };
                       return { label: 'Margem Premium', cor: 'var(--accent)', bg: 'var(--accent-light)', icon: '💎' };
 }
