@@ -142,7 +142,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   margin: 0 auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 20px);
+  padding-bottom: calc(var(--nav-h) + 20px);
 }
 
 /* ══════════════════════════════════════════
@@ -198,7 +198,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 ══════════════════════════════════════════ */
 .more-drawer {
   position: fixed;
-  bottom: calc(var(--nav-h) + var(--safe-bottom));
+  bottom: var(--nav-h);
   left: 50%;
   transform: translateX(-50%) translateY(110%);
   width: 100%;
@@ -256,7 +256,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 ══════════════════════════════════════════ */
 .fab {
   position: fixed;
-  bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+  bottom: calc(var(--nav-h) + 14px);
   right: 18px;
   width: 54px; height: 54px;
   background: var(--accent);
@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '17', data: '9 de junho de 2026' };
+const APP_VERSION = { numero: '18', data: '9 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
