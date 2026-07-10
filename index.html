@@ -1353,7 +1353,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
             <option value="">Selecionar...</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Rendimento</label><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10 unidades" oninput="atualizarMargemUI()"></div>
+        <div class="form-group"><label class="form-label">Rendimento</label><div style="display:flex;gap:8px"><input type="number" class="form-input" id="rec-rendimento" placeholder="ex: 10" oninput="atualizarMargemUI()" style="flex:1"><select class="form-select" id="rec-rendimento-unidade" style="width:72px" onchange="atualizarMargemUI()"><option value="un">un</option><option value="g">g</option><option value="kg">kg</option></select></div></div>
       </div>
       <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="rec-descricao" placeholder="Breve descrição..."></div>
       <div class="divider"></div>
@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '18', data: '9 de junho de 2026' };
+const APP_VERSION = { numero: '19', data: '10 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -2694,9 +2694,10 @@ function confirmDialog(msg, titulo = 'Confirmar') {
 // ──────────────────────────────────────────
 function calcularCustoUnitario(r) {
   if (!r) return 0;
-  const total      = calcularCustoReceita(r);
-  const rendimento = r.rendimento || 1;
-  return total / rendimento;
+  const total    = calcularCustoReceita(r);
+  const unidade  = r.rendimento_unidade || 'un';
+  if (unidade !== 'un') return total; // custo do lote completo (peso)
+  return total / (r.rendimento || 1);
 }
 
 // ──────────────────────────────────────────
@@ -2715,9 +2716,16 @@ function fatorPeso(peso) {
   if (!peso) return 1.0;
   return FATORES_PESO[peso] || (peso / 1000);
 }
+// Fator de peso considerando o rendimento da receita (g ou kg)
+function fatorPesoReceita(peso_g, r) {
+  const unidade = r?.rendimento_unidade || 'un';
+  if (unidade === 'g')  return peso_g / (r.rendimento || 1000);
+  if (unidade === 'kg') return peso_g / ((r.rendimento || 1) * 1000);
+  return fatorPeso(peso_g);
+}
 // Retorna o fator correto dado um item de pedido (aro ou peso)
-function fatorItem(item) {
-  if (item.peso) return fatorPeso(item.peso);
+function fatorItem(item, r) {
+  if (item.peso) return fatorPesoReceita(item.peso, r);
   return fatorAro(item.aro);
 }
 
@@ -2725,31 +2733,37 @@ function fatorItem(item) {
 // Insumos não fazem mais parte da receita — vêm direto do pedido.
 function calcularCustoUnitarioEscalado(r, aro, fatorOverride) {
   if (!r) return 0;
-  const rendimento = r.rendimento || 1;
-  const fator = fatorOverride !== undefined ? fatorOverride : fatorAro(aro);
-  let custoIng = 0;
+  const unidade  = r.rendimento_unidade || 'un';
+  const fator    = fatorOverride !== undefined ? fatorOverride : fatorAro(aro);
+  let custoIng   = 0;
   (r.ingredientes || []).forEach(item => {
     const ing = DB.ingredientes.find(x => String(x.id) === String(item.id));
     if (ing && ing.qtd_embalagem > 0)
       custoIng += (ing.preco / ing.qtd_embalagem) * (item.quantidade || 0);
   });
-  return (custoIng * fator) / rendimento;
+  // Receitas de peso: fator já escala para a quantidade pedida, não dividir por rendimento
+  const divisor = unidade === 'un' ? (r.rendimento || 1) : 1;
+  return (custoIng * fator) / divisor;
 }
 
-// Preço sugerido escalado: pega o preco_venda da receita (referência Aro 17)
+// Preço sugerido escalado: pega o preco_venda da receita (referência Aro 17 / lote base)
 // e aplica o fator do aro/peso escolhido.
 function precoSugeridoEscalado(r, aro, fatorOverride) {
   if (!r) return 0;
-  const rendimento = parseInt(r.rendimento) || 1;
-  const fator = fatorOverride !== undefined ? fatorOverride : fatorAro(aro);
-  return ((parseFloat(r.preco_venda) || 0) * fator) / rendimento;
+  const unidade  = r.rendimento_unidade || 'un';
+  const fator    = fatorOverride !== undefined ? fatorOverride : fatorAro(aro);
+  const venda    = parseFloat(r.preco_venda) || 0;
+  // Receitas de peso: fator já representa a proporção, não dividir por rendimento
+  const divisor  = unidade === 'un' ? (parseInt(r.rendimento) || 1) : 1;
+  return (venda * fator) / divisor;
 }
 
 // Preço unitário da receita SEM aro (usado em cards/listagens de receita)
 function precoUnitarioReceita(r) {
   if (!r) return 0;
-  const rendimento = parseInt(r.rendimento) || 1;
-  return (parseFloat(r.preco_venda) || 0) / rendimento;
+  const unidade = r.rendimento_unidade || 'un';
+  if (unidade !== 'un') return parseFloat(r.preco_venda) || 0; // preço do lote completo
+  return (parseFloat(r.preco_venda) || 0) / (parseInt(r.rendimento) || 1);
 }
 
 function calcularMargem(precoUnitario, custoUnitario) {
@@ -2837,10 +2851,13 @@ function renderReceitas() {
   el.innerHTML = dados.map(r => {
     const custoTotal    = calcularCustoReceita(r);
     const rendimento    = r.rendimento || 1;
-    const custoUnitario = custoTotal / rendimento;
+    const rUnitCard     = r.rendimento_unidade || 'un';
+    const custoUnitario = rUnitCard === 'un' ? custoTotal / rendimento : custoTotal;
     const precoVenda    = precoUnitarioReceita(r);
     const margem        = calcularMargem(precoVenda, custoUnitario);
     const selo          = selomargem(margem);
+    const rendLabelCard = rUnitCard === 'g' ? `${rendimento}g` : rUnitCard === 'kg' ? `${rendimento}kg` : `${rendimento} un`;
+    const custoLabelCard = rUnitCard !== 'un' ? `Custo/${rUnitCard === 'g' ? 'g' : 'kg'}` : 'Custo/un';
     return `<div class="rec-card" onclick="verReceita('${r.id}')">
       <div class="rec-card-top">
         <span class="rec-card-emoji">${CAT_ICONS[r.categoria] || '🍰'}</span>
@@ -2849,10 +2866,10 @@ function renderReceitas() {
       <div class="rec-card-name">${r.nome}</div>
       <div class="rec-card-desc">${r.descricao || '—'}</div>
       <div class="rec-card-footer">
-        <span>Custo/un: <b style="color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</b></span>
+        <span>${custoLabelCard}: <b style="color:var(--accent)">R$ ${custoUnitario.toFixed(rUnitCard === 'g' ? 4 : 2)}</b></span>
         <span>Venda: <b>${precoVenda > 0 ? 'R$ ' + precoVenda.toFixed(2) : '—'}</b></span>
       </div>
-      ${rendimento > 1 ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Total: R$ ${custoTotal.toFixed(2)} · rende ${rendimento}</div>` : ''}
+      ${r.rendimento ? `<div style="font-size:0.75rem;color:var(--text3);margin-top:4px;font-style:italic">Total: R$ ${custoTotal.toFixed(2)} · rende ${rendLabelCard}</div>` : ''}
       ${margem !== null ? `<div style="margin-top:8px"><span class="badge" style="background:${selo.bg};color:${selo.cor}">${selo.icon} ${selo.label} · ${(margem*100).toFixed(0)}%</span></div>` : ''}
       <div class="rec-card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editarReceita('${r.id}')">✏️ Editar</button>
@@ -2961,16 +2978,28 @@ function recalcularCusto() {
 // Atualiza os campos de custo/unidade e margem dentro do modal de Nova/Editar Receita.
 // Usa o helper calcularMargem(preco, custo) e o selomargem para padrão visual unificado.
 function atualizarMargemUI(custo) {
-  const c           = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
-  const rendimento  = parseInt(document.getElementById('rec-rendimento').value) || 1;
-  const custoUnit   = c / rendimento;
-  const vendaFornada = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
-  const vendaUnit   = vendaFornada / rendimento; // preço da fornada → preço unitário
-  const el          = document.getElementById('rec-margem');
-  const elUnit      = document.getElementById('rec-custo-porcao');
-  if (elUnit) elUnit.textContent = rendimento > 1 ? `R$ ${custoUnit.toFixed(2)} (rende ${rendimento})` : '—';
-  const m = calcularMargem(vendaUnit, custoUnit);
-  if (m !== null && custoUnit > 0) {
+  const c        = custo !== undefined ? custo : parseFloat(document.getElementById('rec-custo-total').textContent.replace('R$ ', '')) || 0;
+  const rendimento = parseInt(document.getElementById('rec-rendimento').value) || 1;
+  const unidade    = document.getElementById('rec-rendimento-unidade')?.value || 'un';
+  const venda      = parseFloat(document.getElementById('rec-preco-venda').value) || 0;
+  const el         = document.getElementById('rec-margem');
+  const elUnit     = document.getElementById('rec-custo-porcao');
+
+  let custoCalc, vendaCalc, labelRend;
+  if (unidade === 'g' || unidade === 'kg') {
+    custoCalc = c;            // custo do lote
+    vendaCalc = venda;        // preço do lote
+    const rendLabel = unidade === 'kg' ? `${rendimento}kg` : `${rendimento}g`;
+    const custoG    = unidade === 'kg' ? c / (rendimento * 1000) : c / rendimento;
+    labelRend = `R$ ${custoG.toFixed(4)}/g (rende ${rendLabel})`;
+  } else {
+    custoCalc = c / rendimento;
+    vendaCalc = venda / rendimento;
+    labelRend = rendimento > 1 ? `R$ ${custoCalc.toFixed(2)} (rende ${rendimento} un)` : '—';
+  }
+  if (elUnit) elUnit.textContent = labelRend;
+  const m = calcularMargem(vendaCalc, custoCalc);
+  if (m !== null && custoCalc > 0) {
     const selo = selomargem(m);
     el.innerHTML = `<span style="color:${selo.cor}">${selo.icon} ${(m*100).toFixed(1)}% · ${selo.label}</span>`;
   } else {
@@ -2985,8 +3014,9 @@ function atualizarMargemUI(custo) {
 function fecharModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('rec-rendimento').value  = '';
-  document.getElementById('rec-preco-venda').value = '';
+  document.getElementById('rec-rendimento').value         = '';
+  document.getElementById('rec-rendimento-unidade').value = 'un';
+  document.getElementById('rec-preco-venda').value        = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   const ct = document.getElementById('rec-custo-total');  if (ct) ct.textContent = 'R$ 0,00';
   const cp = document.getElementById('rec-custo-porcao'); if (cp) cp.textContent = '—';
@@ -2999,8 +3029,9 @@ function abrirModalReceita() {
   document.getElementById('rec-edit-id').value = '';
   document.getElementById('rec-modal-title').textContent = 'Nova Receita';
   ['rec-nome','rec-descricao','rec-obs'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('rec-rendimento').value   = '';
-  document.getElementById('rec-preco-venda').value  = '';
+  document.getElementById('rec-rendimento').value         = '';
+  document.getElementById('rec-rendimento-unidade').value = 'un';
+  document.getElementById('rec-preco-venda').value        = '';
   document.getElementById('rec-ing-lista').innerHTML = '';
   document.getElementById('rec-custo-total').textContent = 'R$ 0,00';
   document.getElementById('rec-margem').textContent = '—';
@@ -3016,8 +3047,9 @@ function editarReceita(id) {
   document.getElementById('rec-nome').value             = r.nome;
   document.getElementById('rec-categoria').value        = r.categoria;
   document.getElementById('rec-descricao').value        = r.descricao || '';
-  document.getElementById('rec-rendimento').value       = r.rendimento || '';
-  document.getElementById('rec-preco-venda').value      = r.preco_venda || '';
+  document.getElementById('rec-rendimento').value         = r.rendimento || '';
+  document.getElementById('rec-rendimento-unidade').value = r.rendimento_unidade || 'un';
+  document.getElementById('rec-preco-venda').value        = r.preco_venda || '';
   document.getElementById('rec-obs').value              = r.obs || '';
   document.getElementById('rec-ing-lista').innerHTML    = '';
 
@@ -3053,8 +3085,9 @@ async function salvarReceita() {
     nome,
     categoria:   document.getElementById('rec-categoria').value,
     descricao:   document.getElementById('rec-descricao').value.trim(),
-    rendimento:  parseInt(document.getElementById('rec-rendimento').value) || null,
-    preco_venda: parseFloat(document.getElementById('rec-preco-venda').value) || null,
+    rendimento:         parseInt(document.getElementById('rec-rendimento').value) || null,
+    rendimento_unidade: document.getElementById('rec-rendimento-unidade').value || 'un',
+    preco_venda:        parseFloat(document.getElementById('rec-preco-venda').value) || null,
     obs:         document.getElementById('rec-obs').value.trim(),
     ingredientes,
     insumos:     []
@@ -3101,11 +3134,16 @@ function verReceita(id) {
   if (!r) return;
   const custoTotal    = calcularCustoReceita(r);
   const rendimento    = r.rendimento || 1;
-  const custoUnitario = custoTotal / rendimento;
+  const rUnit         = r.rendimento_unidade || 'un';
+  const custoUnitario = rUnit === 'un' ? custoTotal / rendimento : custoTotal;
   const precoVenda    = precoUnitarioReceita(r);
   const margem        = calcularMargem(precoVenda, custoUnitario);
   const selo          = selomargem(margem);
   const lucroUnit     = precoVenda - custoUnitario;
+  const rendLabel     = rUnit === 'g' ? `${rendimento}g` : rUnit === 'kg' ? `${rendimento}kg` : `${rendimento} ${rendimento === 1 ? 'unidade' : 'unidades'}`;
+  const custoLabel    = rUnit === 'g' ? 'Custo por grama' : rUnit === 'kg' ? 'Custo por kg' : 'Custo por unidade';
+  const vendaLabel    = rUnit !== 'un' ? `Preço de venda (lote ${rendLabel})` : 'Preço de venda (unidade)';
+  const lucroLabel    = rUnit !== 'un' ? 'Lucro por lote' : 'Lucro por unidade';
 
   // Linhas com custo individual de cada item
   const ingRows = (r.ingredientes || []).map(item => {
@@ -3126,7 +3164,7 @@ function verReceita(id) {
   document.getElementById('det-rec-body').innerHTML = `
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <span class="badge badge-accent">${r.categoria}</span>
-      ${r.rendimento ? `<span class="badge badge-gray">${r.rendimento} ${r.rendimento === 1 ? 'unidade' : 'unidades'}</span>` : ''}
+      ${r.rendimento ? `<span class="badge badge-gray">rende ${rendLabel}</span>` : ''}
     </div>
     ${r.descricao ? `<p class="text-muted" style="margin-bottom:14px">${r.descricao}</p>` : ''}
 
@@ -3145,19 +3183,19 @@ function verReceita(id) {
       </div>
       <div class="mercado-item">
         <span>Rendimento</span>
-        <span style="font-weight:700">${rendimento} ${rendimento === 1 ? 'unidade' : 'unidades'}</span>
+        <span style="font-weight:700">${rendLabel}</span>
       </div>
       <div class="mercado-item" style="background:var(--accent-light);border-radius:8px;padding:8px;margin-top:4px">
-        <span style="font-weight:700">Custo por unidade</span>
-        <span style="font-weight:700;color:var(--accent)">R$ ${custoUnitario.toFixed(2)}</span>
+        <span style="font-weight:700">${custoLabel}</span>
+        <span style="font-weight:700;color:var(--accent)">R$ ${custoUnitario.toFixed(rUnit === 'g' ? 4 : 2)}</span>
       </div>
       ${precoVenda > 0 ? `
         <div class="mercado-item" style="margin-top:8px">
-          <span>Preço de venda (unidade)</span>
+          <span>${vendaLabel}</span>
           <span style="font-weight:700">R$ ${precoVenda.toFixed(2)}</span>
         </div>
         <div class="mercado-item">
-          <span>Lucro por unidade</span>
+          <span>${lucroLabel}</span>
           <span style="font-weight:700;color:${lucroUnit >= 0 ? 'var(--green)' : 'var(--red)'}">R$ ${lucroUnit.toFixed(2)}</span>
         </div>
         <div class="mercado-item" style="background:${selo.bg};border-radius:8px;padding:8px;margin-top:4px">
@@ -3236,7 +3274,7 @@ function calcularTotalPedido(p) {
     // Fallback: preço sugerido escalado pelo aro/peso
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
-    return acc + precoSugeridoEscalado(r, null, fatorItem(i)) * (i.quantidade || 1);
+    return acc + precoSugeridoEscalado(r, null, fatorItem(i, r)) * (i.quantidade || 1);
   }, 0);
 
   // Soma insumos do pedido — usa snapshot se efetuado, senão usa preco_cobrado salvo
@@ -3477,7 +3515,7 @@ function addLinhaPedido() {
     <div class="pir-line1">
       <select class="form-select pir-receita" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
         <option value="">Receita...</option>
-        ${DB.receitas.map(r => `<option value="${r.id}">${r.nome}${r.rendimento > 1 ? ' (rende '+r.rendimento+')' : ''}</option>`).join('')}
+        ${DB.receitas.map(r => { const _ru=r.rendimento_unidade||'un'; const _rl=_ru==='g'?`${r.rendimento}g`:_ru==='kg'?`${r.rendimento}kg`:r.rendimento>1?`${r.rendimento} un`:''; return `<option value="${r.id}">${r.nome}${_rl?' (rende '+_rl+')':''}</option>`; }).join('')}
       </select>
       <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
     </div>
@@ -3525,9 +3563,9 @@ function onChangePedidoReceita(sel) {
   // Quantidade do pedido é independente do rendimento
   // (a receita pode ser produzida várias vezes para atender o pedido)
   if (r) {
-    inp.title = r.rendimento > 1
-      ? `Receita rende ${r.rendimento} unidades por lote`
-      : `Receita rende 1 unidade`;
+    const _ru = r.rendimento_unidade || 'un';
+    const _rl = _ru === 'g' ? `${r.rendimento}g` : _ru === 'kg' ? `${r.rendimento}kg` : `${r.rendimento} unidade${r.rendimento !== 1 ? 's' : ''}`;
+    inp.title = r.rendimento ? `Receita rende ${_rl} por lote` : '';
   } else {
     inp.removeAttribute('title');
   }
@@ -3572,7 +3610,7 @@ function atualizarLinhaPedido(row, resetCobrado) {
   }
   const modoAtivo = row.querySelector('.pir-modo-btn.active')?.dataset.modo || 'aro';
   const fator = modoAtivo === 'peso'
-    ? fatorPeso(parseInt(row.querySelector('.pir-peso').value) || 0)
+    ? fatorPesoReceita(parseInt(row.querySelector('.pir-peso').value) || 0, r)
     : fatorAro(row.querySelector('.pir-aro').value);
   const sugerido = precoSugeridoEscalado(r, null, fator);
   sugEl.textContent = 'R$ ' + sugerido.toFixed(2);
@@ -3775,7 +3813,7 @@ function calcularTotalPedidoForm() {
 
     const modoAtivo = row.querySelector('.pir-modo-btn.active')?.dataset.modo || 'aro';
     const fator = modoAtivo === 'peso'
-      ? fatorPeso(parseInt(row.querySelector('.pir-peso').value) || 0)
+      ? fatorPesoReceita(parseInt(row.querySelector('.pir-peso').value) || 0, r)
       : fatorAro(row.querySelector('.pir-aro').value);
     const sugerido = precoSugeridoEscalado(r, null, fator);
     const precoCobrado = parseFloat(cobInput.value);
@@ -4052,9 +4090,9 @@ function editarPedido(id) {
     const r = DB.receitas.find(x => String(x.id) === String(item.receita_id));
     if (r) {
       const inpQtd = linha.querySelector('.pir-qtd');
-      inpQtd.title = r.rendimento > 1
-        ? `Receita rende ${r.rendimento} unidades por lote`
-        : `Receita rende 1 unidade`;
+      const _ru2 = r.rendimento_unidade || 'un';
+      const _rl2 = _ru2 === 'g' ? `${r.rendimento}g` : _ru2 === 'kg' ? `${r.rendimento}kg` : `${r.rendimento} unidade${r.rendimento !== 1 ? 's' : ''}`;
+      inpQtd.title = r.rendimento ? `Receita rende ${_rl2} por lote` : '';
     }
   });
 
@@ -4140,7 +4178,7 @@ function gerarSnapshotCusto(itens, insumosPedido, adicionaisPedido) {
     const qtdVendida    = item.quantidade || 1;
     const rendimento    = r.rendimento || 1;
     const aro           = (item.aro !== null && item.aro !== undefined) ? item.aro : null;
-    const fator         = fatorItem(item);
+    const fator         = fatorItem(item, r);
     // Custo unitário ESCALADO pelo aro/peso (só ingredientes — insumos saíram da receita)
     const custoUnitario = calcularCustoUnitarioEscalado(r, null, fator);
     // Preço cobrado tem prioridade; fallback pro sugerido escalado se não houver
@@ -4270,7 +4308,7 @@ function calcularCustoPedido(p) {
   let custo = (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
-    const custoUnit = calcularCustoUnitarioEscalado(r, null, fatorItem(i));
+    const custoUnit = calcularCustoUnitarioEscalado(r, null, fatorItem(i, r));
     return acc + custoUnit * (i.quantidade || 1);
   }, 0);
   custo += (p.insumos_pedido || []).reduce((acc, i) => {
@@ -4299,8 +4337,8 @@ async function salvarPedido() {
       const modoAtivo = row.querySelector('.pir-modo-btn.active')?.dataset.modo || 'aro';
       const aro  = modoAtivo === 'aro'  ? (row.querySelector('.pir-aro').value  === '' ? null : parseInt(row.querySelector('.pir-aro').value))  : null;
       const peso = modoAtivo === 'peso' ? (row.querySelector('.pir-peso').value === '' ? null : parseInt(row.querySelector('.pir-peso').value)) : null;
-      const fator = modoAtivo === 'peso' ? fatorPeso(peso) : fatorAro(aro);
-      const r   = DB.receitas.find(x => String(x.id) === String(id));
+      const r     = DB.receitas.find(x => String(x.id) === String(id));
+      const fator = modoAtivo === 'peso' ? fatorPesoReceita(peso, r) : fatorAro(aro);
       const precoCobrado = (!isNaN(cobVal) && cobVal > 0)
         ? cobVal
         : (r ? precoSugeridoEscalado(r, null, fator) : 0);
@@ -4463,7 +4501,7 @@ function verPedido(id) {
     const r   = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return `<div class="mercado-item"><span>? ×${i.quantidade}</span><span>—</span></div>`;
     const aro = (i.aro !== null && i.aro !== undefined) ? i.aro : null;
-    const fator = fatorItem(i);
+    const fator = fatorItem(i, r);
     // Só usa snapshot se pedido efetuado; senão calcula dinâmico (com aro/peso)
     const usarSnap = p.status === 'efetuado' && Array.isArray(p.itens_snapshot) && p.itens_snapshot.length > 0;
     const snap = usarSnap ? p.itens_snapshot.find(s => String(s.receita_id) === String(i.receita_id)) : null;
@@ -4679,7 +4717,7 @@ function gerarOrcamento() {
     if (r) {
       const modoAtivo = row.querySelector('.pir-modo-btn.active')?.dataset.modo || 'aro';
       const fator = modoAtivo === 'peso'
-        ? fatorPeso(parseInt(row.querySelector('.pir-peso').value) || 0)
+        ? fatorPesoReceita(parseInt(row.querySelector('.pir-peso').value) || 0, r)
         : fatorAro(row.querySelector('.pir-aro').value);
       const sugerido = precoSugeridoEscalado(r, null, fator);
       const preco = (!isNaN(cobVal) && cobVal > 0) ? cobVal : sugerido;
@@ -5730,8 +5768,9 @@ create table if not exists receitas (
   nome         text not null,
   categoria    text not null,
   descricao    text,
-  rendimento   integer check (rendimento > 0),
-  preco_venda  numeric check (preco_venda >= 0),
+  rendimento          integer check (rendimento > 0),
+  rendimento_unidade  text not null default 'un' check (rendimento_unidade in ('un','g','kg')),
+  preco_venda         numeric check (preco_venda >= 0),
   obs          text,
   ingredientes jsonb not null default '[]',
   insumos      jsonb not null default '[]',
