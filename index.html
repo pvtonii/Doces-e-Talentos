@@ -1651,7 +1651,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '19', data: '10 de junho de 2026' };
+const APP_VERSION = { numero: '20', data: '10 de junho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -4205,15 +4205,20 @@ function gerarSnapshotCusto(itens, insumosPedido, adicionaisPedido) {
       margem:          margem !== null ? parseFloat(margem.toFixed(4)) : null,
     });
 
-    // Detalhamento de ingredientes consumidos (ESCALADOS pelo fator do aro):
-    // qtd_receita / rendimento * qtdVendida * fator
+    // Acumula custo real da receita (já calculado correctamente por calcularCustoUnitarioEscalado)
+    custoTotal += custo;
+
+    // Detalhamento de ingredientes consumidos (para lista de produção)
+    const unidadeRec = r.rendimento_unidade || 'un';
     (r.ingredientes || []).forEach(ri => {
       const ing = DB.ingredientes.find(x => String(x.id) === String(ri.id));
       if (!ing || !ing.qtd_embalagem) return;
-      const qtdConsumida = (ri.quantidade || 0) / rendimento * qtdVendida * fator;
+      // 'un': divide pelo rendimento (qtd por unidade); 'g'/'kg': fator já inclui a proporção
+      const qtdConsumida = unidadeRec === 'un'
+        ? (ri.quantidade || 0) / rendimento * qtdVendida * fator
+        : (ri.quantidade || 0) * fator * qtdVendida;
       const c = (ing.preco / ing.qtd_embalagem) * qtdConsumida;
       ingSnapshot.push({ nome: ing.nome, qtd: parseFloat(qtdConsumida.toFixed(4)), unidade: ing.unidade, custo: parseFloat(c.toFixed(4)) });
-      custoTotal += c;
     });
   });
 
@@ -4300,11 +4305,7 @@ function gerarSnapshotCusto(itens, insumosPedido, adicionaisPedido) {
   };
 }
 function calcularCustoPedido(p) {
-  // Se já tem snapshot VÁLIDO (pedido efetuado e custo > 0), usa o congelado
-  if (p.status === 'efetuado' && typeof p.custo_total_snapshot === 'number' && p.custo_total_snapshot > 0) {
-    return p.custo_total_snapshot;
-  }
-  // Senão, calcula dinamicamente: custo dos ingredientes escalados + custo dos insumos do pedido + adicionais
+  // Calcula dinamicamente (sempre actualizado com preços correntes)
   let custo = (p.itens || []).reduce((acc, i) => {
     const r = DB.receitas.find(x => String(x.id) === String(i.receita_id));
     if (!r) return acc;
