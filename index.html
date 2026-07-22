@@ -806,6 +806,61 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
   color: #fff;
   font-weight: 700;
 }
+/* ── recipe picker combobox ── */
+.pir-picker-wrap { position: relative; }
+.pir-picker-panel {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0; right: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(60,30,10,0.18);
+  z-index: 200;
+  max-height: 260px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pir-picker-cats {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.pir-picker-cats::-webkit-scrollbar { display: none; }
+.pir-picker-cat {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pir-picker-cat.ativo {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.pir-picker-lista { overflow-y: auto; flex: 1; }
+.pir-picker-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--border);
+}
+.pir-picker-item:last-child { border-bottom: none; }
+.pir-picker-item:active { background: var(--bg2); }
+.pir-picker-item-sub { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+.pir-picker-vazio { padding: 16px; text-align: center; color: var(--text3); font-size: 0.82rem; }
+.pir-busca { cursor: pointer; }
 .pedido-insumo-row,
 .pedido-adicional-row {
   background: var(--bg2);
@@ -1651,7 +1706,7 @@ input, textarea, select, [contenteditable="true"], .orcamento-text {
 //  VERSÃO DO APP
 //  Atualizada manualmente a cada entrega.
 // ════════════════════════════════════════════════════════
-const APP_VERSION = { numero: '20', data: '10 de junho de 2026' };
+const APP_VERSION = { numero: '21', data: '21 de julho de 2026' };
 
 // ════════════════════════════════════════════════════════
 //  PARTE 6 — DADOS INICIAIS (96 ingredientes + 43 insumos)
@@ -3506,6 +3561,86 @@ function filtrarCalDia(dia) {
 }
 
 // ──────────────────────────────────────────
+//  RECIPE PICKER (busca + categorias)
+// ──────────────────────────────────────────
+function abrirPickerReceita(inp) {
+  const wrap = inp.closest('.pir-picker-wrap');
+  const panel = wrap.querySelector('.pir-picker-panel');
+  panel.style.display = 'flex';
+  _renderPickerReceita(wrap, '', '');
+}
+
+function filtrarPickerReceita(inp) {
+  const wrap = inp.closest('.pir-picker-wrap');
+  const panel = wrap.querySelector('.pir-picker-panel');
+  if (panel.style.display === 'none') panel.style.display = 'flex';
+  const catAtiva = wrap.querySelector('.pir-picker-cat.ativo')?.dataset.cat || '';
+  _renderPickerLista(wrap, inp.value.trim(), catAtiva);
+}
+
+function onBlurPickerBusca(inp) {
+  setTimeout(() => {
+    const wrap = inp.closest('.pir-picker-wrap');
+    if (!wrap) return;
+    wrap.querySelector('.pir-picker-panel').style.display = 'none';
+    const id = wrap.querySelector('.pir-receita').value;
+    const r = DB.receitas.find(x => String(x.id) === String(id));
+    inp.value = r ? r.nome : '';
+  }, 160);
+}
+
+function setCatPickerReceita(btn) {
+  const wrap = btn.closest('.pir-picker-wrap');
+  const cat = btn.dataset.cat;
+  wrap.querySelectorAll('.pir-picker-cat').forEach(b => b.classList.toggle('ativo', b.dataset.cat === cat));
+  const busca = wrap.querySelector('.pir-busca');
+  _renderPickerLista(wrap, busca.value.trim(), cat);
+}
+
+function selecionarReceitaPicker(item) {
+  const wrap = item.closest('.pir-picker-wrap');
+  const recId = item.dataset.id;
+  const hidden = wrap.querySelector('.pir-receita');
+  const busca = wrap.querySelector('.pir-busca');
+  const r = DB.receitas.find(x => String(x.id) === String(recId));
+  hidden.value = recId;
+  busca.value = r ? r.nome : '';
+  wrap.querySelector('.pir-picker-panel').style.display = 'none';
+  onChangePedidoReceita(hidden);
+}
+
+function _renderPickerReceita(wrap, texto, catAtiva) {
+  const catsEl = wrap.querySelector('.pir-picker-cats');
+  const cats = [...new Set(DB.receitas.map(r => r.categoria).filter(Boolean))].sort();
+  catsEl.innerHTML = `<button class="pir-picker-cat ativo" data-cat="" onclick="setCatPickerReceita(this)">Todas</button>` +
+    cats.map(c => `<button class="pir-picker-cat" data-cat="${c}" onclick="setCatPickerReceita(this)">${CAT_ICONS[c]||'🍰'} ${c}</button>`).join('');
+  _renderPickerLista(wrap, texto, catAtiva);
+}
+
+function _renderPickerLista(wrap, texto, catAtiva) {
+  const listaEl = wrap.querySelector('.pir-picker-lista');
+  let rec = DB.receitas;
+  if (catAtiva) rec = rec.filter(r => r.categoria === catAtiva);
+  if (texto) {
+    const q = texto.toLowerCase();
+    rec = rec.filter(r => r.nome.toLowerCase().includes(q) || (r.categoria||'').toLowerCase().includes(q));
+  }
+  if (!rec.length) {
+    listaEl.innerHTML = '<div class="pir-picker-vazio">Nenhuma receita encontrada</div>';
+    return;
+  }
+  listaEl.innerHTML = rec.map(r => {
+    const _ru = r.rendimento_unidade || 'un';
+    const _rl = _ru==='g' ? `${r.rendimento}g` : _ru==='kg' ? `${r.rendimento}kg` : r.rendimento>1 ? `${r.rendimento} un` : '';
+    const sub = [r.categoria ? `${CAT_ICONS[r.categoria]||'🍰'} ${r.categoria}` : '', _rl ? `rende ${_rl}` : ''].filter(Boolean).join(' · ');
+    return `<div class="pir-picker-item" data-id="${r.id}" onclick="selecionarReceitaPicker(this)">
+      <div>${r.nome}</div>
+      ${sub ? `<div class="pir-picker-item-sub">${sub}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────
 //  PEDIDOS — MODAL
 // ──────────────────────────────────────────
 function addLinhaPedido() {
@@ -3513,10 +3648,17 @@ function addLinhaPedido() {
   div.className = 'pedido-item-row';
   div.innerHTML = `
     <div class="pir-line1">
-      <select class="form-select pir-receita" style="font-size:0.85rem;padding:9px" onchange="onChangePedidoReceita(this)">
-        <option value="">Receita...</option>
-        ${DB.receitas.map(r => { const _ru=r.rendimento_unidade||'un'; const _rl=_ru==='g'?`${r.rendimento}g`:_ru==='kg'?`${r.rendimento}kg`:r.rendimento>1?`${r.rendimento} un`:''; return `<option value="${r.id}">${r.nome}${_rl?' (rende '+_rl+')':''}</option>`; }).join('')}
-      </select>
+      <div class="pir-picker-wrap">
+        <input type="hidden" class="pir-receita">
+        <input type="text" class="form-input pir-busca" placeholder="🔍 Pesquisar receita..."
+               autocomplete="off" style="font-size:0.85rem;padding:9px;width:100%"
+               onfocus="abrirPickerReceita(this)" oninput="filtrarPickerReceita(this)"
+               onblur="onBlurPickerBusca(this)">
+        <div class="pir-picker-panel" style="display:none">
+          <div class="pir-picker-cats"></div>
+          <div class="pir-picker-lista"></div>
+        </div>
+      </div>
       <button class="btn btn-danger btn-sm btn-icon" onclick="this.closest('.pedido-item-row').remove(); calcularTotalPedidoForm()">✕</button>
     </div>
     <div class="pir-line2">
@@ -4063,6 +4205,8 @@ function editarPedido(id) {
     const linhas = document.querySelectorAll('#ped-itens-lista .pedido-item-row');
     const linha  = linhas[linhas.length - 1];
     linha.querySelector('.pir-receita').value = item.receita_id;
+    const _recEd = DB.receitas.find(x => String(x.id) === String(item.receita_id));
+    if (_recEd) linha.querySelector('.pir-busca').value = _recEd.nome;
     linha.querySelector('.pir-qtd').value     = item.quantidade;
     if (item.peso) {
       // Modo peso
