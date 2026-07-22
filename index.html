@@ -3582,6 +3582,7 @@ function onBlurPickerBusca(inp) {
   setTimeout(() => {
     const wrap = inp.closest('.pir-picker-wrap');
     if (!wrap) return;
+    if (wrap.contains(document.activeElement)) return;
     wrap.querySelector('.pir-picker-panel').style.display = 'none';
     const id = wrap.querySelector('.pir-receita').value;
     const r = DB.receitas.find(x => String(x.id) === String(id));
@@ -3654,7 +3655,7 @@ function addLinhaPedido() {
                autocomplete="off" style="font-size:0.85rem;padding:9px;width:100%"
                onfocus="abrirPickerReceita(this)" oninput="filtrarPickerReceita(this)"
                onblur="onBlurPickerBusca(this)">
-        <div class="pir-picker-panel" style="display:none">
+        <div class="pir-picker-panel" style="display:none" onmousedown="event.preventDefault()">
           <div class="pir-picker-cats"></div>
           <div class="pir-picker-lista"></div>
         </div>
