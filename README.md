@@ -43,6 +43,18 @@ Doces&Talentos/
 └── .gitignore
 ```
 
+## Keepalive (Supabase não pausa)
+
+O Supabase free pausa o projeto depois de ~1 semana sem atividade.
+`.github/workflows/keepalive.yml` grava a hora atual numa linha fixa da tabela
+`keepalive` a cada 6h e lê de volta (escrita + leitura reais), chamando a REST
+API do Supabase direto, já que o app é estático.
+
+Setup (uma vez):
+1. Rodar `supabase/keepalive.sql` no SQL Editor do Supabase.
+2. No GitHub → Settings → Secrets and variables → Actions, criar
+   `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
+
 ## Repositório
 
 [github.com/pvtonii/Doces-e-Talentos](https://github.com/pvtonii/Doces-e-Talentos)

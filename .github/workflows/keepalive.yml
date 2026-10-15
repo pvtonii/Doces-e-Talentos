@@ -1,0 +1,37 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # a cada 6h (Supabase free pausa se achar pouca atividade)
+  workflow_dispatch:       # permite rodar manualmente também
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping keepalive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          URL="${SUPABASE_URL%/}/rest/v1/keepalive"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Upsert numa linha fixa — não cresce a tabela, confirma escrita no banco
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL?on_conflict=id" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates,return=minimal" \
+            -d "{\"id\":1,\"pinged_at\":\"$NOW\"}")
+          echo "Escrita: $STATUS"
+          if [ "$STATUS" != "201" ] && [ "$STATUS" != "204" ]; then
+            echo "Keepalive falhou na escrita com status $STATUS"
+            exit 1
+          fi
+
+          # Lê de volta pra gerar leitura real também
+          BODY=$(curl -s -f "$URL?id=eq.1&select=pinged_at" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY") || { echo "Keepalive falhou na leitura"; exit 1; }
+          echo "Leitura: $BODY"
