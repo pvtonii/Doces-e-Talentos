@@ -25,7 +25,7 @@ jobs:
             -H "Prefer: resolution=merge-duplicates,return=minimal" \
             -d "{\"id\":1,\"pinged_at\":\"$NOW\"}")
           echo "Escrita: $STATUS"
-          if [ "$STATUS" != "201" ] && [ "$STATUS" != "204" ]; then
+          if [ "${STATUS:0:1}" != "2" ]; then  # 201 na 1ª vez, 200 quando a linha já existe
             echo "Keepalive falhou na escrita com status $STATUS"
             exit 1
           fi
